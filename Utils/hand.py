@@ -1,3 +1,8 @@
+"""
+Created on Sat Aug 15 14:27:18 2021
+
+@author: Peter
+"""
 
 class player_index:
     def _player_index(self, text) -> str:

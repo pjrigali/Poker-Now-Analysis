@@ -5,19 +5,13 @@ Created on Sat Nov 21 14:27:18 2020
 @author: Peter
 """
 
-# import time
-import matplotlib.pyplot as plt
-from numpy import array
+import time
 import numpy as np
 import pandas as pd
-from pandas import DataFrame, read_csv, concat
-pd.set_option('display.max_columns', None)
 from collections import Counter
-from collections import namedtuple
 from os import walk
-
-from hand import hand, request, approved, joined, my_cards, small_blind, big_blind, folds, calls, raises, checks, wins, \
-    shows, quits, flop, turn, river, undealt, stand_up, sit_in, player_stacks
+from Utils.hand import hand, folds
+pd.set_option('display.max_columns', None)
 
 
 class Poker:
@@ -26,10 +20,10 @@ class Poker:
         
     def convert_Shapes(self, d):
         
-        dn = array(d)
+        dn = np.array(d)
         for i,j in enumerate(dn):
             dn[i] = j.replace("â£"," Clubs").replace("â¦"," Diamonds").replace("â¥"," Hearts").replace("â"," Spades")
-        return DataFrame(dn)
+        return pd.DataFrame(dn)
 
     def players_in_hand(self, lst):
         
@@ -67,11 +61,11 @@ class Poker:
     def getHands(self, file):
         
         #Load Data
-        df = read_csv('C:\\Users\\Peter\\Desktop\\Personal\\11_Repository\\Poker Related\\Data\\'+file, encoding='latin1')['entry']
+        df = pd.read_csv('C:\\Users\\Peter\\Desktop\\Personal\\11_Repository\\Poker Related\\Data\\'+file, encoding='latin1')['entry']
         df = df.reindex(index=df.index[::-1]).reset_index(drop=True)    
         dfn = self.convert_Shapes(df)   
         #Split into hands
-        dfnn = array(dfn)
+        dfnn = np.array(dfn)
         hands = []
         hand_lst = []
         for i,j in enumerate(dfnn):
@@ -111,7 +105,7 @@ class Poker:
 
     def calcs(self, hands):
         
-        result = DataFrame()
+        # result = pd.DataFrame()
         result = []
         for i in hands:      
             
@@ -257,7 +251,7 @@ class Poker:
                 'Post River Checks', 'Post River Raises', 'Post River Calls', 'Post River Folds',
                 ]
         
-        result_df = DataFrame(result, columns = cols)
+        result_df = pd.DataFrame(result, columns = cols)
 
         return result_df
 
@@ -355,7 +349,7 @@ class Poker:
                 namesn.append(j), b_inn.append(bi[j]), b_outn.append(ju[j])
             names.append(namesn), b_in.append(sum(b_inn)), b_out.append(sum(b_outn))
         
-        wl = DataFrame()     
+        wl = pd.DataFrame()
         wl['Index'] = id_name
         wl['Names'] = names
         wl['Buy-In Amount'] = b_in
