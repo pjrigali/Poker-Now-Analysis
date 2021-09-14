@@ -3,45 +3,82 @@ Created on Sat Aug 15 14:27:18 2021
 
 @author: Peter
 """
+from typing import Optional
 
-class player_index:
-    def _player_index(self, text) -> str:
-        if ' @ ' in self.text:
+
+class PlayerIndex:
+
+    def __repr__(self):
+        return "Player Index"
+
+    def _player_index(self, text) -> Optional[str]:
+        if ' @ ' in text:
             return text.split('@')[1].split('"')[0].strip()
         else:
             return None
-        
-class player_name:
-    def _player_name(self, text) -> str:
-        if ' @ ' in self.text:
+
+
+class PlayerName:
+
+    def __repr__(self):
+        return "Player Name"
+
+    def _player_name(self, text) -> Optional[str]:
+        if ' @ ' in text:
             return text.split('"')[1].split('@')[0].strip()
         else:
             return None
 
-class stack:
-    def _stack(self, text = None) -> int:
-        if 'stack of ' in self.text:
+
+class Stack:
+
+    def __repr__(self):
+        return "Stack"
+
+    def _stack(self, text) -> Optional[int]:
+        if 'stack of ' in text:
             return int(text.split('stack of ')[1].split('.')[0])
         else:
             return None
-        
-class position:
-    def _position(self):
+
+
+class Position:
+
+    def __repr__(self):
+        return "Position"
+
+    def _position(self) -> Optional[str]:
         return None
 
-class winning_hand:
-    def _winning_hand(self):
+
+class WinningHand:
+
+    def __repr__(self):
+        return "Winning Hand"
+
+    def _winning_hand(self) -> Optional[str]:
         return None
 
-class cards:
-    def _cards(self) -> list:
+
+class Cards:
+
+    def __repr__(self):
+        return "Cards"
+
+    def _cards(self) -> Optional[list]:
         return None
 
-class current_round:
-    def _current_round(self):
-            return None
 
-class line_attributes(player_index, player_name, stack, position, winning_hand, cards, current_round):
+class CurrentRound:
+
+    def __repr__(self):
+        return "Current Round"
+
+    def _current_round(self) -> Optional[int]:
+        return None
+
+
+class LineAttributes(PlayerIndex, PlayerName, Stack, Position, WinningHand, Cards, CurrentRound):
 
     def __init__(self, text):
         self.text = text
@@ -53,229 +90,330 @@ class line_attributes(player_index, player_name, stack, position, winning_hand, 
         self.cards = self._cards()
         self.current_round = self._current_round()
 
-class request(line_attributes):
-        def _line_attributes(self, text):
-            return self._line_attributes(self.text)
+
+class Requests(LineAttributes):
+
+    def __repr__(self):
+        return self.player_name + " Requests"
+
+    def _line_attributes(self, text):
+        return self._line_attributes(self.text)
+
+
+class Approved(LineAttributes):
+
+    def __repr__(self):
+        return self.player_name + " Approved"
+
+    def _line_attributes(self, text):
+        return self._line_attributes(self.text)
+
+
+class Joined(LineAttributes):
+
+    def __repr__(self):
+        return self.player_name + " Joined"
+
+    def _line_attributes(self, text):
+        return self._line_attributes(self.text)
+
     
-class approved(line_attributes):
+class MyCards(LineAttributes):
+
+    def __repr__(self):
+        return "Player Cards"
+
     def _line_attributes(self, text):
         return self._line_attributes(self.text)
 
-class joined(line_attributes):
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
-    
-class my_cards(line_attributes):
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
-    
-class small_blind(line_attributes):
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
-    
-class big_blind(line_attributes):
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
- 
-class folds(line_attributes):
-     def _line_attributes(self, text):
-        return self._line_attributes(self.text)
 
-class calls(line_attributes):
-     def _line_attributes(self, text):
-        return self._line_attributes(self.text)
+class SmallBlind(LineAttributes):
 
-class raises(line_attributes):
-     def _line_attributes(self, text):
-        return self._line_attributes(self.text)
+    def __repr__(self):
+        return self.player_name + " Small Blind"
 
-class checks(line_attributes):
-     def _line_attributes(self, text):
-        return self._line_attributes(self.text)
-
-class wins(line_attributes):
     def _line_attributes(self, text):
         return self._line_attributes(self.text)
 
-class shows(line_attributes):
+
+class BigBlind(LineAttributes):
+
+    def __repr__(self):
+        return self.player_name + " Big Blind"
+
     def _line_attributes(self, text):
         return self._line_attributes(self.text)
 
-class quits(line_attributes):
+
+class Folds(LineAttributes):
+
+    def __repr__(self):
+        return self.player_name + " Folds"
+
     def _line_attributes(self, text):
         return self._line_attributes(self.text)
 
-class flop(line_attributes):
+
+class Calls(LineAttributes):
+
+    def __repr__(self):
+        return self.player_name + " Calls"
+
     def _line_attributes(self, text):
         return self._line_attributes(self.text)
 
-class turn(line_attributes):
+
+class Raises(LineAttributes):
+
+    def __repr__(self):
+        return self.player_name + " Raises"
+
     def _line_attributes(self, text):
         return self._line_attributes(self.text)
 
-class river(line_attributes):
+
+class Checks(LineAttributes):
+
+    def __repr__(self):
+        return self.player_name + " Checks"
+
     def _line_attributes(self, text):
         return self._line_attributes(self.text)
 
-class undealt(line_attributes):
+
+class Wins(LineAttributes):
+
+    def __repr__(self):
+        return self.player_name + " Wins"
+
     def _line_attributes(self, text):
         return self._line_attributes(self.text)
 
-class stand_up(line_attributes):
+
+class Shows(LineAttributes):
+
+    def __repr__(self):
+        return self.player_name + " Shows"
+
     def _line_attributes(self, text):
         return self._line_attributes(self.text)
 
-class sit_in(line_attributes):
+
+class Quits(LineAttributes):
+
+    def __repr__(self):
+        return self.player_name + " Quits"
+
     def _line_attributes(self, text):
         return self._line_attributes(self.text)
 
-class player_stacks(line_attributes):
+
+class Flop(LineAttributes):
+
+    def __repr__(self):
+        return "Flop Cards"
+
     def _line_attributes(self, text):
         return self._line_attributes(self.text)
 
-class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, calls, raises, checks, wins, shows, quits,
-           flop, turn, river, undealt, stand_up, sit_in, player_stacks):
+
+class Turn(LineAttributes):
+
+    def __repr__(self):
+        return "Turn Card"
+
+    def _line_attributes(self, text):
+        return self._line_attributes(self.text)
+
+
+class River(LineAttributes):
+
+    def __repr__(self):
+        return "River Card"
+
+    def _line_attributes(self, text):
+        return self._line_attributes(self.text)
+
+
+class Undealt(LineAttributes):
+
+    def __repr__(self):
+        return "Undealt"
+
+    def _line_attributes(self, text):
+        return self._line_attributes(self.text)
+
+
+class StandsUp(LineAttributes):
+
+    def __repr__(self):
+        return "Stand Up"
+
+    def _line_attributes(self, text):
+        return self._line_attributes(self.text)
+
+
+class SitsIn(LineAttributes):
+
+    def __repr__(self):
+        return "Sits In"
+
+    def _line_attributes(self, text):
+        return self._line_attributes(self.text)
+
+
+class PlayerStacks(LineAttributes):
+
+    def __repr__(self):
+        return "Player Stacks"
+
+    def _line_attributes(self, text):
+        return self._line_attributes(self.text)
+
+
+class Hand(Requests, Approved, Joined, MyCards, SmallBlind, BigBlind, Folds, Calls, Raises, Checks, Wins, Shows, Quits,
+           Flop, Turn, River, Undealt, StandsUp, SitsIn, PlayerStacks):
 
     def __init__(self):
         pass
-    
-    def _request(self, line: str) -> request:
+
+    def _request(self, line: str) -> Optional[Requests]:
         
         if 'requested a seat' in line:
-            return request(line)
+            return Requests(line)
         else:
             return None
 
-    def _approved(self, line: str) -> approved:
+    def _approved(self, line: str) -> Optional[Approved]:
         
         if 'The admin approved' in line:
-            return approved(line)
+            return Approved(line)
         else:
             return None
 
-    def _joined(self, line: str) -> joined:
+    def _joined(self, line: str) -> Optional[Joined]:
     
         if 'joined the game' in line:
-            return joined(line)
+            return Joined(line)
         else:
             return None
         
-    def _my_cards(self, line: str) -> my_cards:
+    def _my_cards(self, line: str) -> Optional[MyCards]:
         
         if 'Your hand' in line:
-            return my_cards(line)
+            return MyCards(line)
         else:
             return None
         
-    def _small_blind(self, line: str) -> small_blind:
+    def _small_blind(self, line: str) -> Optional[SmallBlind]:
 
         if 'posts a small blind' in line:
-            return small_blind(line)
+            return SmallBlind(line)
         else:
             return None
 
-    def _big_blind(self, line: str) -> big_blind:
+    def _big_blind(self, line: str) -> Optional[BigBlind]:
 
         if 'posts a big blind' in line:
-            return big_blind(line)
+            return BigBlind(line)
         else:
             return None
         
-    def _folds(self, line: str) -> folds:
+    def _folds(self, line: str) -> Optional[Folds]:
         
         if ' folds' in line:
-            return folds(line)
+            return Folds(line)
         else:
             return None
         
-    def _calls(self, line: str) -> calls:
+    def _calls(self, line: str) -> Optional[Calls]:
 
         if ' calls ' in line:
-            return calls(line)
+            return Calls(line)
         else:
             return None
 
-    def _raises(self, line: str) -> raises:
+    def _raises(self, line: str) -> Optional[Raises]:
 
         if ' bets ' in line:
-            return raises(line)
+            return Raises(line)
         else:
             return None
 
-    def _checks(self, line: str) -> checks:
+    def _checks(self, line: str) -> Optional[Checks]:
 
         if ' checks' in line:
-            return checks(line)
+            return Checks(line)
         else:
             return None
 
-    def _wins(self, line: str) -> wins:
+    def _wins(self, line: str) -> Optional[Wins]:
 
         if ' collected ' in line:
-            return wins(line)
+            return Wins(line)
         else:
             return None
 
-    def _shows(self, line: str) -> shows:
+    def _shows(self, line: str) -> Optional[Shows]:
 
         if ' shows a ' in line:
-            return shows(line)
+            return Shows(line)
         else:
             return None
 
-    def _quits(self, line: str) -> quits:
+    def _quits(self, line: str) -> Optional[Quits]:
 
         if ' quits the game ' in line:
-            return quits(line)
+            return Quits(line)
         else:
             return None
 
-    def _flop(self, line: str) -> flop:
+    def _flop(self, line: str) -> Optional[Flop]:
         
         if 'Flop: ' in line:
-            return flop(line)
+            return Flop(line)
         else:
             return None
 
-    def _turn(self, line: str) -> turn:
+    def _turn(self, line: str) -> Optional[Turn]:
         
         if 'Turn: ' in line:
-            return turn(line)
+            return Turn(line)
         else:
             return None
 
-    def _river(self, line: str) -> river:
+    def _river(self, line: str) -> Optional[River]:
         
         if 'River: ' in line:
-            return river(line)
+            return River(line)
         else:
             return None
 
-    def _undealt(self, line: str) -> undealt:
+    def _undealt(self, line: str) -> Optional[Undealt]:
     
         if 'Undealt cards: ' in line:
-            return undealt(line)
+            return Undealt(line)
         else:
             return None
 
-    def _stand_up(self, line: str) -> stand_up:
+    def _stand_up(self, line: str) -> Optional[StandsUp]:
     
         if ' stand up with ' in line:
-            return stand_up(line)
+            return StandsUp(line)
         else:
             return None
 
-    def _sit_in(self, line: str) -> sit_in:
+    def _sit_in(self, line: str) -> Optional[SitsIn]:
     
         if ' sit back with ' in line:
-            return sit_in(line)
+            return SitsIn(line)
         else:
             return None
 
-    def _player_stacks(self, line: str) -> player_stacks:
+    def _player_stacks(self, line: str) -> Optional[PlayerStacks]:
     
         if 'Player stacks:' in line:
-            return player_stacks(line)
+            return PlayerStacks(line)
         else:
             return None
         
@@ -303,7 +441,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
         for ind, line in enumerate(hand):
             
             if self._request(line) is not None:
-                new = request(line)
+                new = Requests(line)
                 new.current_round = curr_round
                 
                 if new.position is None:
@@ -312,7 +450,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
             
             if self._approved(line) is not None:
-                new = approved(line)
+                new = Approved(line)
                 new.current_round = curr_round
 
                 if new.position is None:
@@ -321,7 +459,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
                 
             if self._joined(line) is not None:
-                new = joined(line)
+                new = Joined(line)
                 new.current_round = curr_round
 
                 if new.position is None:
@@ -330,7 +468,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
 
             if self._stand_up(line) is not None:
-                new = stand_up(line)
+                new = StandsUp(line)
                 new.current_round = curr_round
 
                 if new.position is None:
@@ -339,7 +477,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
                 
             if self._sit_in(line) is not None:
-                new = sit_in(line)
+                new = SitsIn(line)
                 new.current_round = curr_round
 
                 if new.position is None:
@@ -348,7 +486,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
                 
             if self._my_cards(line) is not None:
-                new = my_cards(line)
+                new = MyCards(line)
                 new.current_round = curr_round
 
                 if new.cards is None:
@@ -361,7 +499,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
                 
             if self._small_blind(line) is not None:
-                new = small_blind(line)
+                new = SmallBlind(line)
                 new.current_round = curr_round
                 
                 if new.stack is None:
@@ -373,7 +511,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
 
             if self._big_blind(line) is not None:
-                new = big_blind(line)
+                new = BigBlind(line)
                 new.current_round = curr_round
                 
                 if new.stack is None:
@@ -385,7 +523,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
 
             if self._folds(line) is not None:
-                new = folds(line)
+                new = Folds(line)
                 new.current_round = curr_round
     
                 if new.position is None:
@@ -394,7 +532,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
 
             if self._calls(line) is not None:
-                new = calls(line)
+                new = Calls(line)
                 new.current_round = curr_round
     
                 if new.stack is None:
@@ -411,7 +549,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
 
             if self._raises(line) is not None:
-                new = raises(line)
+                new = Raises(line)
                 new.current_round = curr_round
     
                 if new.stack is None:
@@ -428,7 +566,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
 
             if self._checks(line) is not None:
-                new = checks(line)
+                new = Checks(line)
                 new.current_round = curr_round
     
                 if new.position is None:
@@ -437,7 +575,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
 
             if self._wins(line) is not None:
-                new = wins(line)
+                new = Wins(line)
                 new.current_round = curr_round
 
                 if new.stack is None:
@@ -458,7 +596,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
 
             if self._shows(line) is not None:
-                new = shows(line)
+                new = Shows(line)
                 new.current_round = curr_round
                 
                 if new.cards is None:
@@ -471,7 +609,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
 
             if self._quits(line) is not None:
-                new = quits(line)
+                new = Quits(line)
                 new.current_round = curr_round
     
                 if new.position is None:
@@ -480,7 +618,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
 
             if self._flop(line) is not None:
-                new = flop(line)
+                new = Flop(line)
                 new.current_round = curr_round
     
                 if new.cards is None:
@@ -493,7 +631,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
 
             if self._turn(line) is not None:
-                new = turn(line)
+                new = Turn(line)
                 new.current_round = curr_round
     
                 if new.cards is None:
@@ -505,7 +643,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
 
             if self._river(line) is not None:
-                new = river(line)
+                new = River(line)
                 new.current_round = curr_round
     
                 if new.cards is None:
@@ -517,7 +655,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
 
             if self._undealt(line) is not None:
-                new = undealt(line)
+                new = Undealt(line)
                 new.current_round = curr_round
     
                 if new.cards is None:
@@ -533,7 +671,7 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
 
             if self._player_stacks(line) is not None:
-                new = player_stacks(line)
+                new = PlayerStacks(line)
                 new.current_round = curr_round
                 
                 p_name_lst = []
@@ -557,4 +695,3 @@ class hand(request, approved, joined, my_cards, small_blind, big_blind, folds, c
                 continue
                 
         return lst
-
