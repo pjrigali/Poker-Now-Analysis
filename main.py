@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from os import walk
-from poker.processor import Classifier
+import matplotlib.pyplot as plt
 from poker.base import Poker
 from poker.analysis import whfc, streak, drsw, dealer_small_big, winning_cards, win_count
 import time
@@ -26,4 +26,3 @@ if __name__ == '__main__':
     # print(''), print('Poker Built'), print("--- %s seconds ---" % round((time.time() - start_timen), 2))
 
     poker
-
