@@ -80,7 +80,7 @@ class CurrentRound:
 
 class LineAttributes(PlayerIndex, PlayerName, Stack, Position, WinningHand, Cards, CurrentRound):
 
-    def __init__(self, text):
+    def __init__(self, text: str):
         self.text = text
         self.player_name = self._player_name(self.text)
         self.player_index = self._player_index(self.text)
@@ -271,8 +271,8 @@ class PlayerStacks(LineAttributes):
         return self._line_attributes(self.text)
 
 
-class Hand(Requests, Approved, Joined, MyCards, SmallBlind, BigBlind, Folds, Calls, Raises, Checks, Wins, Shows, Quits,
-           Flop, Turn, River, Undealt, StandsUp, SitsIn, PlayerStacks):
+class Classifier(Requests, Approved, Joined, MyCards, SmallBlind, BigBlind, Folds, Calls, Raises, Checks, Wins, Shows,
+                 Quits, Flop, Turn, River, Undealt, StandsUp, SitsIn, PlayerStacks):
 
     def __init__(self):
         pass
@@ -370,21 +370,21 @@ class Hand(Requests, Approved, Joined, MyCards, SmallBlind, BigBlind, Folds, Cal
 
     def _flop(self, line: str) -> Optional[Flop]:
         
-        if 'Flop: ' in line:
+        if 'Flop: ' in line or 'flop' in line:
             return Flop(line)
         else:
             return None
 
     def _turn(self, line: str) -> Optional[Turn]:
         
-        if 'Turn: ' in line:
+        if 'Turn: ' in line or 'turn: ' in line:
             return Turn(line)
         else:
             return None
 
     def _river(self, line: str) -> Optional[River]:
         
-        if 'River: ' in line:
+        if 'River: ' in line or 'river: ' in line:
             return River(line)
         else:
             return None
@@ -418,11 +418,9 @@ class Hand(Requests, Approved, Joined, MyCards, SmallBlind, BigBlind, Folds, Cal
             return None
         
     def parser(self, hand):
-        
         hand_position = []
         start_position = 'Pre Flop'
         for ind, line in enumerate(hand):
-            # hand_position.append(start_position)
             if 'Flop:' in line:
                 start_position = 'Post Flop'
             if 'Turn:' in line:
@@ -431,7 +429,7 @@ class Hand(Requests, Approved, Joined, MyCards, SmallBlind, BigBlind, Folds, Cal
                 start_position = 'Post River'
             hand_position.append(start_position)
         
-        curr_round = None
+        curr_round = 0
         for line in hand:
             if 'starting hand' in line:
                 curr_round = int(line.split('starting hand #')[1].split(' (')[0])
@@ -491,7 +489,7 @@ class Hand(Requests, Approved, Joined, MyCards, SmallBlind, BigBlind, Folds, Cal
 
                 if new.cards is None:
                     new_cards = line.split(' hand is ')[1].split(',')
-                    new.cards = [i.strip() for i in new_cards]
+                    new.cards = tuple([i.strip() for i in new_cards])
 
                 if new.position is None:
                     new.position = hand_position[ind]
@@ -583,12 +581,15 @@ class Hand(Requests, Approved, Joined, MyCards, SmallBlind, BigBlind, Folds, Cal
                     
                 if new.winning_hand is None:
                     if ' from pot with ' in line:
-                        new.winning_hand = line.split(' from pot with ')[1].split(',')[0]
+                        if ', ' in line.split(' from pot with ')[1].split(' (')[0]:
+                            new.winning_hand = line.split(' from pot with ')[1].split(', ')[0]
+                        else:
+                            new.winning_hand = line.split(' from pot with ')[1].split(' (')[0]
                 
                 if new.cards is None:
                     if 'combination' in line:
                         new_cards = line.split(': ')[1].split(')')[0].split(',')
-                        new.cards = [i.strip() for i in new_cards]
+                        new.cards = tuple([i.strip() for i in new_cards])
                         
                 if new.position is None:
                     new.position = hand_position[ind]
@@ -601,7 +602,7 @@ class Hand(Requests, Approved, Joined, MyCards, SmallBlind, BigBlind, Folds, Cal
                 
                 if new.cards is None:
                     new_cards = line.split(' shows a ')[1].split('.')[0].split(',')
-                    new.cards = [i.strip() for i in new_cards]
+                    new.cards = tuple([i.strip() for i in new_cards])
                     
                 if new.position is None:
                     new.position = hand_position[ind]
@@ -623,7 +624,7 @@ class Hand(Requests, Approved, Joined, MyCards, SmallBlind, BigBlind, Folds, Cal
     
                 if new.cards is None:
                     new_cards = line.split(' [')[1].split(']')[0].split(',')
-                    new.cards = [i.strip() for i in new_cards]
+                    new.cards = tuple([i.strip() for i in new_cards])
                     
                 if new.position is None:
                     new.position = 'Flop'
@@ -635,7 +636,7 @@ class Hand(Requests, Approved, Joined, MyCards, SmallBlind, BigBlind, Folds, Cal
                 new.current_round = curr_round
     
                 if new.cards is None:
-                    new.cards = line.split(' [')[1].split(']')[0]
+                    new.cards = line.split(' [')[1].split(']')[0].strip()
     
                 if new.position is None:
                     new.position = 'Turn'
@@ -647,7 +648,7 @@ class Hand(Requests, Approved, Joined, MyCards, SmallBlind, BigBlind, Folds, Cal
                 new.current_round = curr_round
     
                 if new.cards is None:
-                    new.cards = line.split(' [')[1].split(']')[0]
+                    new.cards = line.split(' [')[1].split(']')[0].strip()
     
                 if new.position is None:
                     new.position = 'River'
@@ -660,7 +661,7 @@ class Hand(Requests, Approved, Joined, MyCards, SmallBlind, BigBlind, Folds, Cal
     
                 if new.cards is None:
                     new_cards = line.split(' [')[1].split(']')[0].split(',')
-                    new.cards = [i.strip() for i in new_cards]
+                    new.cards = tuple([i.strip() for i in new_cards])
                     
                 if new.position is None:
                     if len(new.cards) == 1:
