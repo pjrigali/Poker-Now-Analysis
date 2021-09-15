@@ -7,35 +7,26 @@ from collections import Counter
 from poker.analysis import whfc, streak, drsw, dealer_small_big, winning_cards, win_count
 from poker.processor import Requests, Approved, Joined, MyCards, SmallBlind, BigBlind, Folds, Calls, Raises, Checks
 from poker.processor import Wins, Shows, Quits, Flop, Turn, River, Undealt, StandsUp, SitsIn, PlayerStacks
-from poker.processor import Classifier
+from poker.processor import parser
 
 
-def _convert_shapes(data: pd.DataFrame) -> pd.DataFrame:
-    dn = np.array(data)
-    for i, j in enumerate(dn):
-        dn[i] = j.replace("â£", " Clubs").replace("â¦", " Diamonds").replace("â¥", " Hearts").replace("â",
-                                                                                                         " Spades")
-    return pd.DataFrame(dn)
+def _convert_shapes(data: List[str]) -> List[str]:
+    return [row.replace("â£", " Clubs").replace("â¦", " Diamonds").replace("â¥", " Hearts").replace("â", " Spades") for row in data]
 
 
-def _get_hands(repo: str, file: str):
-    # Load Data
+def _get_hands(repo: str, file: str) -> List[str]:
     df = pd.read_csv(repo + file, encoding='latin1')['entry']
-    df = df.reindex(index=df.index[::-1]).reset_index(drop=True)
-    dfn = _convert_shapes(df)
-    # Split into hands
-    dfnn = np.array(dfn)
-    hands = []
-    hand_lst = []
-    for i, j in enumerate(dfnn):
-        if ' starting hand ' in j[0]:
-            if ' hand #1 ' in j[0]:
+    lst = _convert_shapes(list(df.reindex(index=df.index[::-1]).reset_index(drop=True)))
+    hands, hand_lst = [], []
+    for item in lst:
+        if ' starting hand ' in item:
+            if ' hand #1 ' in item:
                 hands.append(hand_lst)
             hand_lst = []
-            hand_lst.append(j[0])
+            hand_lst.append(item)
             hands.append(hand_lst)
         else:
-            hand_lst.append(j[0])
+            hand_lst.append(item)
     return hands
 
 
@@ -44,9 +35,7 @@ class Hand:
 
     def __init__(self, hand: List[str]):
         self._hand = hand
-
-        classifier = Classifier()
-        self._parsed_hand = [line for line in classifier.parser(hand=self._hand)]
+        self._parsed_hand = [line for line in parser(hand=self._hand)]
 
         self._small_blind = None
         self._big_blind = None
@@ -63,10 +52,10 @@ class Hand:
             if type(line) == SmallBlind:
                 self._small_blind = {line.player_name: line.stack}
                 continue
-            if type(line) == BigBlind:
+            elif type(line) == BigBlind:
                 self._big_blind = {line.player_name: line.stack}
                 continue
-            if type(line) == Wins:
+            elif type(line) == Wins:
                 lst = []
                 if self._flop is not None:
                     lst += self._flop
@@ -97,22 +86,21 @@ class Hand:
                 if line.winning_hand is not None:
                     self._winning_hand = line.winning_hand
                 continue
-            if type(line) == PlayerStacks:
+            elif type(line) == PlayerStacks:
                 self._starting_players = dict(zip(line.player_name, line.player_index))
                 self._starting_player_chips = dict(zip(line.player_name, line.stack))
                 continue
-            if type(line) == Flop:
+            elif type(line) == Flop:
                 self._flop = line.cards
                 continue
-            if type(line) == Turn:
+            elif type(line) == Turn:
                 self._turn = line.cards
                 continue
-            if type(line) == River:
+            elif type(line) == River:
                 self._river = line.cards
                 continue
-            if type(line) == MyCards:
+            elif type(line) == MyCards:
                 self._my_cards = line.cards
-                continue
 
     def __repr__(self):
         return "Hand " + str(self.parsed_hand[0].current_round)
@@ -166,150 +154,195 @@ class Hand:
         return self._my_cards
 
 
+def _check(line, cl, prfc: Optional[list] = None, pofc: Optional[list] = None, potc: Optional[list] = None,
+           porc: Optional[list] = None, prfl: Optional[list] = None, pofl: Optional[list] = None, potl: Optional[list] = None,
+           porl: Optional[list] = None) -> None:
+    if type(line) == cl:
+        if line.position == 'Pre Flop':
+            if prfc is not None:
+                prfc.append(1)
+            if prfl is not None:
+                prfl.append(line.stack)
+            return
+        if line.position == 'Post Flop':
+            if pofc is not None:
+                pofc.append(1)
+            if pofl is not None:
+                pofl.append(line.stack)
+            return
+        if line.position == 'Post Turn':
+            if potc is not None:
+                potc.append(1)
+            if potl is not None:
+                potl.append(line.stack)
+            return
+        if line.position == 'Post River':
+            if porc is not None:
+                porc.append(1)
+            if porl is not None:
+                porl.append(line.stack)
+            return
+
+
+def _make_dict(keyword: str, class_word: str, prf: list, pof: list, pot: list, por: list) -> dict:
+    temp_lst = []
+    for lst in [prf, pof, pot, por]:
+        if keyword == 'Count':
+            val = np.sum(lst)
+        elif keyword == 'Median':
+            val = np.median(lst)
+        elif keyword == 'Std':
+            val = np.std(lst)
+        elif keyword == 'Mode':
+            vals, counts = np.unique(lst, return_counts=True)
+            try:
+                val = vals[np.argmax(counts)]
+            except:
+                val = np.median(lst)
+        elif keyword == 'Average':
+            val = np.mean(lst)
+        else:
+            raise AttributeError('Keyword needs to be {Count, Median, Std, Mode, Average}')
+        temp_lst.append(val)
+    return {class_word + ' ' + keyword: np.nan_to_num(temp_lst)}
+
+
+def _make_df(lst: List[dict], length: int) -> pd.DataFrame:
+    dic_lst = [_make_dict(keyword=dic['keyword'], class_word=dic['class word'], prf=dic['lists'][0],
+                               pof=dic['lists'][1], pot=dic['lists'][2], por=dic['lists'][3]) for dic in lst]
+    temp_df = pd.DataFrame({k: v for d in dic_lst for k, v in d.items()},
+                           index=['Pre Flop', 'Post Flop', 'Post Turn', 'Post River'])
+    for col in temp_df.columns:
+        if 'Count' in col:
+            temp_df[col.replace("Count", "Percent")] = [round(item / length, 3) if item != 0 else 0 for item in temp_df[col]]
+    return temp_df
+
+
 @dataclass
 class Player:
 
-    def __init__(self, player_index: Union[str, List[str]], hands: List[Hand]):
-        if type(player_index) == str:
-            player_index = [player_index]
+    def __init__(self, player_index: str, hands: List[Hand]):
         self._player_index = player_index
         self._temp_ind = ['Pre Flop', 'Post Flop', 'Post Turn', 'Post River']
 
-        # Winning Stats
         win_stack_lst, win_cards_lst, win_hand_lst, win_position_lst = [], [], [], []
-        w_pre_flop_check_count, w_post_flop_check_count, w_post_turn_check_count, w_post_river_check_count = [], [], [], []
-        w_pre_flop_call_count, w_post_flop_call_count, w_post_turn_call_count, w_post_river_call_count = [], [], [], []
-        w_pre_flop_call_lst, w_post_flop_call_lst, w_post_turn_call_lst, w_post_river_call_lst = [], [], [], []
-        w_pre_flop_raise_count, w_post_flop_raise_count, w_post_turn_raise_count, w_post_river_raise_count = [], [], [], []
-        w_pre_flop_raise_lst, w_post_flop_raise_lst, w_post_turn_raise_lst, w_post_river_raise_lst = [], [], [], []
+        # Winning Stats
+        wprf_check_count, wpof_check_count, wpot_check_count, wpor_check_count = [], [], [], []
+        wprf_call_count, wpof_call_count, wpot_call_count, wpor_call_count = [], [], [], []
+        wprf_call_lst, wpof_call_lst, wpot_call_lst, wpor_call_lst = [], [], [], []
+        wprf_raise_count, wpof_raise_count, wpot_raise_count, wpor_raise_count = [], [], [], []
+        wprf_raise_lst, wpof_raise_lst, wpot_raise_lst, wpor_raise_lst = [], [], [], []
         # Normal Stats
-        pre_flop_check_count, post_flop_check_count, post_turn_check_count, post_river_check_count = [], [], [], []
-        pre_flop_fold_count, post_flop_fold_count, post_turn_fold_count, post_river_fold_count = [], [], [], []
-        pre_flop_call_count, post_flop_call_count, post_turn_call_count, post_river_call_count = [], [], [], []
-        pre_flop_call_lst, post_flop_call_lst, post_turn_call_lst, post_river_call_lst = [], [], [], []
-        pre_flop_raise_count, post_flop_raise_count, post_turn_raise_count, post_river_raise_count = [], [], [], []
-        pre_flop_raise_lst, post_flop_raise_lst, post_turn_raise_lst, post_river_raise_lst = [], [], [], []
+        prf_check_count, pofl_check_count, pot_check_count, por_check_count = [], [], [], []
+        prf_fold_count, pof_fold_count, pot_fold_count, por_fold_count = [], [], [], []
+        prf_call_count, pof_call_count, pot_call_count, por_call_count = [], [], [], []
+        prf_call_lst, pof_call_lst, pot_call_lst, por_call_lst = [], [], [], []
+        prf_raise_count, pof_raise_count, pot_raise_count, por_raise_count = [], [], [], []
+        prf_raise_lst, pof_raise_lst, pot_raise_lst, por_raise_lst = [], [], [], []
 
         hand_count = 0
         for hand in hands:
             for line in hand.parsed_hand:
-                # Count of hands the player is in.
-                for p_ind in self._player_index:
-                    if line.player_index is not None:
-                        if p_ind in line.player_index:
-                            if type(line) == PlayerStacks:
-                                hand_count += 1
-
-                if line.player_index in self._player_index:
-                    # Player Win information.
-                    if type(line) == Wins:
-                        win_stack_lst.append(line.stack)
-                        win_cards_lst.append(line.cards)
-                        win_hand_lst.append(line.winning_hand)
-                        win_position_lst.append(line.position)
-                        for line in hand.parsed_hand:
-                            if line.player_index in self._player_index:
-                                self._check(line=line, cl=Checks, prfc=w_pre_flop_check_count,
-                                            pofc=w_post_flop_check_count, potc=w_post_turn_check_count,
-                                            porc=w_post_river_check_count)
-                                self._check(line=line, cl=Calls, prfc=w_pre_flop_call_count,
-                                            pofc=w_post_flop_call_count, potc=w_post_turn_call_count,
-                                            porc=w_post_river_call_count, prfl=w_pre_flop_call_lst,
-                                            pofl=w_post_flop_call_lst, potl=w_post_turn_call_lst,
-                                            porl=w_post_river_call_lst)
-                                self._check(line=line, cl=Raises, prfc=w_pre_flop_raise_count,
-                                            pofc=w_post_flop_raise_count, potc=w_post_turn_raise_count,
-                                            porc=w_post_river_raise_count, prfl=w_pre_flop_raise_lst,
-                                            pofl=w_post_flop_raise_lst, potl=w_post_turn_raise_lst,
-                                            porl=w_post_river_raise_lst)
-                    # Checks, Folds, Calls, and Raises info
-                    self._check(line=line, cl=Checks, prfc=pre_flop_check_count, pofc=post_flop_check_count,
-                                potc=post_turn_check_count, porc=post_river_check_count)
-                    self._check(line=line, cl=Folds, prfc=pre_flop_fold_count, pofc=post_flop_fold_count,
-                                potc=post_turn_fold_count, porc=post_river_fold_count)
-                    self._check(line=line, cl=Calls, prfc=pre_flop_call_count, pofc=post_flop_call_count,
-                                potc=post_turn_call_count, porc=post_river_call_count, prfl=pre_flop_call_lst,
-                                pofl=post_flop_call_lst, potl=post_turn_call_lst, porl=post_river_call_lst)
-                    self._check(line=line, cl=Raises, prfc=pre_flop_raise_count, pofc=post_flop_raise_count,
-                                potc=post_turn_raise_count, porc=post_river_raise_count, prfl=pre_flop_raise_lst,
-                                pofl=post_flop_raise_lst, potl=post_turn_raise_lst, porl=post_river_raise_lst)
+                if line.player_index is not None:
+                    if line.player_index == self._player_index or self._player_index in line.player_index:
+                        # Count of hands the player is in.
+                        if type(line) == PlayerStacks:
+                            hand_count += 1
+                        # Player Win information.
+                        if type(line) == Wins:
+                            win_stack_lst.append(line.stack)
+                            win_cards_lst.append(line.cards)
+                            win_hand_lst.append(line.winning_hand)
+                            win_position_lst.append(line.position)
+                            for line in hand.parsed_hand:
+                                if line.player_index == self._player_index:
+                                    _check(line=line, cl=Checks, prfc=wprf_check_count, pofc=wpof_check_count,
+                                           potc=wpot_check_count, porc=wpor_check_count)
+                                    _check(line=line, cl=Calls, prfc=wprf_call_count, pofc=wpof_call_count,
+                                           potc=wpot_call_count, porc=wpor_call_count, prfl=wprf_call_lst,
+                                           pofl=wpof_call_lst, potl=wpot_call_lst, porl=wpor_call_lst)
+                                    _check(line=line, cl=Raises, prfc=wprf_raise_count, pofc=wpof_raise_count,
+                                           potc=wpot_raise_count, porc=wpor_raise_count, prfl=wprf_raise_lst,
+                                           pofl=wpof_raise_lst, potl=wpot_raise_lst, porl=wpor_raise_lst)
+                        # Checks, Folds, Calls, and Raises info
+                        _check(line=line, cl=Checks, prfc=prf_check_count, pofc=pofl_check_count,
+                               potc=pot_check_count, porc=por_check_count)
+                        _check(line=line, cl=Folds, prfc=prf_fold_count, pofc=pof_fold_count,
+                               potc=pot_fold_count, porc=por_fold_count)
+                        _check(line=line, cl=Calls, prfc=prf_call_count, pofc=pof_call_count,
+                               potc=pot_call_count, porc=por_call_count, prfl=prf_call_lst,
+                               pofl=pof_call_lst, potl=pot_call_lst, porl=por_call_lst)
+                        _check(line=line, cl=Raises, prfc=prf_raise_count, pofc=pof_raise_count,
+                               potc=pot_raise_count, porc=por_raise_count, prfl=prf_raise_lst,
+                               pofl=pof_raise_lst, potl=pot_raise_lst, porl=por_raise_lst)
 
         win_df = pd.DataFrame([win_stack_lst, win_cards_lst, win_hand_lst, win_position_lst]).T
         win_df.columns = ['Win Stack', 'Win Cards', 'Win Hand', 'Win Position']
-        self._win_df = win_df
-        self._largest_win = np.max(win_df['Win Stack'])
-        self._win_position_dist_df = pd.DataFrame.from_dict(dict(Counter(list(win_df['Win Position']))), orient='index',
+        if len(win_df) > 1:
+            self._win_df = win_df
+            self._largest_win = np.max(win_df['Win Stack'])
+            self._win_position_dist_df = pd.DataFrame.from_dict(dict(Counter(list(win_df['Win Position']))), orient='index',
+                                                                columns=['Count'])
+            self._win_position_dist_df['Percent'] = self._win_position_dist_df / len(win_df)
+            self._win_hand_dist_df = pd.DataFrame.from_dict(dict(Counter(list(win_df['Win Hand']))), orient='index',
                                                             columns=['Count'])
-        self._win_position_dist_df_per = self._win_position_dist_df / len(win_df)
-        self._win_hand_dist_df = pd.DataFrame.from_dict(dict(Counter(list(win_df['Win Hand']))), orient='index',
-                                                        columns=['Count'])
-        self._win_hand_dist_df_per = self._win_hand_dist_df / len(win_df)
-        card_lst = list(win_df['Win Cards'].dropna())
-        self._win_cards_dist_df = pd.DataFrame.from_dict(dict(Counter(sum([list(cards) for cards in card_lst], []))),
-                                                         orient='index', columns=['Count'])
-        # Winning Check df
-        w_check_sum_df = self._make_df(keyword='Count', class_word='Check', prf=w_pre_flop_check_count,
-                                       pof=w_post_flop_check_count, pot=w_post_turn_check_count,
-                                       por=w_post_river_check_count)
-        # Winning Call df
-        w_call_mu_df = self._make_df(keyword='Average', class_word='Call', prf=w_pre_flop_call_lst,
-                                     pof=w_post_flop_call_lst, pot=w_post_turn_call_lst, por=w_post_river_call_lst)
-        w_call_mode_df = self._make_df(keyword='Mode', class_word='Call', prf=w_pre_flop_call_lst,
-                                       pof=w_post_flop_call_lst, pot=w_post_turn_call_lst, por=w_post_river_call_lst)
-        w_call_std_df = self._make_df(keyword='Std', class_word='Call', prf=w_pre_flop_call_lst,
-                                      pof=w_post_flop_call_lst, pot=w_post_turn_call_lst, por=w_post_river_call_lst)
-        w_call_sum_df = self._make_df(keyword='Count', class_word='Call', prf=w_pre_flop_call_count,
-                                      pof=w_post_flop_call_count, pot=w_post_turn_call_count,
-                                      por=w_post_river_call_count)
-        # Winning Raise df
-        w_raise_mu_df = self._make_df(keyword='Average', class_word='Raise', prf=w_pre_flop_raise_lst,
-                                      pof=w_post_flop_raise_lst, pot=w_post_turn_raise_lst, por=w_post_river_raise_lst)
-        w_raise_mode_df = self._make_df(keyword='Mode', class_word='Raise', prf=w_pre_flop_raise_lst,
-                                        pof=w_post_flop_raise_lst, pot=w_post_turn_raise_lst,
-                                        por=w_post_river_raise_lst)
-        w_raise_std_df = self._make_df(keyword='Std', class_word='Raise', prf=w_pre_flop_raise_lst,
-                                       pof=w_post_flop_raise_lst, pot=w_post_turn_raise_lst, por=w_post_river_raise_lst)
-        w_raise_sum_df = self._make_df(keyword='Count', class_word='Raise', prf=w_pre_flop_raise_count,
-                                       pof=w_post_flop_raise_count, pot=w_post_turn_raise_count,
-                                       por=w_post_river_raise_count)
+            self._win_hand_dist_df['Percent'] = self._win_hand_dist_df / len(win_df)
+            card_lst = list(win_df['Win Cards'].dropna())
+            self._win_cards_dist_df = pd.DataFrame.from_dict(dict(Counter(sum([list(cards) for cards in card_lst], []))),
+                                                             orient='index', columns=['Count'])
 
-        self._winning_stats = pd.concat([w_check_sum_df, w_call_mu_df, w_call_mode_df, w_call_std_df, w_call_sum_df,
-                                         w_raise_mu_df, w_raise_mode_df, w_raise_std_df, w_raise_sum_df], axis=1)
+            lst = [{'keyword': 'Count', 'class word': 'Check',
+                    'lists': [wprf_check_count, wpof_check_count, wpot_check_count, wpor_check_count]},
+                   {'keyword': 'Average', 'class word': 'Call',
+                    'lists': [wprf_call_lst, wpof_call_lst, wpot_call_lst, wpor_call_lst]},
+                   {'keyword': 'Mode', 'class word': 'Call',
+                    'lists': [wprf_call_lst, wpof_call_lst, wpot_call_lst, wpor_call_lst]},
+                   {'keyword': 'Std', 'class word': 'Call',
+                    'lists': [wprf_call_lst, wpof_call_lst, wpot_call_lst, wpor_call_lst]},
+                   {'keyword': 'Count', 'class word': 'Call',
+                    'lists': [wprf_call_count, wpof_call_count, wpot_call_count, wpor_call_count]},
+                   {'keyword': 'Average', 'class word': 'Raise',
+                    'lists': [wprf_raise_lst, wpof_raise_lst, wpot_raise_lst, wpor_raise_lst]},
+                   {'keyword': 'Mode', 'class word': 'Raise',
+                    'lists': [wprf_raise_lst, wpof_raise_lst, wpot_raise_lst, wpor_raise_lst]},
+                   {'keyword': 'Std', 'class word': 'Raise',
+                    'lists': [wprf_raise_lst, wpof_raise_lst, wpot_raise_lst, wpor_raise_lst]},
+                   {'keyword': 'Count', 'class word': 'Raise',
+                    'lists': [wprf_raise_count, wpof_raise_count, wpot_raise_count, wpor_raise_count]},
+                   ]
+            self._winning_stats = _make_df(lst=lst, length=len(self._win_df))
 
-        l = len(self._win_df)
-        for col in self._winning_stats.columns:
-            if 'Count' in col:
-                self._winning_stats[col+' Per'] = [round(item / l, 3) if item != 0 else 0 for item in self._winning_stats[col]]
-        # Check df
-        check_sum_df = self._make_df(keyword='Count', class_word='Check', prf=pre_flop_check_count,
-                                     pof=post_flop_check_count, pot=post_turn_check_count, por=post_river_check_count)
-        # Fold df
-        fold_sum_df = self._make_df(keyword='Count', class_word='Fold', prf=pre_flop_fold_count,
-                                    pof=post_flop_fold_count, pot=post_turn_fold_count, por=post_river_fold_count)
-        # Call df
-        call_mu_df = self._make_df(keyword='Average', class_word='Call', prf=pre_flop_call_lst,
-                                   pof=post_flop_call_lst, pot=post_turn_call_lst, por=post_river_call_lst)
-        call_mode_df = self._make_df(keyword='Mode', class_word='Call', prf=pre_flop_call_lst,
-                                     pof=post_flop_call_lst, pot=post_turn_call_lst, por=post_river_call_lst)
-        call_std_df = self._make_df(keyword='Std', class_word='Call', prf=pre_flop_call_lst,
-                                    pof=post_flop_call_lst, pot=post_turn_call_lst, por=post_river_call_lst)
-        call_sum_df = self._make_df(keyword='Count', class_word='Call', prf=pre_flop_call_count,
-                                    pof=post_flop_call_count, pot=post_turn_call_count, por=post_river_call_count)
-        # Raise df
-        raise_mu_df = self._make_df(keyword='Average', class_word='Raise', prf=pre_flop_raise_lst,
-                                    pof=post_flop_raise_lst, pot=post_turn_raise_lst, por=post_river_raise_lst)
-        raise_mode_df = self._make_df(keyword='Mode', class_word='Raise', prf=pre_flop_raise_lst,
-                                      pof=post_flop_raise_lst, pot=post_turn_raise_lst, por=post_river_raise_lst)
-        raise_std_df = self._make_df(keyword='Std', class_word='Raise', prf=pre_flop_raise_lst,
-                                     pof=post_flop_raise_lst, pot=post_turn_raise_lst, por=post_river_raise_lst)
-        raise_sum_df = self._make_df(keyword='Count', class_word='Raise', prf=pre_flop_raise_count,
-                                     pof=post_flop_raise_count, pot=post_turn_raise_count, por=post_river_raise_count)
-        self._stats = pd.concat([check_sum_df, call_mu_df, call_mode_df, call_mode_df, call_std_df, call_sum_df,
-                                 raise_mu_df, raise_mode_df, raise_std_df, raise_sum_df, fold_sum_df], axis=1)
+            lst = [{'keyword': 'Count', 'class word': 'Check',
+                    'lists': [prf_check_count, pofl_check_count, pot_check_count, por_check_count]},
+                   {'keyword': 'Count', 'class word': 'Fold',
+                    'lists': [prf_fold_count, pof_fold_count, pot_fold_count, por_fold_count]},
+                   {'keyword': 'Average', 'class word': 'Call',
+                    'lists': [prf_call_lst, pof_call_lst, pot_call_lst, por_call_lst]},
+                   {'keyword': 'Mode', 'class word': 'Call',
+                    'lists': [prf_call_lst, pof_call_lst, pot_call_lst, por_call_lst]},
+                   {'keyword': 'Std', 'class word': 'Call',
+                    'lists': [prf_call_lst, pof_call_lst, pot_call_lst, por_call_lst]},
+                   {'keyword': 'Count', 'class word': 'Call',
+                    'lists': [prf_call_count, pof_call_count, pot_call_count, por_call_count]},
+                   {'keyword': 'Average', 'class word': 'Raise',
+                    'lists': [prf_raise_lst, pof_raise_lst, pot_raise_lst, por_raise_lst]},
+                   {'keyword': 'Mode', 'class word': 'Raise',
+                    'lists': [prf_raise_lst, pof_raise_lst, pot_raise_lst, por_raise_lst]},
+                   {'keyword': 'Std', 'class word': 'Raise',
+                    'lists': [prf_raise_lst, pof_raise_lst, pot_raise_lst, por_raise_lst]},
+                   {'keyword': 'Count', 'class word': 'Raise',
+                    'lists': [prf_raise_count, pof_raise_count, pot_raise_count, por_raise_count]},
+                   ]
+            self._stats = _make_df(lst=lst, length=hand_count)
 
-        for col in self._stats.columns:
-            if 'Count' in col:
-                self._stats[col+' Per'] = [round(item / hand_count, 3) if item != 0 else 0 for item in self._stats[col]]
+        else:
+            self._win_df = None
+            self._largest_win = None
+            self._win_position_dist_df = None
+            self._win_hand_dist_df = None
+            self._win_cards_dist_df = None
+            self._winning_stats = None
+            self._stats = None
 
         if hand_count == 0:
             self._win_per = 0.0
@@ -321,61 +354,50 @@ class Player:
         else:
             self._win_count = len(win_df)
 
+        hand_lst = []
+        for hand in hands:
+            for line in hand.parsed_hand:
+                if type(line) == PlayerStacks and self._player_index in line.player_index:
+                    hand_lst.append(hand)
+                    break
+
+        reaction_lst = []
+        for hand in hand_lst:
+            temp_stack, temp_position, temp_person, temp_round, temp_player_stack = None, None, None, None, None
+            temp_win, temp_win_stack = False, 0
+            for line in hand.parsed_hand:
+                if type(line) == Wins and line.player_index == self._player_index:
+                    temp_win, temp_win_stack = True, line.stack
+                    break
+            for line in hand.parsed_hand:
+                if type(line) == PlayerStacks:
+                    temp_player_stack = line.stack[line.player_index.index(self._player_index)]
+                if type(line) == Raises and line.player_index != self._player_index:
+                    temp_stack, temp_position, temp_person, temp_round = line.stack, line.position, line.player_index, line.current_round
+                if type(line) == Calls or type(line) == Folds:
+                    if line.player_index == self._player_index and temp_person is not None:
+                        cl = 'Folds'
+                        if type(line) == Calls:
+                            cl = 'Calls'
+                        reaction_lst.append({'person': temp_person, 'stack': temp_stack, 'position': temp_position,
+                                             'round': temp_round, 'player reserve': temp_player_stack, 'class': cl,
+                                             'win': temp_win, 'win_stack': temp_win_stack})
+                        if type(line) == Folds:
+                            break
+        self._player_reaction = pd.DataFrame(reaction_lst)
+
+        if 'player reserve' in self._player_reaction.columns:
+            previous, max_loss = 0, 0
+            for val in self._player_reaction['player reserve']:
+                if val - previous < max_loss:
+                    max_loss = val - previous
+                previous = val
+            self._largest_loss = max_loss
+        else:
+            self._largest_loss = 0
+
     def __repr__(self):
-        return self._player_index[0]
-
-    def _check(self, line, cl, prfc: Optional[list] = None, pofc: Optional[list] = None, potc: Optional[list] = None,
-               porc: Optional[list] = None, prfl: Optional[list] = None, pofl: Optional[list] = None, potl: Optional[list] = None,
-               porl: Optional[list] = None) -> None:
-        if type(line) == cl:
-            if line.position == 'Pre Flop':
-                if prfc is not None:
-                    prfc.append(1)
-                if prfl is not None:
-                    prfl.append(line.stack)
-                return
-            if line.position == 'Post Flop':
-                if pofc is not None:
-                    pofc.append(1)
-                if pofl is not None:
-                    pofl.append(line.stack)
-                return
-            if line.position == 'Post Turn':
-                if potc is not None:
-                    potc.append(1)
-                if potl is not None:
-                    potl.append(line.stack)
-                return
-            if line.position == 'Post River':
-                if porc is not None:
-                    porc.append(1)
-                if porl is not None:
-                    porl.append(line.stack)
-                return
-
-    def _make_df(self, keyword: str, class_word: str, prf: list, pof: list, pot: list, por: list) -> pd.DataFrame:
-        temp_lst = []
-        for lst in [prf, pof, pot, por]:
-            if keyword == 'Count':
-                val = np.sum(lst)
-            elif keyword == 'Median':
-                val = np.median(lst)
-            elif keyword == 'Std':
-                val = np.std(lst, ddof=1)
-            elif keyword == 'Mode':
-                vals, counts = np.unique(lst, return_counts=True)
-                try:
-                    val = vals[np.argmax(counts)]
-                except:
-                    val = np.median(lst)
-            elif keyword == 'Average':
-                val = np.mean(lst)
-            else:
-                raise AttributeError('Keyword needs to be {Count, Median, Std, Mode, Average}')
-            temp_lst.append(val)
-        return pd.DataFrame(temp_lst,
-                            index=['Pre Flop', 'Post Flop', 'Post Turn', 'Post River'],
-                            columns=[class_word + ' ' + keyword]).fillna(0)
+        return self._player_index
 
     @property
     def win_df(self) -> pd.DataFrame:
@@ -394,6 +416,10 @@ class Player:
         return int(self._largest_win)
 
     @property
+    def largest_loss(self) -> int:
+        return self._largest_loss
+
+    @property
     def winning_habits(self) -> pd.DataFrame:
         return self._winning_stats
 
@@ -403,33 +429,29 @@ class Player:
 
     @property
     def win_position_distribution(self) -> pd.DataFrame:
-        return self._win_position_dist_df.reindex(self._temp_ind )
-
-    @property
-    def win_position_distribution_per(self) -> pd.DataFrame:
-        return self._win_position_dist_df_per.reindex(self._temp_ind )
+        return self._win_position_dist_df.reindex(self._temp_ind)
 
     @property
     def win_hand_distribution(self) -> pd.DataFrame:
         return self._win_hand_dist_df
 
     @property
-    def win_hand_distribution_per(self) -> pd.DataFrame:
-        return self._win_hand_dist_df_per
-
-    @property
     def win_card_distribution(self) -> pd.DataFrame:
         return self._win_cards_dist_df
+
+    @property
+    def reaction(self) -> pd.DataFrame:
+        return self._player_reaction
 
 
 @dataclass
 class Game:
 
-    def __init__(self, repo: str, file: str, grouped: list, money_multi: int):
+    def __init__(self, repo: str, file: str):
         self._repo = repo
         self._file = file
-        self._hands = _get_hands(repo=self._repo, file=self._file)
-        self._class_lst = [Hand(hand=hand) for hand in self._hands]
+        hands = _get_hands(repo=self._repo, file=self._file)
+        self._class_lst = [Hand(hand=hand) for hand in hands]
 
         player_dic = {}
         for hand in self._class_lst:
@@ -450,12 +472,10 @@ class Game:
             for line in hand.parsed_hand:
                 if type(line) == Quits:
                     player_dic[line.player_index]['player quits'].append(line.stack)
-                if type(line) == StandsUp:
-                    if line.player_index in player_dic.keys():
-                        player_dic[line.player_index]['player stands up'].append(line.stack)
-                if type(line) == SitsIn:
-                    if line.player_index in player_dic.keys():
-                        player_dic[line.player_index]['player sits in'].append(line.stack)
+                if type(line) == StandsUp and line.player_index in player_dic.keys():
+                    player_dic[line.player_index]['player stands up'].append(line.stack)
+                if type(line) == SitsIn and line.player_index in player_dic.keys():
+                    player_dic[line.player_index]['player sits in'].append(line.stack)
         self._player_dic = player_dic
 
         temp_df = pd.DataFrame.from_dict(self._player_dic, orient='index')
@@ -537,10 +557,7 @@ class Poker:
         if grouped:
             self._grouped = grouped
 
-        self._matches = [Game(repo=self._repo_location,
-                              file=file,
-                              grouped=self._grouped,
-                              money_multi=money_multi) for file in self._files]
+        self._matches = [Game(repo=self._repo_location, file=file) for file in self._files]
 
         player_dic = {}
         for match in self._matches:
@@ -564,33 +581,40 @@ class Poker:
                                        'Leave Table Amount': temp_df.loc[ind]['Leave Table Amount'],
                                        'Game Count': 1}
         self._player_dic = player_dic
-
         result_df = pd.DataFrame.from_dict(self._player_dic, orient='index')
-        final_df = pd.DataFrame()
-        for ind_group in self._grouped:
-            temp = pd.DataFrame(index=[ind_group[0]], columns=result_df.columns)
-            for col in result_df.columns:
-                val = []
-                for ind in ind_group:
-                    val.append(result_df.loc[ind][col])
-                if col == 'Player Names' or col == 'Player Ids':
-                    temp[col] = [list(set(sum(val, [])))]
-                else:
-                    temp[col] = np.sum(val)
-            final_df = pd.concat([final_df, temp])
 
-        grouped_lst = sum(self._grouped, [])
-        for ind in list(result_df.index):
-            if ind not in grouped_lst:
-                final_df.loc[ind] = result_df.loc[ind]
+        if self._grouped is not None:
+            final_df = pd.DataFrame()
+            for ind_group in self._grouped:
+                temp = pd.DataFrame(index=[ind_group[0]], columns=result_df.columns)
+                for col in result_df.columns:
+                    val = []
+                    for ind in ind_group:
+                        val.append(result_df.loc[ind][col])
+                    if col == 'Player Names' or col == 'Player Ids':
+                        temp[col] = [list(set(sum(val, [])))]
+                    else:
+                        temp[col] = np.sum(val)
+                final_df = pd.concat([final_df, temp])
+
+            grouped_lst = sum(self._grouped, [])
+            for ind in list(result_df.index):
+                if ind not in grouped_lst:
+                    final_df.loc[ind] = result_df.loc[ind]
+        else:
+            final_df = result_df
+
         final_df['Profit'] = final_df['Leave Table Amount'] - final_df['Buy in Total']
 
         if money_multi:
             final_df['Buy in Total'] = (final_df['Buy in Total'] / 100).astype(int)
             final_df['Leave Table Amount'] = (final_df['Leave Table Amount'] / 100).astype(int)
             final_df['Profit'] = (final_df['Profit'] / 100).astype(int)
-        self._player_dic_df = final_df
+            # final_df['Buy in Total'] = [int(val / 100) if val != 0 else 0 for val in final_df['Buy in Total']]
+            # final_df['Leave Table Amount'] = [int(val / 100) if val != 0 else 0 for val in final_df['Leave Table Amount']]
+            # final_df['Profit'] = [int(val / 100) if val != 0 else 0 for val in final_df['Profit']]
 
+        self._player_dic_df = final_df
         ind = set(sum([list(match.winning_hand_distribution.index) for match in self._matches], []))
         hand_dist = pd.DataFrame(index=ind, columns=['Count']).fillna(0)
         col_lst = ['Flop Count', 'Turn Count', 'River Count', 'Win Count', 'My Cards Count']
@@ -599,7 +623,14 @@ class Poker:
             card_dist = card_dist + match.card_distribution
             hand_dist = hand_dist.add(match.winning_hand_distribution, fill_value=0)
         self._card_distribution = card_dist.dropna(subset=col_lst)
+        for col in self._card_distribution.columns:
+            s = np.sum(self._card_distribution[col])
+            arr = np.around([val / s if val != 0 else 0 for val in self._card_distribution[col]], 3)
+            # self._card_distribution[col.replace("Count", "Percent")] = (self._card_distribution[col] / s).round(3)
+            self._card_distribution[col.replace("Count", "Percent")] = list(arr)
+
         self._winning_hand_dist = hand_dist.astype(int).sort_values('Count', ascending=False)
+        self._winning_hand_dist['Percent'] = (self._winning_hand_dist / self._winning_hand_dist.sum()).round(3)
 
     def __repr__(self):
         return "Poker"
@@ -621,13 +652,5 @@ class Poker:
         return self._card_distribution
 
     @property
-    def card_distribution_per(self) -> pd.DataFrame:
-        return (self._card_distribution / self._card_distribution.sum()).round(3)
-
-    @property
     def winning_hand_distribution(self) -> pd.DataFrame:
         return self._winning_hand_dist
-
-    @property
-    def winning_hand_distribution_per(self) -> pd.DataFrame:
-        return (self._winning_hand_dist / self._winning_hand_dist.sum()).round(3)
