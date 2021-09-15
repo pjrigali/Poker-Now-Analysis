@@ -1,8 +1,13 @@
 # Poker Now Analsyis
-[![Documentation Status](https://readthedocs.org/projects/call-of-duty-cold-war-zombies/badge/?version=latest)](https://call-of-duty-cold-war-zombies.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/poker-now-analysis/badge/?version=latest)](https://poker-now-analysis.readthedocs.io/en/latest/?badge=latest)
 
 This is a package for analyzing past performance and player habits from the Poker Now website.
+
 [Poker Now link](https://www.pokernow.club/)
+
+Poker Now is a website that allows individuals to set up private poker tables.
+The website allows you to download the data from the game. 
+This package preforms NLP to parse the csv and creates a variety of objects for analyzing the game.
 
 ## Installation
 [Pypi Documentation](https://pypi.org/project/warzone-analysis/)
@@ -12,9 +17,7 @@ The package can be accessed via pip install.
     pip install cold-war-zombies
 
 ## Usage
-[Read the Docs](https://call-of-duty-cold-war-zombies.readthedocs.io/en/latest/)
-
-[Click for example](https://medium.com/@peterjrigali/best-weapon-in-zombies-9fddd33735c5)
+[Read the Docs](https://poker-now-analysis.readthedocs.io/en/latest/)
 
 ```python
 import poker
