@@ -1,6 +1,6 @@
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath(''))
 
 project = 'poker-now-analysis'
 copyright = '2021, Peter Rigali'
@@ -21,6 +21,6 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 autosummary_generate = True
 
 html_theme = 'sphinx_rtd_theme'
-html_static_path = []
-# html_static_path = ['_static']
+# html_static_path = []
+html_static_path = ['_static']
 html_theme_options = {'body_max_width': 'none'}
