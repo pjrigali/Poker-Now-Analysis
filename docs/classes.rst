@@ -9,6 +9,132 @@ Classes
 
 This chapter documents the Classes used in this package.
 
+.. _Poker:
+
+Poker
+-----
+Class object for running the package.
+
+.. :currentmodule:: base
+
+.. class:: Poker(repo_location, grouped):
+
+    Calculate stats for all games and players.
+
+    :param repo_location: Location of data folder.
+    :type repo_location: str
+    :param grouped: List of lists, filled with unique player Ids that are related to the same person. *Optional*
+    :type grouped: str
+    :param money_multi: Multiple to divide the money amounts to translate them to dollars *Optional*
+    :type money_multi: int
+    :example:
+        .. code-block:: python
+
+            from poker.base import Poker
+            repo = 'location of your previous game'
+            grouped = [['YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS'],
+                        ['48QVRRsiae', 'u8_FUbXpAz']]
+            poker = Poker(repo_location=repo, grouped=grouped)
+    :note: Grouped will need to be figured out by the player.
+        The grouped stats are only taken into account within this class
+
+.. autosummary::
+    poker.base.Poker.files
+    poker.base.Poker.matches
+    poker.base.Poker.players_info
+    poker.base.Poker.card_distribution
+    poker.base.Poker.winning_hand_distribution
+
+.. _Game:
+
+Game
+----
+Class object used for getting specific game stats.
+
+.. :currentmodule:: base
+
+.. class:: Game(repo_location, file):
+
+    Calculate stats for a game.
+
+    :param repo_location: Location of data folder.
+    :type repo_location: str
+    :param file: Name of file.
+    :type file: str
+    :example: *None*
+    :note: This class is intended to be used internally.
+
+.. autosummary::
+    poker.base.Game.file_name
+    poker.base.Game.hands_lst
+    poker.base.Game.players_info
+    poker.base.Game.card_distribution
+    poker.base.Game.winning_hand_distribution
+    poker.base.Game.players
+
+.. _Player:
+
+Player
+------
+Class object used for getting specific player stats.
+
+.. :currentmodule:: base
+
+.. class:: Player(player_index, hands):
+
+    Calculate stats for a player. Stats are for a single match.
+
+    :param player_index: A unique player ID.
+    :type player_index: str
+    :param hands: list of Hand objects related to a game.
+    :type hands: List[Hand]
+    :example: *None*
+    :note: This class is intended to be used internally.
+
+.. autosummary::
+    poker.base.Player.win_df
+    poker.base.Player.win_per
+    poker.base.Player.win_count
+    poker.base.Player.largest_win
+    poker.base.Player.largest_loss
+    poker.base.Player.winning_habits
+    poker.base.Player.normal_habits
+    poker.base.Player.win_position_distribution
+    poker.base.Player.win_hand_distribution
+    poker.base.Player.win_card_distribution
+    poker.base.Player.reaction
+
+.. _Hand:
+
+Hand
+----
+Class object used for getting specific hand stats.
+
+.. :currentmodule:: base
+
+.. class:: Hand(hand):
+
+    Calculate stats for a Hand.
+
+    :param hand: A list of strings associated with a hand.
+    :type hand: List[str]
+    :example: *None*
+    :note: This class is intended to be used internally.
+
+.. autosummary::
+    poker.base.Hand.parsed_hand
+    poker.base.Hand.small_blind
+    poker.base.Hand.big_blind
+    poker.base.Hand.winner
+    poker.base.Hand.winning_cards
+    poker.base.Hand.winning_hand
+    poker.base.Hand.starting_players
+    poker.base.Hand.starting_players_chips
+    poker.base.Hand.flop_cards
+    poker.base.Hand.turn_card
+    poker.base.Hand.river_card
+    poker.base.Hand.my_cards
+
 .. _Plot:
 
 Plot Classes
