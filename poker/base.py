@@ -4,70 +4,132 @@ import numpy as np
 import pandas as pd
 from os import walk
 from collections import Counter
-from poker.analysis import whfc, streak, drsw, dealer_small_big, winning_cards, win_count
 from poker.processor import Requests, Approved, Joined, MyCards, SmallBlind, BigBlind, Folds, Calls, Raises, Checks
 from poker.processor import Wins, Shows, Quits, Flop, Turn, River, Undealt, StandsUp, SitsIn, PlayerStacks
 from poker.processor import parser
 
 
-def normalize(arr: np.ndarray, multi: Optional[bool] = None) -> np.ndarray:
+def normalize(data: Union[np.ndarray, pd.Series, list]) -> Union[np.ndarray, pd.Series, list]:
     """
 
-    Normalize an Array.
+    Normalize an np.ndarray, pd.Series, or list between 0 and 1.
 
-    :param arr: Input array.
-    :type arr: np.ndarray
-    :param multi: If array has multiple columns, default is None.
-    :type multi: bool
-    :return: Normalized array.
-    :rtype: np.ndarray
+    :param data: Input data to normalize.
+    :type data: np.ndarray, pd.Series, or list
+    :return: Normalized np.ndarray, pd.Series, or list.
+    :rtype: np.ndarray, pd.Series, or list
     :example: *None*
-    :note: Set *multi* to True, if multiple columns.
+    :note: Maintains the input data type in output.
 
     """
-    if multi:
-        return np.array([(arr[:, i] - np.min(arr[:, i])) / (np.max(arr[:, i]) - np.min(arr[:, i])) for i in
-                         range(arr.shape[1])]).T
+    max_val, min_val = np.max(data), np.min(data)
+    max_min_val = max_val - min_val
+    if type(data) == np.ndarray:
+        return (data - min_val) / max_min_val
+    elif type(data) == pd.Series:
+        return (data - min_val) / max_min_val
+    elif type(data) == list:
+        return [(item - min_val) / max_min_val if ~np.isnan(item) else np.nan for item in data]
     else:
-        return np.around((arr - np.min(arr)) / (np.max(arr) - np.min(arr)).T, 3)
+        raise AttributeError('data needs to have a type of {np.ndarray, pd.Series, list}')
 
 
-def running_mean(arr: np.ndarray, num: int) -> np.ndarray:
+def running_mean(data: Union[np.ndarray, pd.Series, list], num: int) -> Union[np.ndarray, pd.Series, list]:
     """
 
     Calculate the running mean on *num* interval
 
-    :param arr: Input array.
-    :type arr: np.ndarray
-    :param num: Input int, default is 50.
+    :param data: Input data.
+    :type data: np.ndarray, pd.Series, or list
+    :param num: Input val used for running mean.
     :type num: int
-    :return: Running mean for a given array.
-    :rtype: np.ndarray
+    :return: Running mean for a given  np.ndarray, pd.Series, or list.
+    :rtype: np.ndarray, pd.Series, or list
     :example: *None*
-    :note: *None*
+    :note: Maintains the input data type in output.
 
     """
-    cum_sum = np.cumsum(np.insert(arr=arr, values=[np.mean(arr)] * num, obj=0))
-    return (cum_sum[num:] - cum_sum[:-num]) / float(num)
+    if type(data) == np.ndarray:
+        cum_sum = np.cumsum(np.insert(arr=data, values=0, obj=0))
+        return (cum_sum[num:] - cum_sum[:-num]) / float(num)
+    elif type(data) == pd.Series:
+        return data.rolling(num).mean().iloc[num-1:].reset_index(drop=True)
+    elif type(data) == list:
+        return [sum(data[i - num:i]) / num for i, j in enumerate(data) if i >= num] + [np.mean(data[-num:])]
+    else:
+        raise AttributeError('data needs to have a type of {np.ndarray, pd.Series, list}')
 
 
-def cumulative_mean(arr: np.ndarray) -> np.ndarray:
+def cumulative_mean(data: Union[np.ndarray, pd.Series, list]) -> Union[np.ndarray, pd.Series, list]:
     """
 
     Calculate the cumulative mean.
 
-    :param arr: Input array.
-    :type arr: np.ndarray
-    :return: Cumulative mean for a given array.
-    :rtype: np.ndarray
+    :param data: Input data.
+    :type data: np.ndarray, pd.Series, or list
+    :return: Cumulative mean for a given np.ndarray, pd.Series, or list.
+    :rtype: np.ndarray, pd.Series, or list
     :example: *None*
-    :note: *None*
+    :note: Maintains the input data type in output.
 
     """
-    cum_sum = np.cumsum(arr, axis=0)
-    for i in range(cum_sum.shape[0]):
-        cum_sum[i] = cum_sum[i] / (i + 1)
-    return cum_sum
+    if type(data) == np.ndarray:
+        cum_sum = np.cumsum(data, axis=0)
+        for i in range(cum_sum.shape[0]):
+            cum_sum[i] = cum_sum[i] / (i + 1)
+        return cum_sum
+    elif type(data) == pd.Series:
+        return data.expanding().mean()
+    elif type(data) == list:
+        return [sum(data[:i]) / len(data[:i]) if i > 0 else 0 for i, j in enumerate(data) ]
+    else:
+        raise AttributeError('data needs to have a type of {np.ndarray, pd.Series, list}')
+
+
+def round_to(data: Union[np.ndarray, pd.Series, list], val: int,
+             remainder: Optional[bool] = False) -> Union[np.ndarray, pd.Series, list]:
+    """
+
+    Rounds an np.array, pd.Series, or list of values to the nearest value.
+
+    :param data: Input data.
+    :type data: np.ndarray, pd.Series, or list
+    :param val: Value to round to. If decimal, will be that number divided by.
+    :type val: int
+    :param remainder: If True, will round the decimal, default is False. *Optional*
+    :type remainder: bool
+    :return: Rounded number.
+    :rtype: np.ndarray, pd.Series or list
+    :example:
+        >>> # With remainder set to True.
+        >>> lst = [4.3, 5.6]
+        >>> round_to(data=lst, val=4, remainder=True) # [4.25, 5.5]
+        >>>
+        >>>  # With remainder set to False.
+        >>> lst = [4.3, 5.6]
+        >>> round_to(data=lst, val=4, remainder=False) # [4, 4]
+        >>>
+    :note: Maintains the input data type in output.
+
+    """
+    if remainder:
+        if type(data) == np.ndarray:
+            return np.around(data * val) / val
+        elif type(data) == pd.Series:
+            return (data * val).round() / val
+        elif type(data) == list:
+            return [round(item * val) / val if ~np.isnan(item) else np.nan for item in data]
+        else:
+            raise AttributeError('data needs to have a type of {np.ndarray, pd.Series, list}')
+    else:
+        if type(data) == np.ndarray:
+            return np.transpose(np.around(data / val) * val)
+        elif type(data) == pd.Series:
+            return (data / val).round() * val
+        elif type(data) == list:
+            return [round(item / val) * val if ~np.isnan(item) else np.nan for item in data]
+        else:
+            raise AttributeError('data needs to have a type of {np.ndarray, pd.Series, list}')
 
 
 def _convert_shapes(data: List[str]) -> List[str]:
@@ -134,14 +196,14 @@ class Hand:
                     lst.append(self._river)
                 if line.cards is not None:
                     self._winning_cards = line.cards
-                if line.player_name is not None:
-                    self._winner = {line.player_name: line.stack}
+                if line.player_index is not None:
+                    self._winner = {line.player_index: line.stack}
 
                 if self._winner is not None:
                     if self._winning_cards is None:
                         for temp_line in self._parsed_hand:
                             if type(temp_line) == Shows:
-                                if temp_line.player_name == self._winner:
+                                if temp_line.player_index == self._winner:
                                     self._winning_cards = temp_line.cards
                                     break
 
@@ -317,7 +379,7 @@ class Player:
         self._player_index = player_index
         self._temp_ind = ['Pre Flop', 'Post Flop', 'Post Turn', 'Post River']
 
-        win_stack_lst, win_cards_lst, win_hand_lst, win_position_lst = [], [], [], []
+        win_stack_lst, win_cards_lst, win_hand_lst, win_position_lst, win_round_lst = [], [], [], [], []
         # Winning Stats
         wprf_check_count, wpof_check_count, wpot_check_count, wpor_check_count = [], [], [], []
         wprf_call_count, wpof_call_count, wpot_call_count, wpor_call_count = [], [], [], []
@@ -346,6 +408,7 @@ class Player:
                             win_cards_lst.append(line.cards)
                             win_hand_lst.append(line.winning_hand)
                             win_position_lst.append(line.position)
+                            win_round_lst.append(line.current_round)
                             for line in hand.parsed_hand:
                                 if line.player_index == self._player_index:
                                     _check(line=line, cl=Checks, prfc=wprf_check_count, pofc=wpof_check_count,
@@ -368,8 +431,8 @@ class Player:
                                potc=pot_raise_count, porc=por_raise_count, prfl=prf_raise_lst,
                                pofl=pof_raise_lst, potl=pot_raise_lst, porl=por_raise_lst)
 
-        win_df = pd.DataFrame([win_stack_lst, win_cards_lst, win_hand_lst, win_position_lst]).T
-        win_df.columns = ['Win Stack', 'Win Cards', 'Win Hand', 'Win Position']
+        win_df = pd.DataFrame([win_stack_lst, win_cards_lst, win_hand_lst, win_position_lst, win_round_lst]).T
+        win_df.columns = ['Win Stack', 'Win Cards', 'Win Hand', 'Win Position', 'Win Round']
         if len(win_df) > 1:
             self._win_df = win_df
             self._largest_win = np.max(win_df['Win Stack'])
@@ -466,6 +529,11 @@ class Player:
                     temp_player_stack = line.stack[line.player_index.index(self._player_index)]
                 if type(line) == Raises and line.player_index != self._player_index:
                     temp_stack, temp_position, temp_person, temp_round = line.stack, line.position, line.player_index, line.current_round
+                if type(line) == Raises:
+                    if line.player_index == self._player_index:
+                        reaction_lst.append({'person': 'None', 'stack': line.stack, 'position': temp_position,
+                                             'round': line.current_round, 'player reserve': temp_player_stack,
+                                             'class': 'Raises', 'win': temp_win, 'win_stack': temp_win_stack})
                 if type(line) == Calls or type(line) == Folds:
                     if line.player_index == self._player_index and temp_person is not None:
                         cl = 'Folds'
