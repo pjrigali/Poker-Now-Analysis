@@ -1,155 +1,219 @@
-from typing import List, Optional
+from typing import List, Union, Optional
 import pandas as pd
 import numpy as np
 from collections import Counter
+from poker.processor import Wins, Raises, SmallBlind, BigBlind
+from poker.base import Hand, Game, Player
 
 
 # Wining Hand Face Card or Not?
-def whfc(data: pd.DataFrame):
-    WHFCn = []
-    for i in range(len(data)):
-        temp = data.iloc[i]
-        if len(temp['Turns Involved']) == 3:
-            temp_lst = [j for j in ['J', 'Q', 'K', 'A'] if j in str(temp['Hand Winner Cards'])]
-            if len(temp_lst) >= 1:
-                WHFCn.append(temp_lst)
-    return round(len(WHFCn) / len(data), 2) * 100
+def face_card_in_winning_cards(hands: Union[List[Hand], Game]) -> float:
+    """
+
+    Find what percent of the time a face card is used to win.
+
+    :param hands: Input data.
+    :type hands: List[Hand] or Game
+    :return: A percent.
+    :rtype: float
+    :example: *None*
+    :note: *None*
+
+    """
+    win_tally = 0
+    win_face_tally = 0
+    for hand in hands:
+        for line in hand.parsed_hand:
+            if type(line) == Wins:
+                win_tally += 1
+                if line.cards is not None:
+                    for card in line.cards:
+                        if card.split(' ')[0] in ['J', 'Q', 'K', 'A']:
+                            win_face_tally += 1
+                            break
+                break
+    if win_face_tally != 0:
+        return round(win_face_tally / win_tally, 2)
+    else:
+        return 0.0
 
 
 # Winning Streak
-def streak(data: pd.DataFrame):
-    dn = data[['Hand Winner']]
-    player_lst = list(set(list([i[0] for i in dn['Hand Winner'] if len(i) > 1])))
-    dic = {i: 0 for i in player_lst}
+def longest_streak(data: Union[Player, pd.DataFrame, pd.Series, np.ndarray]) -> int:
+    """
 
-    for i in player_lst:
-        conc_lst = []
-        count = 0
-        for j in range(len(dn)):
-            temp = dn.iloc[j].item()
-            if len(temp) > 0:
-                if i == temp[0]:
-                    count = count + 1
-                    conc_lst.append(count)
-                else:
-                    count = 0
+    Find the longest winning streak.
 
-        dic[i] = max(conc_lst)
+    :param data: Input data.
+    :type data: Player, pd.DataFrame, pd.Series, or np.ndarray
+    :return: Longest streak.
+    :rtype: int
+    :example: *None*
+    :note: *None*
 
-    df = pd.DataFrame(index=dic.keys())
-    df['Win Streak'] = dic.values()
-    return df
+    """
+    if type(data) == Player:
+        if 'Win Round' not in data.win_df.columns:
+            raise AttributeError('No Win Round column in win_df')
+        else:
+            lst = list(data.win_df['Win Round'])
+    elif type(data) == pd.DataFrame:
+        if 'Win Round' not in data.columns:
+            raise AttributeError('No Win Round column in win_df')
+        else:
+            lst = list(data['Win Round'])
+    elif type(data) == pd.Series or type(data) == np.ndarray:
+        lst = list(data)
+    elif type(data) == list:
+        lst = data
+    else:
+        raise AttributeError('Incorrect dtype for data')
+
+    count, temp_count = [], 0
+    for ind, item in enumerate(lst):
+        previous = lst[ind - 1]
+        if item - 1 == previous:
+            temp_count += 1
+        else:
+            count.append(temp_count)
+            temp_count = 0
+    return max(count)
 
 
 # Does raising signal winner?
-def drsw(data: pd.DataFrame):
-    dn = data[['Hand Winner', 'Pre Flop Raises', 'Post Flop Raises', 'Post Turn Raises', 'Post River Raises']]
-    count_dic = {'Pre Flop Raises': 0, 'Post Flop Raises': 0, 'Post Turn Raises': 0, 'Post River Raises': 0}
-    count_dic_occur = {'Pre Flop Raises': 0, 'Post Flop Raises': 0, 'Post Turn Raises': 0, 'Post River Raises': 0}
-    for i in range(len(dn)):
-        temp = dn.iloc[i]
-        for j in ['Pre Flop Raises', 'Post Flop Raises', 'Post Turn Raises', 'Post River Raises']:
-            if len(temp[j]) > 1:
-                if temp['Hand Winner'][0] == temp[j][0]:
-                    count_dic[j] += 1
+def raise_signal_winning(data: Game, player_index: Optional[str] = None) -> pd.DataFrame:
+    """
 
-                count_dic_occur[j] += 1
+    When a player raises, does that mean they are going to win(?).
 
-    final = {}
-    for i in ['Pre Flop Raises', 'Post Flop Raises', 'Post Turn Raises', 'Post River Raises']:
-        final[i + ' %'] = round(count_dic[i] / count_dic_occur[i], 2) * 100
+    :param data: Input data.
+    :type data: Game
+    :param player_index: ID of a specific player, default is None. *Optional*
+    :type player_index: str
+    :return: A pd.DataFrame with the count and percent related to each position.
+    :rtype: pd.DataFrame
+    :example: *None*
+    :note: *None*
 
-    return final
+    """
+    if player_index is not None:
+        temp_id = player_index
+
+    total_win_count = 0
+    raise_dic = {"Pre Flop": 0, 'Post Flop': 0, 'Post Turn': 0, 'Post River': 0}
+
+    for hand in data.hands_lst:
+        for line in hand.parsed_hand:
+            if type(line) == Wins:
+                if player_index is None:
+                    temp_id = line.player_index
+                    total_win_count += 1
+                else:
+                    if line.player_index == player_index:
+                        total_win_count += 1
+                        break
+        for line in hand.parsed_hand:
+            if type(line) == Raises and line.player_index == temp_id:
+                raise_dic[line.position] += 1
+    temp_df = pd.DataFrame.from_dict(raise_dic, orient='index', columns=['Count'])
+    temp_df['Percent'] = [round(val / total_win_count, 2) if val != 0 else 0 for val in raise_dic.values()]
+    return temp_df
 
 
 # Dealer or big blind winning
-def dealer_small_big(data: pd.DataFrame):
-    dn = data[['Dealer', 'Small Blind', 'Big Blind', 'Hand Winner']]
-    dic = {'Dealer': 0, 'Small Blind': 0, 'Big Blind': 0}
-    d_lst = list(dn['Hand Winner'])
+def small_or_big_blind_win(data: Game, player_index: Optional[str] = None) -> pd.DataFrame:
+    """
 
-    for i, j in enumerate(d_lst):
-        temp = dn.iloc[i]
-        if len(j) > 1:
-            for k in ['Dealer', 'Small Blind', 'Big Blind']:
-                if len(temp[k]) > 1:
-                    if k != 'Dealer':
-                        if temp[3][0] == temp[k][0]:
-                            dic[k] += 1
+    When a player is small or big blind, does that mean they are going to win(?).
 
-                    else:
-                        if temp[3][0] == temp[k]:
-                            dic[k] += 1
+    :param data: Input data.
+    :type data: Game
+    :param player_index: ID of a specific player, default is None. *Optional*
+    :type player_index: str
+    :return: A pd.DataFrame with the count and percent related to each blind.
+    :rtype: pd.DataFrame
+    :example: *None*
+    :note: *None*
 
-    vals = np.multiply(np.divide([*dic.values()], len(d_lst)), 100).astype(int)
+    """
+    if player_index is not None:
+        temp_id = player_index
 
-    final = {}
-    for i, j in enumerate(['Dealer', 'Small Blind', 'Big Blind']):
-        final[j] = vals[i]
-
-    return final
-
-
-# Get the best cards
-def winning_cards(data: pd.DataFrame, count=52):
-    dn = data[['Hand Winner Cards', 'Flop Cards', 'Turn Card', 'River Card', 'Showed', 'Hand Winner', 'Turns Involved']]
-    card_lst = []
-    winner_lst = list(dn['Hand Winner'])
-    for i, j in enumerate(winner_lst):
-        if len(j) > 1:
-            showed_lst = dn['Showed'].iloc[i]
-            winner = j[0]
-            winner_cards = dn['Hand Winner Cards'].iloc[i]
-
-            if len(winner_cards) > 1:
-                winner_cards = [card for card in winner_cards[2:][0].split(',')]
-                winner_cards = [i.strip().split(" ")[0] + ' Spades' if 'Spades\xa0' in i else i.strip() for i in
-                                winner_cards]
-
-            table_cards_lst = list(dn['Flop Cards'].iloc[i])
-            if type(dn['Turn Card']) != tuple:
-                table_cards_lst.append(dn['Turn Card'].iloc[i])
-
-            if type(dn['River Card']) != tuple:
-                table_cards_lst.append(dn['River Card'].iloc[i])
-
-            table_cards_lst = [i.split(" ")[0] + ' Spades' if 'Spades\xa0' in i else i for i in table_cards_lst]
-
-            winner_cards_lst = []
-            if len(winner_cards) > 1:
-                for card in winner_cards:
-                    if card not in table_cards_lst:
-                        winner_cards_lst.append(card)
-
-            if len(showed_lst) > 1:
-                for player in showed_lst:
-                    if winner in player:
-                        player_cards = [card for card in player[1:][0].split(',')]
-                        player_cards = [i.strip().split(" ")[0] + ' Spades' if 'Spades\xa0' in i else i.strip() for i in
-                                        player_cards]
-                        winner_cards_lst = player_cards
+    total_win_count = 0
+    blind_dic = {'Small Blind': 0, 'Big Blind': 0}
+    for hand in data.hands_lst:
+        for line in hand.parsed_hand:
+            if type(line) == Wins:
+                if player_index is None:
+                    temp_id = line.player_index
+                    total_win_count += 1
+                else:
+                    if line.player_index == player_index:
+                        total_win_count += 1
                         break
+        count = 0
+        for line in hand.parsed_hand:
+            if type(line) == SmallBlind and line.player_index == temp_id:
+                blind_dic['Small Blind'] += 1
+                break
+            elif type(line) == SmallBlind and line.player_index != temp_id:
+                count += 1
+            elif type(line) == BigBlind and line.player_index == temp_id:
+                blind_dic['Big Blind'] += 1
+                break
+            elif type(line) == BigBlind and line.player_index != temp_id:
+                count += 1
+            elif count == 2:
+                break
 
-            card_lst.append(winner_cards_lst)
-
-    c = Counter(sum(card_lst, []))
-    df = pd.DataFrame(index=c.keys())
-    df['Counts'] = c.values()
-    dfn = df.sort_values('Counts', ascending=False)
-
-    return dfn.nlargest(count, 'Counts')
+    temp_df = pd.DataFrame.from_dict(blind_dic, orient='index', columns=['Count'])
+    temp_df['Percent'] = [round(val / total_win_count, 2) if val != 0 else 0 for val in blind_dic.values()]
+    return temp_df
 
 
-def win_count(data: pd.DataFrame):
-    players = []
-    for i, j in enumerate(data['Hand Winner']):
-        temp = data['Hand Winner'].iloc[i]
-        if len(temp) > 1:
-            players.append(temp[0])
+# Dealer or big blind winning
+def best_cards(data: Game, player_index: Optional[Union[str, List[str]]] = None) -> pd.DataFrame:
+    """
 
-    win_count = {i: 0 for i in set(players)}
-    for i, j in enumerate(data['Hand Winner']):
-        temp = data['Hand Winner'].iloc[i]
-        if len(temp) > 1:
-            win_count[temp[0]] += 1
-    return win_count
+    Find the most common winning cards and respective money earned.
+
+    :param data: Input data.
+    :type data: Game
+    :param player_index: ID of a specific player or players, default is None. *Optional*
+    :type player_index: str or List[str]
+    :return: A pd.DataFrame with the count and money earned related to each blind.
+    :rtype: pd.DataFrame
+    :example: *None*
+    :note: *None*
+
+    """
+    if player_index is not None:
+        if type(player_index) == str:
+            player_dic = {player_index: []}
+        else:
+            player_dic = {id: [] for id in player_index}
+    else:
+        players = list(data.players_info.index)
+        player_dic = {id: [] for id in players}
+
+    unique_cards = []
+    for person in data.players.values():
+        if person.win_df is not None:
+            for row in person.win_df['Win Cards']:
+                if row is not None:
+                    unique_cards.append(list(row))
+    unique_card_lst = list(set(sum(unique_cards, [])))
+    person_stack_dic = {person + ' stack': {card: 0 for card in unique_card_lst} for person in player_dic.keys()}
+
+    for hand in data.hands_lst:
+        for line in hand.parsed_hand:
+            if type(line) == Wins and line.cards is not None and line.player_index in player_dic.keys():
+                player_dic[line.player_index].append(list(line.cards))
+                for card in line.cards:
+                    person_stack_dic[line.player_index + ' stack'][card] += line.stack
+                break
+
+    card_lst = [dict(Counter(list(sum(player_dic[key], [])))) for key in player_dic.keys()]
+    temp_df = pd.DataFrame(card_lst, index=player_dic.keys()).T
+    final_df = pd.concat([temp_df, pd.DataFrame.from_dict(person_stack_dic)], axis=1).fillna(0)
+    return final_df
