@@ -92,7 +92,16 @@ def _get_hands(repo: str, file: str) -> List[str]:
 
 @dataclass
 class Hand:
+    """
 
+    Calculate stats for a Hand.
+
+    :param hand: A list of strings associated with a hand.
+    :type hand: List[str]
+    :example: *None*
+    :note: This class is intended to be used internally.
+
+    """
     def __init__(self, hand: List[str]):
         self._hand = hand
         self._parsed_hand = [line for line in parser(hand=self._hand)]
@@ -167,50 +176,62 @@ class Hand:
 
     @property
     def parsed_hand(self) -> list:
+        """Returns a list of actions as objects"""
         return self._parsed_hand
 
     @property
     def small_blind(self) -> Optional[dict]:
+        """Returns small blind person and amount"""
         return self._small_blind
 
     @property
     def big_blind(self) -> Optional[dict]:
+        """Returns big blind person and amount"""
         return self._big_blind
 
     @property
     def winner(self) -> Optional[dict]:
+        """Returns winner name and amount won"""
         return self._winner
 
     @property
     def winning_cards(self) -> Optional[tuple]:
+        """Return winning cards, if they are shown"""
         return self._winning_cards
 
     @property
     def winning_hand(self) -> Optional[str]:
+        """Returns winning hand"""
         return self._winning_hand
 
     @property
     def starting_players(self) -> Optional[dict]:
+        """Returns dict of name and ID for each player that was present at the hand start"""
         return self._starting_players
 
     @property
     def starting_players_chips(self) -> Optional[dict]:
+        """Returns dict of name and stack amount for each player that was present at the hand start"""
         return self._starting_player_chips
 
     @property
     def flop_cards(self) -> Optional[tuple]:
+        """Returns flop cards"""
         return self._flop
 
     @property
     def turn_card(self) -> Optional[str]:
+        """Returns turn card"""
         return self._turn
 
     @property
     def river_card(self) -> Optional[str]:
+        """Returns river card"""
         return self._river
 
     @property
-    def my_cards(self) -> tuple:
+    def my_cards(self) -> Optional[tuple]:
+        """Returns player cards"""
         return self._my_cards
 
 
@@ -280,7 +301,18 @@ def _make_df(lst: List[dict], length: int) -> pd.DataFrame:
 
 @dataclass
 class Player:
+    """
 
+    Calculate stats for a player. Stats are for a single match.
+
+    :param player_index: A unique player ID.
+    :type player_index: str
+    :param hands: list of Hand objects related to a game.
+    :type hands: List[Hand]
+    :example: *None*
+    :note: This class is intended to be used internally.
+
+    """
     def __init__(self, player_index: str, hands: List[Hand]):
         self._player_index = player_index
         self._temp_ind = ['Pre Flop', 'Post Flop', 'Post Turn', 'Post River']
@@ -461,54 +493,76 @@ class Player:
 
     @property
     def win_df(self) -> pd.DataFrame:
+        """Returns info detailing all of the players wins"""
         return self._win_df
 
     @property
     def win_per(self) -> float:
+        """Returns player win percent"""
         return self._win_per
 
     @property
     def win_count(self) -> int:
+        """Returns player win count"""
         return self._win_count
 
     @property
     def largest_win(self) -> int:
+        """Returns players largest win"""
         return int(self._largest_win)
 
     @property
     def largest_loss(self) -> int:
+        """Returns players largest loss"""
         return self._largest_loss
 
     @property
     def winning_habits(self) -> pd.DataFrame:
+        """Returns player betting habits when they did win"""
         return self._winning_stats
 
     @property
     def normal_habits(self) -> pd.DataFrame:
+        """Returns player betting habits when they didnt win"""
         return self._stats
 
     @property
     def win_position_distribution(self) -> pd.DataFrame:
+        """Returns count and percentage of player win locations"""
         return self._win_position_dist_df.reindex(self._temp_ind)
 
     @property
     def win_hand_distribution(self) -> pd.DataFrame:
+        """Returns count for each card that a player won with"""
         return self._win_hand_dist_df
 
     @property
     def win_card_distribution(self) -> pd.DataFrame:
+        """Returns count and percentage of player winning hands"""
         return self._win_cards_dist_df
 
     @property
     def reaction(self) -> pd.DataFrame:
+        """Returns player info related to when they called or folded"""
         return self._player_reaction
 
 
 @dataclass
 class Game:
+    """
 
-    def __init__(self, repo: str, file: str):
-        self._repo = repo
+    Calculate stats for a game.
+
+    :param repo_location: Location of data folder.
+    :type repo_location: str
+    :param file: Name of file.
+    :type file: str
+    :example: *None*
+    :note: This class is intended to be used internally.
+
+    """
+    def __init__(self, repo_location: str, file: str):
+        self._repo = repo_location
         self._file = file
         hands = _get_hands(repo=self._repo, file=self._file)
         self._class_lst = [Hand(hand=hand) for hand in hands]
@@ -583,32 +637,56 @@ class Game:
 
     @property
     def file_name(self) -> str:
+        """Returns name of data file"""
         return self._file
 
     @property
-    def hands_lst(self):
+    def hands_lst(self) -> List[Hand]:
+        """Returns list of hands in the game"""
         return self._class_lst
 
     @property
     def players_info(self) -> pd.DataFrame:
+        """Returns player total buy-in, loss count and leave table amount"""
         return self._player_dic_df
 
     @property
     def card_distribution(self) -> pd.DataFrame:
+        """Returns count of each card that showed up"""
         return self._card_distribution
 
     @property
     def winning_hand_distribution(self) -> pd.DataFrame:
+        """Returns count of winning hands"""
         return self._winning_hand_dist
 
     @property
-    def players(self):
+    def players(self) -> dict:
+        """Returns Player objects for players across games"""
         return self._players
 
 
 @dataclass
 class Poker:
+    """
 
+    Calculate stats for all games and players.
+
+    :param repo_location: Location of data folder.
+    :type repo_location: str
+    :param grouped: List of lists, filled with unique player Ids that are related to the same person. *Optional*
+    :type grouped: str
+    :param money_multi: Multiple to divide the money amounts to translate them to dollars *Optional*
+    :type money_multi: int
+    :example:
+        >>> from poker.base import Poker
+        >>> repo = 'location of your previous game'
+        >>> grouped = [['YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS'],
+        >>>             ['48QVRRsiae', 'u8_FUbXpAz']]
+        >>> poker = Poker(repo_location=repo, grouped=grouped)
+    :note: *None*
+
+    """
     def __init__(self, repo_location: str, grouped: Optional[list] = None, money_multi: Optional[int] = 100):
         self._repo_location = repo_location
         self._files = next(walk(self._repo_location))[2]
@@ -617,7 +695,7 @@ class Poker:
         if grouped:
             self._grouped = grouped
 
-        self._matches = [Game(repo=self._repo_location, file=file) for file in self._files]
+        self._matches = [Game(repo_location=self._repo_location, file=file) for file in self._files]
 
         player_dic = {}
         for match in self._matches:
@@ -697,20 +775,25 @@ class Poker:
 
     @property
     def files(self) -> List[str]:
+        """Returns list of data files"""
         return self._files
 
     @property
     def matches(self) -> List[Game]:
+        """Returns list of games"""
         return self._matches
 
     @property
-    def player_info(self) -> pd.DataFrame:
+    def players_info(self) -> pd.DataFrame:
+        """Returns summary info for each player across games"""
         return self._player_dic_df.sort_values('Profit', ascending=False)
 
     @property
     def card_distribution(self) -> pd.DataFrame:
+        """Returns count and percent for each card that showed up across games"""
         return self._card_distribution
 
     @property
     def winning_hand_distribution(self) -> pd.DataFrame:
+        """Returns count and percent of each type of winning hand across games"""
         return self._winning_hand_dist
