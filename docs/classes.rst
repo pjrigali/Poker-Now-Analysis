@@ -2,7 +2,6 @@
 
 Classes
 *******
-
 .. meta::
    :description: Landing page for poker-now-analysis.
    :keywords: Poker, Python, Analysis, Texas Hold'em
