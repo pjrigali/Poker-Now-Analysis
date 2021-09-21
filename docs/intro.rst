@@ -21,7 +21,7 @@ Building the package:
 .. code-block:: python
 
     import poker
-    from poker.base import Poker
+    from poker.classes import Poker
 
     # Input past Data folder location.
     repo = '\\location of past Data folder'
