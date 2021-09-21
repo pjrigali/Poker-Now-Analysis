@@ -2,8 +2,8 @@ from typing import List, Union, Optional
 import pandas as pd
 import numpy as np
 from collections import Counter
-from poker.processor import Wins, Raises, SmallBlind, BigBlind
-from poker.base import Hand, Game, Player
+from poker.processor import Wins, Raises, SmallBlind, BigBlind, Folds, Calls
+from poker.classes import Hand, Game, Player
 
 
 # Wining Hand Face Card or Not?
@@ -171,7 +171,7 @@ def small_or_big_blind_win(data: Game, player_index: Optional[str] = None) -> pd
     return temp_df
 
 
-# Dealer or big blind winning
+# Cards used in wins
 def best_cards(data: Game, player_index: Optional[Union[str, List[str]]] = None) -> pd.DataFrame:
     """
 
@@ -217,3 +217,47 @@ def best_cards(data: Game, player_index: Optional[Union[str, List[str]]] = None)
     temp_df = pd.DataFrame(card_lst, index=player_dic.keys()).T
     final_df = pd.concat([temp_df, pd.DataFrame.from_dict(person_stack_dic)], axis=1).fillna(0)
     return final_df
+
+
+def player_verse_player_reaction(data: Game) -> dict:
+    """
+
+    Find how many times and what value a player called or folded related to each player.
+
+    :param data: Input data.
+    :type data: Game
+    :return: A dict of counts and values for each call and fold.
+    :rtype: dict
+    :example: *None*
+    :note: *None*
+
+    """
+    hands = data.hands_lst
+    player_lst = list(data.players.keys())
+    player_dic = {}
+    for player_1 in player_lst:
+        temp_dic = {}
+        for player_2 in player_lst:
+            if player_2 != player_1:
+                temp_dic[player_2] = {'Call Count': 0, 'Fold Count': 0, 'Call Lst': [], 'Fold Lst': []}
+        player_dic[player_1] = temp_dic
+
+    for hand in hands:
+        for line in hand.parsed_hand:
+            if type(line) == Calls:
+                if line.player_index is not None and line.action_from_player is not None:
+                    player_dic[line.player_index][line.action_from_player]['Call Count'] += 1
+                    if line.action_amount is None:
+                        player_dic[line.player_index][line.action_from_player]['Call Lst'].append(0)
+                    else:
+                        player_dic[line.player_index][line.action_from_player]['Call Lst'].append(line.action_amount)
+
+            elif type(line) == Folds:
+                if line.player_index is not None and line.action_from_player is not None:
+                    player_dic[line.player_index][line.action_from_player]['Fold Count'] += 1
+                    if line.action_amount is None:
+                        player_dic[line.player_index][line.action_from_player]['Fold Lst'].append(0)
+                    else:
+                        player_dic[line.player_index][line.action_from_player]['Fold Lst'].append(line.action_amount)
+
+    return player_dic
