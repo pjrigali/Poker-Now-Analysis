@@ -326,7 +326,8 @@ def _make_reaction_lst(hand: Hand, player_index: List[str], reaction_lst: list) 
             if line.player_index in player_index:
                 reaction_lst.append({'person': 'None', 'stack': line.stack, 'position': temp_position,
                                      'round': line.current_round, 'player reserve': temp_player_stack,
-                                     'class': 'Raises', 'win': temp_win, 'win_stack': temp_win_stack})
+                                     'class': 'Raises', 'win': temp_win, 'win_stack': temp_win_stack,
+                                     'all in': line.all_in})
         if type(line) == Calls or type(line) == Folds:
             if line.player_index in player_index and temp_person is not None:
                 cl = 'Folds'
@@ -334,7 +335,7 @@ def _make_reaction_lst(hand: Hand, player_index: List[str], reaction_lst: list) 
                     cl = 'Calls'
                 reaction_lst.append({'person': temp_person, 'stack': temp_stack, 'position': temp_position,
                                      'round': temp_round, 'player reserve': temp_player_stack, 'class': cl,
-                                     'win': temp_win, 'win_stack': temp_win_stack})
+                                     'win': temp_win, 'win_stack': temp_win_stack, 'all in': line.all_in})
                 if type(line) == Folds:
                     break
 

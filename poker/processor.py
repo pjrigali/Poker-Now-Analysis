@@ -30,7 +30,16 @@ def _stack(text: str) -> Optional[int]:
 
 @dataclass
 class LineAttributes:
+    """
 
+    Applies attributes to a Class.
+
+    :param text: A line of text from the data.
+    :type text: str
+    :example: *None*
+    :note: This class is intended to be used internally.
+
+    """
     def __init__(self, text: str):
         self.text = text
         self.player_name = _player_name(self.text)
@@ -44,6 +53,7 @@ class LineAttributes:
         self.remaining_players = None
         self.action_from_player = None
         self.action_amount = None
+        self.all_in = False
 
 
 @dataclass
@@ -557,15 +567,15 @@ def parser(hand) -> list:
             new.current_round = curr_round
 
             if new.stack is None:
+                new_stack = 0
                 if ' bets ' in line:
                     new_stack = line.split(' bets ')[1]
                 if ' raises to ' in line:
                     new_stack = line.split(' raises to ')[1]
-                if ' and ' in new_stack:
-                    new_stack = int(new_stack.split(' and ')[0])
-                else:
-                    new_stack = int(new_stack)
-                new.stack = new_stack
+                if ' and ' in line:
+                    new_stack = new_stack.split(' and ')[0]
+                    new.all_in = True
+                new.stack = int(new_stack)
 
             pot_size += new.stack
             new.pot_size = pot_size
