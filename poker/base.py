@@ -173,3 +173,74 @@ def search_dic_values(dic: dict, item: Union[str, int, float]) -> Union[str, flo
 
     """
     return list(dic.keys())[list(dic.values()).index(item)]
+
+
+def calculate_hand(cards: Union[tuple, list]) -> str:
+
+    card_lst = []
+    for card in cards:
+        if 'J' in card:
+            card_lst.append(card.replace('J', '11'))
+        elif 'Q' in card:
+            card_lst.append(card.replace('Q', '12'))
+        elif 'K' in card:
+            card_lst.append(card.replace('K', '13'))
+        elif 'A' in card:
+            card_lst.append(card.replace('A' '14'))
+        else:
+            card_lst.append(card)
+
+    card_lst_num = [int(card.split(' ')[0]) for card in card_lst]
+    card_lst_suit = [card.split(' ')[1] for card in card_lst]
+
+    def find_pair(cards: List[int]) -> bool:
+        for card in cards:
+            if cards.count(card) == 2:
+                return True
+        return False
+
+    def find_two_pair(cards: List[int]) -> bool:
+        pair = 0
+        for card in cards:
+            if cards.count(card) == 2:
+                pair += 1
+        if pair == 2:
+            return True
+        return False
+
+    def find_three_of_a_kind(cards: List[int]) -> bool:
+        for card in cards:
+            if cards.count(card) == 3:
+                return True
+        return False
+
+    def find_full_house(cards: List[int]) -> bool:
+        three, two = False, False
+        for card in cards:
+            if cards.count(card) == 3:
+                three = True
+            elif cards.count(card) == 2:
+                two = True
+
+        if three is True and two is True:
+            return True
+        else:
+            return False
+
+    def find_four_of_a_kind(cards: List[int]) -> bool:
+        for card in cards:
+            if cards.count(card) == 4:
+                return True
+        return False
+
+    def find_flush(cards: List[str]) -> bool:
+        for card in cards:
+            if cards.count(card) == 5:
+                return True
+        return False
+
+    def find_straight(cards: List[int]) -> bool:
+        values = sorted(cards, reverse=True)
+        return values == list(range(values[0], values[0] - 5, -1))
+
+    return

@@ -54,6 +54,10 @@ class LineAttributes:
         self.action_from_player = None
         self.action_amount = None
         self.all_in = False
+        self.game_id = None
+        self.chips = None
+        self.winner = None
+        self.win_stack = None
 
 
 @dataclass
@@ -63,7 +67,7 @@ class Requests(LineAttributes):
         super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Requests"
+        return "Requests"
 
 
 @dataclass
@@ -73,7 +77,7 @@ class Approved(LineAttributes):
         super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Approved"
+        return "Approved"
 
 
 @dataclass
@@ -83,7 +87,7 @@ class Joined(LineAttributes):
         super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Joined"
+        return "Joined"
 
 
 @dataclass
@@ -103,7 +107,7 @@ class SmallBlind(LineAttributes):
         super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Small Blind"
+        return "Small Blind"
 
 
 @dataclass
@@ -113,7 +117,7 @@ class BigBlind(LineAttributes):
         super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Big Blind"
+        return "Big Blind"
 
 
 @dataclass
@@ -123,7 +127,7 @@ class Folds(LineAttributes):
         super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Folds"
+        return "Folds"
 
 
 @dataclass
@@ -133,7 +137,7 @@ class Calls(LineAttributes):
         super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Calls"
+        return "Calls"
 
 
 @dataclass
@@ -143,7 +147,7 @@ class Raises(LineAttributes):
         super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Raises"
+        return "Raises"
 
 
 @dataclass
@@ -153,7 +157,7 @@ class Checks(LineAttributes):
         super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Checks"
+        return "Checks"
 
 
 @dataclass
@@ -163,7 +167,7 @@ class Wins(LineAttributes):
         super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Wins"
+        return "Wins"
 
 
 @dataclass
@@ -173,7 +177,7 @@ class Shows(LineAttributes):
         super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Shows"
+        return "Shows"
 
 
 @dataclass
@@ -183,7 +187,7 @@ class Quits(LineAttributes):
         super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Quits"
+        return "Quits"
 
 
 @dataclass
