@@ -308,6 +308,7 @@ def _make_df(lst: List[dict], length: int) -> pd.DataFrame:
 
 
 def _make_reaction_lst(hand: Hand, player_index: List[str], reaction_lst: list) -> None:
+    """Makes list of reactions by the player."""
     temp_stack, temp_position, temp_person, temp_round, temp_player_stack = None, None, None, None, None
     temp_win, temp_win_stack = False, 0
     for line in hand.parsed_hand:
@@ -341,6 +342,7 @@ def _make_reaction_lst(hand: Hand, player_index: List[str], reaction_lst: list) 
 
 
 def _make_win_reaction_df(hand_lst: List[Hand], player_index: List[str], hand_count: int) -> List[pd.DataFrame]:
+    """Makes win_df, reaction, normal stats and winning stats DataFrames."""
     win_stats_dic = {'Win Stack': [], 'Win Cards': [], 'Win Hand': [], 'Win Position': [], 'Win Round': []}
     # Winning Stats
     wprf_check_count, wpof_check_count, wpot_check_count, wpor_check_count = [], [], [], []
@@ -902,4 +904,5 @@ class Poker:
 
     @property
     def players_history(self) -> dict:
+        """Collects player stats for all matches"""
         return self._player_history_dic
