@@ -143,3 +143,16 @@ One off functions for helping analysis.
             lst = [4.3, 5.6]
             round_to(data=lst, val=4, remainder=False) # [4, 4]
     :note: Maintains the input data type in output.
+
+.. function:: search_dic_values(dic, item):
+
+    Searches a dict using the values.
+
+    :param dic: Input data.
+    :type dic: dict
+    :param item: Search item.
+    :type item: str, float or int
+    :return: Key value connected to the value.
+    :rtype: str, float or int
+    :example: *None*
+    :note: *None*
