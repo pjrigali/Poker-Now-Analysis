@@ -14,7 +14,7 @@ Poker
 -----
 Class object for running the package.
 
-.. :currentmodule:: base
+.. :currentmodule:: classes
 
 .. class:: Poker(repo_location, grouped):
 
@@ -29,7 +29,7 @@ Class object for running the package.
     :example:
         .. code-block:: python
 
-            from poker.base import Poker
+            from poker.classes import Poker
             repo = 'location of your previous game'
             grouped = [['YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS'],
                         ['48QVRRsiae', 'u8_FUbXpAz']]
@@ -38,11 +38,11 @@ Class object for running the package.
         The grouped stats are only taken into account within this class
 
 .. autosummary::
-    poker.base.Poker.files
-    poker.base.Poker.matches
-    poker.base.Poker.players_info
-    poker.base.Poker.card_distribution
-    poker.base.Poker.winning_hand_distribution
+    poker.classes.Poker.files
+    poker.classes.Poker.matches
+    poker.classes.Poker.players_info
+    poker.classes.Poker.card_distribution
+    poker.classes.Poker.winning_hand_distribution
 
 .. _Game:
 
@@ -50,7 +50,7 @@ Game
 ----
 Class object used for getting specific game stats.
 
-.. :currentmodule:: base
+.. :currentmodule:: classes
 
 .. class:: Game(repo_location, file):
 
@@ -64,12 +64,12 @@ Class object used for getting specific game stats.
     :note: This class is intended to be used internally.
 
 .. autosummary::
-    poker.base.Game.file_name
-    poker.base.Game.hands_lst
-    poker.base.Game.players_info
-    poker.base.Game.card_distribution
-    poker.base.Game.winning_hand_distribution
-    poker.base.Game.players
+    poker.classes.Game.file_name
+    poker.classes.Game.hands_lst
+    poker.classes.Game.players_info
+    poker.classes.Game.card_distribution
+    poker.classes.Game.winning_hand_distribution
+    poker.classes.Game.players
 
 .. _Player:
 
@@ -77,7 +77,7 @@ Player
 ------
 Class object used for getting specific player stats.
 
-.. :currentmodule:: base
+.. :currentmodule:: classes
 
 .. class:: Player(player_index, hands):
 
@@ -91,17 +91,17 @@ Class object used for getting specific player stats.
     :note: This class is intended to be used internally.
 
 .. autosummary::
-    poker.base.Player.win_df
-    poker.base.Player.win_per
-    poker.base.Player.win_count
-    poker.base.Player.largest_win
-    poker.base.Player.largest_loss
-    poker.base.Player.winning_habits
-    poker.base.Player.normal_habits
-    poker.base.Player.win_position_distribution
-    poker.base.Player.win_hand_distribution
-    poker.base.Player.win_card_distribution
-    poker.base.Player.reaction
+    poker.classes.Player.win_df
+    poker.classes.Player.win_per
+    poker.classes.Player.win_count
+    poker.classes.Player.largest_win
+    poker.classes.Player.largest_loss
+    poker.classes.Player.winning_habits
+    poker.classes.Player.normal_habits
+    poker.classes.Player.win_position_distribution
+    poker.classes.Player.win_hand_distribution
+    poker.classes.Player.win_card_distribution
+    poker.classes.Player.reaction
 
 .. _Hand:
 
@@ -121,18 +121,18 @@ Class object used for getting specific hand stats.
     :note: This class is intended to be used internally.
 
 .. autosummary::
-    poker.base.Hand.parsed_hand
-    poker.base.Hand.small_blind
-    poker.base.Hand.big_blind
-    poker.base.Hand.winner
-    poker.base.Hand.winning_cards
-    poker.base.Hand.winning_hand
-    poker.base.Hand.starting_players
-    poker.base.Hand.starting_players_chips
-    poker.base.Hand.flop_cards
-    poker.base.Hand.turn_card
-    poker.base.Hand.river_card
-    poker.base.Hand.my_cards
+    poker.classes.Hand.parsed_hand
+    poker.classes.Hand.small_blind
+    poker.classes.Hand.big_blind
+    poker.classes.Hand.winner
+    poker.classes.Hand.winning_cards
+    poker.classes.Hand.winning_hand
+    poker.classes.Hand.starting_players
+    poker.classes.Hand.starting_players_chips
+    poker.classes.Hand.flop_cards
+    poker.classes.Hand.turn_card
+    poker.classes.Hand.river_card
+    poker.classes.Hand.my_cards
 
 .. _Plot:
 
