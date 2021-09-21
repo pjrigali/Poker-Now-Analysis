@@ -43,6 +43,7 @@ Class object for running the package.
     poker.classes.Poker.players_info
     poker.classes.Poker.card_distribution
     poker.classes.Poker.winning_hand_distribution
+    poker.classes.Poker.players_history
 
 .. _Game:
 
@@ -102,6 +103,9 @@ Class object used for getting specific player stats.
     poker.classes.Player.win_hand_distribution
     poker.classes.Player.win_card_distribution
     poker.classes.Player.reaction
+    poker.classes.Player.player_index
+    poker.classes.Player.player_name
+    poker.classes.Player.total_hand_count
 
 .. _Hand:
 
@@ -133,6 +137,9 @@ Class object used for getting specific hand stats.
     poker.classes.Hand.turn_card
     poker.classes.Hand.river_card
     poker.classes.Hand.my_cards
+    poker.classes.Hand.chips_on_board
+    poker.classes.Hand.gini_coef
+    poker.classes.Hand.pot_size_lst
 
 .. _Plot:
 

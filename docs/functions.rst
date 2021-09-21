@@ -77,6 +77,17 @@ One off functions for various analysis.
     :example: *None*
     :note: *None*
 
+.. function:: player_verse_player_reaction(data):
+
+    Find how many times and what value a player called or folded related to each player.
+
+    :param data: Input data.
+    :type data: Game
+    :return: A dict of counts and values for each call and fold.
+    :rtype: dict
+    :example: *None*
+    :note: *None*
+
 .. _Base:
 
 Base
