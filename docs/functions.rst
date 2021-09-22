@@ -88,6 +88,24 @@ One off functions for various analysis.
     :example: *None*
     :note: *None*
 
+.. function:: player_response(data, player_reserve_chips, percent_or_stack):
+
+    Find what value to bet to make a player call or fold.
+
+    :param data: Input Player data.
+    :type data: Player
+    :param player_reserve_chips: Amount of chips the player has.
+    :type player_reserve_chips: int
+    :param percent_or_stack: If True, will use percent of bet related to players reserve chips.
+        If False, will use bet amount, default is False. *Optional*
+    :type percent_or_stack: bool
+    :return: A DataFrame with an index representing percent of players stack.
+    :rtype: pd.DataFrame
+    :example: *None*
+    :note: The Percent columns represent an int value of a percent.
+        The Mu Stack columns represent an int value of the betting amount.
+        If percent_or_stack is True, The Bet Value, represents the value to achieve a respective percent.
+
 .. _Base:
 
 Base
