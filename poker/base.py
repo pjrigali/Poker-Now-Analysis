@@ -1,6 +1,8 @@
 from typing import List, Optional, Union
 import numpy as np
 import pandas as pd
+import functools
+import operator
 
 
 def normalize(data: Union[np.ndarray, pd.Series, list]) -> Union[np.ndarray, pd.Series, list]:
@@ -75,7 +77,7 @@ def cumulative_mean(data: Union[np.ndarray, pd.Series, list]) -> Union[np.ndarra
     elif type(data) == pd.Series:
         return data.expanding().mean()
     elif type(data) == list:
-        return [sum(data[:i]) / len(data[:i]) if i > 0 else 0 for i, j in enumerate(data) ]
+        return [sum(data[:i]) / len(data[:i]) if i > 0 else 0 for i, j in enumerate(data)]
     else:
         raise AttributeError('data needs to have a type of {np.ndarray, pd.Series, list}')
 
@@ -173,6 +175,31 @@ def search_dic_values(dic: dict, item: Union[str, int, float]) -> Union[str, flo
 
     """
     return list(dic.keys())[list(dic.values()).index(item)]
+
+
+def flatten(data: list, return_unique: bool = False) -> list:
+    """
+
+    Flattens a list and checks the list.
+
+    :param data: Input data.
+    :type data: dict
+    :param return_unique: If True, will return unique values, default is False. *Optional*
+    :type return_unique: bool
+    :return: Returns a flattened list.
+    :rtype: List[str]
+    :example: *None*
+    :note: *None*
+
+    """
+    lst = [item1 for item1 in data if type(item1) == str]
+    missed = [item1 for item1 in data if type(item1) != str]
+    temp_lst = [item2 for item1 in missed for item2 in item1]
+
+    if return_unique:
+        return list(set(lst + temp_lst))
+    else:
+        return lst + temp_lst
 
 
 def calculate_hand(cards: Union[tuple, list]) -> str:
