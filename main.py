@@ -4,7 +4,7 @@ from os import walk
 import matplotlib.pyplot as plt
 from poker.classes import Poker
 from poker.plot import Line, Scatter, Histogram
-from poker.analysis import face_card_in_winning_cards, longest_streak, raise_signal_winning, small_or_big_blind_win, best_cards, player_verse_player_reaction
+from poker.analysis import face_card_in_winning_cards, longest_streak, raise_signal_winning, small_or_big_blind_win, best_cards, player_verse_player_reaction, player_response
 from poker.base import normalize, running_mean, cumulative_mean, round_to
 import time
 
@@ -24,6 +24,9 @@ if __name__ == '__main__':
     start_timen = time.time()
     poker = Poker(repo_location=repo, grouped=grouped)
     start_timen = "--- %s seconds ---" % round((time.time() - start_timen), 2)
+    print(start_timen)
+    poker
+
     # print(''), print('Poker Built'), print("--- %s seconds ---" % round((time.time() - start_timen), 2))
 
     # temp = poker.matches[9].players['YEtsj6CMK4'].reaction
@@ -121,4 +124,4 @@ if __name__ == '__main__':
     # t = best_cards(data=poker.matches[9], player_index=['mQWfGaGPXE', '9fNOKzXJkb'])
     # tt = player_verse_player_reaction(data=poker.matches[9])
 
-    poker
+    # t = player_response(data=poker.players_history['mQWfGaGPXE'], player_reserve_chips=3000, percent_or_stack=False)

@@ -3,276 +3,432 @@ Created on Sat Aug 15 14:27:18 2021
 
 @author: Peter
 """
-from typing import Optional
+from dataclasses import dataclass
+from typing import Optional, Union, List
 
 
-class PlayerIndex:
-
-    def __repr__(self):
-        return "Player Index"
-
-    def _player_index(self, text) -> Optional[str]:
-        if ' @ ' in text:
-            return text.split('@')[1].split('"')[0].strip()
-        else:
-            return None
-
-
-class PlayerName:
-
-    def __repr__(self):
-        return "Player Name"
-
-    def _player_name(self, text) -> Optional[str]:
-        if ' @ ' in text:
-            return text.split('"')[1].split('@')[0].strip()
-        else:
-            return None
-
-
-class Stack:
-
-    def __repr__(self):
-        return "Stack"
-
-    def _stack(self, text) -> Optional[int]:
-        if 'stack of ' in text:
-            return int(text.split('stack of ')[1].split('.')[0])
-        else:
-            return None
-
-
-class Position:
-
-    def __repr__(self):
-        return "Position"
-
-    def _position(self) -> Optional[str]:
+def _player_name(text: str) -> Optional[str]:
+    if ' @ ' in text:
+        return text.split('"')[1].split('@')[0].strip()
+    else:
         return None
 
 
-class WinningHand:
-
-    def __repr__(self):
-        return "Winning Hand"
-
-    def _winning_hand(self) -> Optional[str]:
+def _player_index(text: str) -> Optional[str]:
+    if ' @ ' in text:
+        return text.split('@')[1].split('"')[0].strip()
+    else:
         return None
 
 
-class Cards:
-
-    def __repr__(self):
-        return "Cards"
-
-    def _cards(self) -> Optional[list]:
+def _stack(text: str) -> Optional[int]:
+    if 'stack of ' in text:
+        return int(text.split('stack of ')[1].split('.')[0])
+    else:
         return None
 
 
-class CurrentRound:
+@dataclass
+class LineAttributes:
+    """
 
-    def __repr__(self):
-        return "Current Round"
+    Applies attributes to a respective Class object.
 
-    def _current_round(self) -> Optional[int]:
-        return None
+    :param text: A line of text from the data.
+    :type text: str
+    :example: *None*
+    :note: This class is intended to be used internally.
 
-
-class LineAttributes(PlayerIndex, PlayerName, Stack, Position, WinningHand, Cards, CurrentRound):
-
+    """
     def __init__(self, text: str):
         self.text = text
-        self.player_name = self._player_name(self.text)
-        self.player_index = self._player_index(self.text)
-        self.stack = self._stack(self.text)
-        self.position = self._position()
-        self.winning_hand = self._winning_hand()
-        self.cards = self._cards()
-        self.current_round = self._current_round()
+        self.player_name = _player_name(self.text)
+        self.player_index = _player_index(self.text)
+        self.stack = _stack(self.text)
+        self.position = None
+        self.winning_hand = None
+        self.cards = None
+        self.current_round = None
         self.pot_size = 0
         self.remaining_players = None
         self.action_from_player = None
         self.action_amount = None
+        self.all_in = False
+        self.game_id = None
+        self.chips = None
+        self.winner = None
+        self.win_stack = None
+
+        self._text = self.text
+        self._player_name = self.player_name
+        self._player_index = self.player_index
+        self._stack = self.stack
+        self._position = self.position
+        self._winning_hand = self.winning_hand
+        self._cards = self.cards
+        self._current_round = self.current_round
+        self._pot_size = self.pot_size
+        self._remaining_players = self.remaining_players
+        self._action_from_player = self.action_from_player
+        self._action_amount = self.action_amount
+        self._all_in = self.all_in
+        self._game_id = self.game_id
+        self._chips = self.chips
+        self._winner = self.winner
+        self._win_stack = self.win_stack
+
+    @property
+    def text(self) -> str:
+        """Text input"""
+        return self._text
+
+    @text.setter
+    def text(self, val):
+        self._text = val
+
+    @property
+    def player_name(self) -> Union[str, None]:
+        """Player Name"""
+        return self._player_name
+
+    @player_name.setter
+    def player_name(self, val):
+        self._player_name = val
+
+    @property
+    def player_index(self) -> Union[str, None]:
+        """Player Id"""
+        return self._player_index
+
+    @player_index.setter
+    def player_index(self, val):
+        self._player_index = val
+
+    @property
+    def stack(self) -> Union[int, None]:
+        """Amount offered to the table"""
+        return self._stack
+
+    @stack.setter
+    def stack(self, val):
+        self._stack = val
+
+    @property
+    def position(self) -> Union[str, None]:
+        """Position of move in relation to table cards being drawn"""
+        return self._position
+
+    @position.setter
+    def position(self, val):
+        self._position = val
+
+    @property
+    def winning_hand(self) -> Union[str, None]:
+        """Winning hand"""
+        return self._winning_hand
+
+    @winning_hand.setter
+    def winning_hand(self, val):
+        self._winning_hand = val
+
+    @property
+    def cards(self) -> Union[str, tuple, None]:
+        """Card or cards"""
+        return self._cards
+
+    @cards.setter
+    def cards(self, val):
+        self._cards = val
+
+    @property
+    def current_round(self) -> Union[int, None]:
+        """Round number within the game"""
+        return self._current_round
+
+    @current_round.setter
+    def current_round(self, val):
+        self._current_round = val
+
+    @property
+    def pot_size(self) -> Union[int, None]:
+        """Size of pot when move happens"""
+        return self._pot_size
+
+    @pot_size.setter
+    def pot_size(self, val):
+        self._pot_size = val
+
+    @property
+    def remaining_players(self) -> Union[List[str], None]:
+        """Players left in hand"""
+        return self._remaining_players
+
+    @remaining_players.setter
+    def remaining_players(self, val):
+        self._remaining_players = val
+
+    @property
+    def action_from_player(self) -> Union[str, None]:
+        """Who bet previously"""
+        return self._action_from_player
+
+    @action_from_player.setter
+    def action_from_player(self, val):
+        self._action_from_player = val
+
+    @property
+    def action_amount(self) -> Union[int, None]:
+        """Previous bet amount"""
+        return self._action_amount
+
+    @action_amount.setter
+    def action_amount(self, val):
+        self._action_amount = val
+
+    @property
+    def all_in(self) -> Union[bool, None]:
+        """Notes if player when all-in"""
+        return self._all_in
+
+    @all_in.setter
+    def all_in(self, val):
+        self._all_in = val
+
+    @property
+    def game_id(self) -> Union[str, None]:
+        """File name"""
+        return self._game_id
+
+    @game_id.setter
+    def game_id(self, val):
+        self._game_id = val
+
+    @property
+    def chips(self) -> Union[int, None]:
+        """Player's chip count at start of hand"""
+        return self._chips
+
+    @chips.setter
+    def chips(self, val):
+        self._chips = val
+
+    @property
+    def winner(self) -> Union[str, None]:
+        """Player Name who wins the hand"""
+        return self._winner
+
+    @winner.setter
+    def winner(self, val):
+        self._winner = val
+
+    @property
+    def win_stack(self) -> Union[int, None]:
+        """Amount won at end of hand"""
+        return self._win_stack
+
+    @win_stack.setter
+    def win_stack(self, val):
+        self._win_stack = val
 
 
+@dataclass
 class Requests(LineAttributes):
+    """Class for players Requesting a seat."""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Requests"
-
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
+        return "Requests"
 
 
+@dataclass
 class Approved(LineAttributes):
+    """Class for players when Approved a seat."""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Approved"
-
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
+        return "Approved"
 
 
+@dataclass
 class Joined(LineAttributes):
+    """Class for players Joined the table."""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Joined"
+        return "Joined"
 
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
 
-    
+@dataclass
 class MyCards(LineAttributes):
+    """Class for users cards."""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
         return "Player Cards"
 
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
 
-
+@dataclass
 class SmallBlind(LineAttributes):
+    """Class for the Small Blind player."""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Small Blind"
-
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
+        return "Small Blind"
 
 
+@dataclass
 class BigBlind(LineAttributes):
+    """Class for the Big Blind player."""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Big Blind"
-
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
+        return "Big Blind"
 
 
+@dataclass
 class Folds(LineAttributes):
+    """Class for players that Fold."""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Folds"
-
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
+        return "Folds"
 
 
+@dataclass
 class Calls(LineAttributes):
+    """Class for players that Call."""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Calls"
-
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
+        return "Calls"
 
 
+@dataclass
 class Raises(LineAttributes):
+    """Class for players that Raise."""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Raises"
-
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
+        return "Raises"
 
 
+@dataclass
 class Checks(LineAttributes):
+    """Class for players that Check."""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Checks"
-
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
+        return "Checks"
 
 
+@dataclass
 class Wins(LineAttributes):
+    """Class for players that Win."""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Wins"
-
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
+        return "Wins"
 
 
+@dataclass
 class Shows(LineAttributes):
+    """Class for players that Show their cards."""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Shows"
-
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
+        return "Shows"
 
 
+@dataclass
 class Quits(LineAttributes):
+    """Class for players that Quit the table."""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
-        return self.player_name + " Quits"
-
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
+        return "Quits"
 
 
+@dataclass
 class Flop(LineAttributes):
+    """Class for Flop cards."""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
         return "Flop Cards"
 
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
 
-
+@dataclass
 class Turn(LineAttributes):
+    """Class for Turn card."""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
         return "Turn Card"
 
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
 
-
+@dataclass
 class River(LineAttributes):
+    """Class for River card."""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
         return "River Card"
 
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
 
-
+@dataclass
 class Undealt(LineAttributes):
+    """Class for Undealt cards."""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
         return "Undealt"
 
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
 
-
+@dataclass
 class StandsUp(LineAttributes):
+    """Class for players that Stand Up."""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
         return "Stand Up"
 
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
 
-
+@dataclass
 class SitsIn(LineAttributes):
+    """Class for players that Sit In."""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
         return "Sits In"
 
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
 
-
+@dataclass
 class PlayerStacks(LineAttributes):
+    """Class for getting players and their stacks at the beginning of a hand"""
+    def __init__(self, text: str):
+        super().__init__(text)
 
     def __repr__(self):
         return "Player Stacks"
-
-    def _line_attributes(self, text):
-        return self._line_attributes(self.text)
 
 
 def _request(line: str) -> Optional[Requests]:
@@ -586,15 +742,15 @@ def parser(hand) -> list:
             new.current_round = curr_round
 
             if new.stack is None:
+                new_stack = 0
                 if ' bets ' in line:
                     new_stack = line.split(' bets ')[1]
                 if ' raises to ' in line:
                     new_stack = line.split(' raises to ')[1]
-                if ' and ' in new_stack:
-                    new_stack = int(new_stack.split(' and ')[0])
-                else:
-                    new_stack = int(new_stack)
-                new.stack = new_stack
+                if ' and ' in line:
+                    new_stack = new_stack.split(' and ')[0]
+                    new.all_in = True
+                new.stack = int(new_stack)
 
             pot_size += new.stack
             new.pot_size = pot_size

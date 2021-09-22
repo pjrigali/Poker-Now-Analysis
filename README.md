@@ -21,7 +21,7 @@ The package can be accessed via pip install.
 
 ```python
 import poker
-from poker.base import Poker
+from poker.classes import Poker
 
 # Input past Data folder location.
 repo = '\\location of past Data folder'

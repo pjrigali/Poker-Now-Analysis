@@ -75,7 +75,7 @@ def cumulative_mean(data: Union[np.ndarray, pd.Series, list]) -> Union[np.ndarra
     elif type(data) == pd.Series:
         return data.expanding().mean()
     elif type(data) == list:
-        return [sum(data[:i]) / len(data[:i]) if i > 0 else 0 for i, j in enumerate(data) ]
+        return [sum(data[:i]) / len(data[:i]) if i > 0 else 0 for i, j in enumerate(data)]
     else:
         raise AttributeError('data needs to have a type of {np.ndarray, pd.Series, list}')
 
@@ -173,3 +173,99 @@ def search_dic_values(dic: dict, item: Union[str, int, float]) -> Union[str, flo
 
     """
     return list(dic.keys())[list(dic.values()).index(item)]
+
+
+def flatten(data: list, return_unique: bool = False) -> list:
+    """
+
+    Flattens a list and checks the list.
+
+    :param data: Input data.
+    :type data: dict
+    :param return_unique: If True, will return unique values, default is False. *Optional*
+    :type return_unique: bool
+    :return: Returns a flattened list.
+    :rtype: List[str]
+    :example: *None*
+    :note: *None*
+
+    """
+    lst = [item1 for item1 in data if type(item1) == str]
+    missed = [item1 for item1 in data if type(item1) != str]
+    temp_lst = [item2 for item1 in missed for item2 in item1]
+
+    if return_unique:
+        return list(set(lst + temp_lst))
+    else:
+        return lst + temp_lst
+
+
+def calculate_hand(cards: Union[tuple, list]) -> str:
+
+    card_lst = []
+    for card in cards:
+        if 'J' in card:
+            card_lst.append(card.replace('J', '11'))
+        elif 'Q' in card:
+            card_lst.append(card.replace('Q', '12'))
+        elif 'K' in card:
+            card_lst.append(card.replace('K', '13'))
+        elif 'A' in card:
+            card_lst.append(card.replace('A' '14'))
+        else:
+            card_lst.append(card)
+
+    card_lst_num = [int(card.split(' ')[0]) for card in card_lst]
+    card_lst_suit = [card.split(' ')[1] for card in card_lst]
+
+    def find_pair(cards: List[int]) -> bool:
+        for card in cards:
+            if cards.count(card) == 2:
+                return True
+        return False
+
+    def find_two_pair(cards: List[int]) -> bool:
+        pair = 0
+        for card in cards:
+            if cards.count(card) == 2:
+                pair += 1
+        if pair == 2:
+            return True
+        return False
+
+    def find_three_of_a_kind(cards: List[int]) -> bool:
+        for card in cards:
+            if cards.count(card) == 3:
+                return True
+        return False
+
+    def find_full_house(cards: List[int]) -> bool:
+        three, two = False, False
+        for card in cards:
+            if cards.count(card) == 3:
+                three = True
+            elif cards.count(card) == 2:
+                two = True
+
+        if three is True and two is True:
+            return True
+        else:
+            return False
+
+    def find_four_of_a_kind(cards: List[int]) -> bool:
+        for card in cards:
+            if cards.count(card) == 4:
+                return True
+        return False
+
+    def find_flush(cards: List[str]) -> bool:
+        for card in cards:
+            if cards.count(card) == 5:
+                return True
+        return False
+
+    def find_straight(cards: List[int]) -> bool:
+        values = sorted(cards, reverse=True)
+        return values == list(range(values[0], values[0] - 5, -1))
+
+    return
