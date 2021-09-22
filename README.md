@@ -1,4 +1,4 @@
-# Poker Now Analsyis
+# Poker Now Analysis
 [![Documentation Status](https://readthedocs.org/projects/poker-now-analysis/badge/?version=latest)](https://poker-now-analysis.readthedocs.io/en/latest/?badge=latest)
 
 This is a package for analyzing past performance and player habits from the Poker Now website.
