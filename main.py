@@ -24,8 +24,9 @@ if __name__ == '__main__':
     start_timen = time.time()
     poker = Poker(repo_location=repo, grouped=grouped)
     start_timen = "--- %s seconds ---" % round((time.time() - start_timen), 2)
-
+    print(start_timen)
     poker
+
     # print(''), print('Poker Built'), print("--- %s seconds ---" % round((time.time() - start_timen), 2))
 
     # temp = poker.matches[9].players['YEtsj6CMK4'].reaction
@@ -124,5 +125,3 @@ if __name__ == '__main__':
     # tt = player_verse_player_reaction(data=poker.matches[9])
 
     # t = player_response(data=poker.players_history['mQWfGaGPXE'], player_reserve_chips=3000, percent_or_stack=False)
-
-    poker

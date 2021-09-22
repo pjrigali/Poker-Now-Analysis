@@ -4,6 +4,7 @@ import numpy as np
 from collections import Counter
 from poker.processor import Wins, Raises, SmallBlind, BigBlind, Folds, Calls
 from poker.classes import Hand, Game, Player
+from poker.base import round_to, flatten
 
 
 # Wining Hand Face Card or Not?
@@ -202,7 +203,7 @@ def best_cards(data: Game, player_index: Optional[Union[str, List[str]]] = None)
             for row in person.win_df['Win Cards']:
                 if row is not None:
                     unique_cards.append(list(row))
-    unique_card_lst = list(set(sum(unique_cards, [])))
+    unique_card_lst = flatten(data=unique_cards, return_unique=True)
     person_stack_dic = {person + ' stack': {card: 0 for card in unique_card_lst} for person in player_dic.keys()}
 
     for hand in data.hands_lst:
@@ -213,7 +214,7 @@ def best_cards(data: Game, player_index: Optional[Union[str, List[str]]] = None)
                     person_stack_dic[line.player_index + ' stack'][card] += line.stack
                 break
 
-    card_lst = [dict(Counter(list(sum(player_dic[key], [])))) for key in player_dic.keys()]
+    card_lst = [dict(Counter(flatten(data=player_dic[key]))) for key in player_dic.keys()]
     temp_df = pd.DataFrame(card_lst, index=player_dic.keys()).T
     final_df = pd.concat([temp_df, pd.DataFrame.from_dict(person_stack_dic)], axis=1).fillna(0)
     return final_df
@@ -261,3 +262,83 @@ def player_verse_player_reaction(data: Game) -> dict:
                         player_dic[line.player_index][line.action_from_player]['Fold Lst'].append(line.action_amount)
 
     return player_dic
+
+
+def player_response(data: Player, player_reserve_chips: int, percent_or_stack: Optional[bool] = False) -> pd.DataFrame:
+    """
+
+    Find what value to bet to make a player call or fold.
+
+    :param data: Input Player data.
+    :type data: Player
+    :param player_reserve_chips: Amount of chips the player has.
+    :type player_reserve_chips: int
+    :param percent_or_stack: If True, will use percent of bet related to players reserve chips.
+        If False, will use bet amount, default is False. *Optional*
+    :type percent_or_stack: bool
+    :return: A DataFrame with an index representing percent of players stack.
+    :rtype: pd.DataFrame
+    :example: *None*
+    :note: The Percent columns represent an int value of a percent.
+        The Mu Stack columns represent an int value of the betting amount.
+        If percent_or_stack is True, The Bet Value, represents the value to achieve a respective percent.
+
+    """
+    data_n = data.reaction
+    if percent_or_stack:
+        data_n['Percent of Reserve'] = data_n['Bet Amount'] / data_n['Player Reserve']
+
+    for col in ['Bet Amount', 'Player Reserve']:
+        data_n[col] = round_to(data=data_n[col], val=50, remainder=False)
+
+    if percent_or_stack:
+        data_n['Percent of Reserve'] = round_to(data=data_n['Percent of Reserve'], val=20, remainder=True)
+
+    call_per_dic = {}
+    fold_per_dic = {}
+    call_mu_dic = {}
+    fold_mu_dic = {}
+    call_std_dic = {}
+    fold_std_dic = {}
+
+    if percent_or_stack:
+        item = 'Percent of Reserve'
+    else:
+        item = 'Bet Amount'
+
+    for i in data_n[item].unique():
+        temp_calls = data_n[(data_n[item] == i) & (data_n['Class'] == 'Calls')]
+        temp_folds = data_n[(data_n[item] == i) & (data_n['Class'] == 'Folds')]
+        call_mu_dic[i] = np.median(temp_calls['Bet Amount'])
+        fold_mu_dic[i] = np.median(temp_folds['Bet Amount'])
+
+        if percent_or_stack:
+            call_std_dic[i] = np.std(temp_calls['Bet Amount'], ddof=1)
+            fold_std_dic[i] = np.std(temp_folds['Bet Amount'], ddof=1)
+        else:
+            call_std_dic[i] = len(temp_calls)
+            fold_std_dic[i] = len(temp_folds)
+
+        if len(temp_calls) != 0:
+            call_per_dic[i] = round((len(temp_calls) / (len(temp_calls) + len(temp_folds))) * 100, 2)
+        else:
+            call_per_dic[i] = 0.0
+
+        if len(temp_folds) != 0:
+            fold_per_dic[i] = round((len(temp_folds) / (len(temp_calls) + len(temp_folds))) * 100, 2)
+        else:
+            fold_per_dic[i] = 0.0
+
+    if percent_or_stack:
+        dic = {'Call Percent': call_per_dic, 'Call Mu Stack': call_mu_dic, 'Call Std Stack': call_std_dic,
+               'Fold Percent': fold_per_dic, 'Fold Mu Stack': fold_mu_dic, 'Fold Std Stack': fold_std_dic}
+    else:
+        dic = {'Call Percent': call_per_dic, 'Call Mu Stack': call_mu_dic, 'Call Count': call_std_dic,
+               'Fold Percent': fold_per_dic, 'Fold Mu Stack': fold_mu_dic, 'Fold Count': fold_std_dic}
+
+    df = pd.DataFrame.from_dict(dic).fillna(0.0).sort_index(ascending=True).astype(int)
+
+    if percent_or_stack:
+        df['Bet Value'] = [i * player_reserve_chips for i in list(df.index)]
+
+    return df

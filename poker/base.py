@@ -1,8 +1,6 @@
 from typing import List, Optional, Union
 import numpy as np
 import pandas as pd
-import functools
-import operator
 
 
 def normalize(data: Union[np.ndarray, pd.Series, list]) -> Union[np.ndarray, pd.Series, list]:

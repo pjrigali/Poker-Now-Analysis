@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from collections import Counter
 from os import walk
-from poker.hand import hand, folds
+from poker.processor import hand, folds
 pd.set_option('display.max_columns', None)
 
 
