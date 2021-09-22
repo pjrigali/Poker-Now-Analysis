@@ -4,7 +4,7 @@ Created on Sat Aug 15 14:27:18 2021
 @author: Peter
 """
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union, List
 
 
 def _player_name(text: str) -> Optional[str]:
@@ -32,7 +32,7 @@ def _stack(text: str) -> Optional[int]:
 class LineAttributes:
     """
 
-    Applies attributes to a Class.
+    Applies attributes to a respective Class object.
 
     :param text: A line of text from the data.
     :type text: str
@@ -58,6 +58,177 @@ class LineAttributes:
         self.chips = None
         self.winner = None
         self.win_stack = None
+
+        self._text = self.text
+        self._player_name = self.player_name
+        self._player_index = self.player_index
+        self._stack = self.stack
+        self._position = self.position
+        self._winning_hand = self.winning_hand
+        self._cards = self.cards
+        self._current_round = self.current_round
+        self._pot_size = self.pot_size
+        self._remaining_players = self.remaining_players
+        self._action_from_player = self.action_from_player
+        self._action_amount = self.action_amount
+        self._all_in = self.all_in
+        self._game_id = self.game_id
+        self._chips = self.chips
+        self._winner = self.winner
+        self._win_stack = self.win_stack
+
+    @property
+    def text(self) -> str:
+        """Text input"""
+        return self._text
+
+    @text.setter
+    def text(self, val):
+        self._text = val
+
+    @property
+    def player_name(self) -> Union[str, None]:
+        """Player Name"""
+        return self._player_name
+
+    @player_name.setter
+    def player_name(self, val):
+        self._player_name = val
+
+    @property
+    def player_index(self) -> Union[str, None]:
+        """Player Id"""
+        return self._player_index
+
+    @player_index.setter
+    def player_index(self, val):
+        self._player_index = val
+
+    @property
+    def stack(self) -> Union[int, None]:
+        """Amount offered to the table"""
+        return self._stack
+
+    @stack.setter
+    def stack(self, val):
+        self._stack = val
+
+    @property
+    def position(self) -> Union[str, None]:
+        """Position of move in relation to table cards being drawn"""
+        return self._position
+
+    @position.setter
+    def position(self, val):
+        self._position = val
+
+    @property
+    def winning_hand(self) -> Union[str, None]:
+        """Winning hand"""
+        return self._winning_hand
+
+    @winning_hand.setter
+    def winning_hand(self, val):
+        self._winning_hand = val
+
+    @property
+    def cards(self) -> Union[str, tuple, None]:
+        """Card or cards"""
+        return self._cards
+
+    @cards.setter
+    def cards(self, val):
+        self._cards = val
+
+    @property
+    def current_round(self) -> Union[int, None]:
+        """Round number within the game"""
+        return self._current_round
+
+    @current_round.setter
+    def current_round(self, val):
+        self._current_round = val
+
+    @property
+    def pot_size(self) -> Union[int, None]:
+        """Size of pot when move happens"""
+        return self._pot_size
+
+    @pot_size.setter
+    def pot_size(self, val):
+        self._pot_size = val
+
+    @property
+    def remaining_players(self) -> Union[List[str], None]:
+        """Players left in hand"""
+        return self._remaining_players
+
+    @remaining_players.setter
+    def remaining_players(self, val):
+        self._remaining_players = val
+
+    @property
+    def action_from_player(self) -> Union[str, None]:
+        """Who bet previously"""
+        return self._action_from_player
+
+    @action_from_player.setter
+    def action_from_player(self, val):
+        self._action_from_player = val
+
+    @property
+    def action_amount(self) -> Union[int, None]:
+        """Previous bet amount"""
+        return self._action_amount
+
+    @action_amount.setter
+    def action_amount(self, val):
+        self._action_amount = val
+
+    @property
+    def all_in(self) -> Union[bool, None]:
+        """Notes if player when all-in"""
+        return self._all_in
+
+    @all_in.setter
+    def all_in(self, val):
+        self._all_in = val
+
+    @property
+    def game_id(self) -> Union[str, None]:
+        """File name"""
+        return self._game_id
+
+    @game_id.setter
+    def game_id(self, val):
+        self._game_id = val
+
+    @property
+    def chips(self) -> Union[int, None]:
+        """Player's chip count at start of hand"""
+        return self._chips
+
+    @chips.setter
+    def chips(self, val):
+        self._chips = val
+
+    @property
+    def winner(self) -> Union[str, None]:
+        """Player Name who wins the hand"""
+        return self._winner
+
+    @winner.setter
+    def winner(self, val):
+        self._winner = val
+
+    @property
+    def win_stack(self) -> Union[int, None]:
+        """Amount won at end of hand"""
+        return self._win_stack
+
+    @win_stack.setter
+    def win_stack(self, val):
+        self._win_stack = val
 
 
 @dataclass
