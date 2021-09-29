@@ -1,6 +1,7 @@
 from typing import List, Optional, Union
 import numpy as np
 import pandas as pd
+from collections import Counter
 
 
 def normalize(data: Union[np.ndarray, pd.Series, list]) -> Union[np.ndarray, pd.Series, list]:
@@ -23,7 +24,8 @@ def normalize(data: Union[np.ndarray, pd.Series, list]) -> Union[np.ndarray, pd.
     elif type(data) == pd.Series:
         return (data - min_val) / max_min_val
     elif type(data) == list:
-        return [(item - min_val) / max_min_val if ~np.isnan(item) else np.nan for item in data]
+        data = [0 if x != x else x for x in data]
+        return [(item - min_val) / max_min_val for item in data]
     else:
         raise AttributeError('data needs to have a type of {np.ndarray, pd.Series, list}')
 
@@ -49,7 +51,7 @@ def running_mean(data: Union[np.ndarray, pd.Series, list], num: int) -> Union[np
     elif type(data) == pd.Series:
         return data.rolling(num).mean().iloc[num-1:].reset_index(drop=True)
     elif type(data) == list:
-        return [sum(data[i - num:i]) / num for i, j in enumerate(data) if i >= num] + [np.mean(data[-num:])]
+        return [sum(data[i - num:i]) / num for i, j in enumerate(data) if i >= num]+[sum(data[-num:])/len(data[-num:])]
     else:
         raise AttributeError('data needs to have a type of {np.ndarray, pd.Series, list}')
 
@@ -80,20 +82,20 @@ def cumulative_mean(data: Union[np.ndarray, pd.Series, list]) -> Union[np.ndarra
         raise AttributeError('data needs to have a type of {np.ndarray, pd.Series, list}')
 
 
-def round_to(data: Union[np.ndarray, pd.Series, list], val: int,
-             remainder: Optional[bool] = False) -> Union[np.ndarray, pd.Series, list]:
+def round_to(data: Union[np.ndarray, pd.Series, list, int, float], val: int,
+             remainder: Optional[bool] = False) -> Union[np.ndarray, pd.Series, list, int, float]:
     """
 
     Rounds an np.array, pd.Series, or list of values to the nearest value.
 
     :param data: Input data.
-    :type data: np.ndarray, pd.Series, or list
+    :type data: np.ndarray, pd.Series, list, int, or float
     :param val: Value to round to. If decimal, will be that number divided by.
     :type val: int
     :param remainder: If True, will round the decimal, default is False. *Optional*
     :type remainder: bool
     :return: Rounded number.
-    :rtype: np.ndarray, pd.Series or list
+    :rtype: np.ndarray, pd.Series, list, int, or float
     :example:
         >>> # With remainder set to True.
         >>> lst = [4.3, 5.6]
@@ -108,22 +110,36 @@ def round_to(data: Union[np.ndarray, pd.Series, list], val: int,
     """
     if remainder:
         if type(data) == np.ndarray:
-            return np.around(data * val) / val
+            return np.around(np.nan_to_num(data) * val) / val
         elif type(data) == pd.Series:
-            return (data * val).round() / val
+            return (data.fillna(0.0) * val).round() / val
         elif type(data) == list:
-            return [round(item * val) / val if ~np.isnan(item) else np.nan for item in data]
+            data = [0 if x != x else x for x in data]
+            return [round(item * val) / val for item in data]
+            # return [round(item * val) / val if ~np.isnan(item) else np.nan for item in data]
+        elif type(data) in [int, float]:
+            if data != data is False:
+                return round(data * val) / val
+            else:
+                return 0.0
         else:
-            raise AttributeError('data needs to have a type of {np.ndarray, pd.Series, list}')
+            raise AttributeError('data needs to have a type of {np.ndarray, pd.Series, list, int, float}')
     else:
         if type(data) == np.ndarray:
-            return np.transpose(np.around(data / val) * val)
+            return np.transpose(np.around(np.nan_to_num(data) / val) * val)
         elif type(data) == pd.Series:
-            return (data / val).round() * val
+            return (data.fillna(0) / val).round() * val
         elif type(data) == list:
-            return [round(item / val) * val if ~np.isnan(item) else np.nan for item in data]
+            data = [0 if x != x else x for x in data]
+            return [round(item / val) * val for item in data]
+            # return [round(item / val) * val if ~np.isnan(item) else np.nan for item in data]
+        elif type(data) in [int, float]:
+            if data != data is False:
+                return round(data / val) * val
+            else:
+                return 0
         else:
-            raise AttributeError('data needs to have a type of {np.ndarray, pd.Series, list}')
+            raise AttributeError('data needs to have a type of {np.ndarray, pd.Series, list, int, float}')
 
 
 def calc_gini(data: Union[np.ndarray, pd.Series, list]) -> float:
@@ -175,29 +191,81 @@ def search_dic_values(dic: dict, item: Union[str, int, float]) -> Union[str, flo
     return list(dic.keys())[list(dic.values()).index(item)]
 
 
-def flatten(data: list, return_unique: bool = False) -> list:
+def flatten(data: list, return_unique: bool = False, type_used: str = 'str') -> list:
     """
 
     Flattens a list and checks the list.
 
     :param data: Input data.
-    :type data: dict
+    :type data: list
     :param return_unique: If True, will return unique values, default is False. *Optional*
     :type return_unique: bool
+    :param type_used: Either {str, int, or float}
+    :type type_used: str
     :return: Returns a flattened list.
     :rtype: List[str]
     :example: *None*
     :note: *None*
 
     """
-    lst = [item1 for item1 in data if type(item1) == str]
-    missed = [item1 for item1 in data if type(item1) != str]
-    temp_lst = [item2 for item1 in missed for item2 in item1]
+    if type_used in ['str', 'int', 'float']:
+        lst = [item1 for item1 in data if type(item1) == {'str': str, 'int': int, 'float': float}[type_used]]
+        missed = [item1 for item1 in data if type(item1) != {'str': str, 'int': int, 'float': float}[type_used]]
+        temp_lst = [item2 for item1 in missed for item2 in item1]
+    else:
+        raise AttributeError('Must be {str, int, or float}')
 
     if return_unique:
         return list(set(lst + temp_lst))
     else:
         return lst + temp_lst
+
+
+def native_mode(data: Union[list, np.ndarray, pd.Series]) -> float:
+    """
+
+    Calculate mode of a list, np.ndarray, or pd.Series.
+
+    :param data: Input data.
+    :type data: list
+    :return: Returns the mode.
+    :rtype: Union[float, int]
+    :example: *None*
+    :note: If an even number of values in output, the mean is returned.
+        If an odd number of values is returned, the median is returned.
+
+    """
+    t = Counter(data).most_common()
+    first_val, second_val = t[0][0], t[0][1]
+    equal_lst = [i[0] for i in t if second_val == i[1]]
+    if len(equal_lst) == 1:
+        return float(first_val)
+    elif len(equal_lst) % 2 == 0:
+        return float(sum(equal_lst) / len(equal_lst))
+    else:
+        return float(np.median(equal_lst))
+
+
+def native_mean(data: Union[list, np.ndarray, pd.Series]) -> float:
+
+    temp_lst = list(data)
+    temp_data = [x for x in temp_lst if x == x]
+    return sum(temp_data) / len(temp_data)
+
+
+def unique_values(data: Union[list, np.ndarray, pd.Series], count: Optional[bool] = False) -> Union[list, dict]:
+
+    if type(data) in [np.ndarray, pd.Series]:
+        data = list(data)
+
+    if count is False:
+        return list(set(data))
+    else:
+        temp_data = list(set(data))
+        data_dic = {i: 0 for i in temp_data}
+        for i in data:
+            data_dic[i] += 1
+        return data_dic
 
 
 def calculate_hand(cards: Union[tuple, list]) -> str:

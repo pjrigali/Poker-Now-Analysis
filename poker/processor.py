@@ -58,6 +58,7 @@ class LineAttributes:
         self.chips = None
         self.winner = None
         self.win_stack = None
+        self.time = None
 
         self._text = self.text
         self._player_name = self.player_name
@@ -76,6 +77,7 @@ class LineAttributes:
         self._chips = self.chips
         self._winner = self.winner
         self._win_stack = self.win_stack
+        self._time = self.time
 
     @property
     def text(self) -> str:
@@ -229,6 +231,15 @@ class LineAttributes:
     @win_stack.setter
     def win_stack(self, val):
         self._win_stack = val
+
+    @property
+    def time(self):
+        """Timestamp of action"""
+        return self._time
+
+    @time.setter
+    def time(self, val):
+        self._time = val
 
 
 @dataclass
@@ -591,10 +602,10 @@ def _player_stacks(line: str) -> Optional[PlayerStacks]:
         return None
 
 
-def parser(hand) -> list:
+def parser(lines: str, times) -> list:
     hand_position = []
     start_position = 'Pre Flop'
-    for line in hand:
+    for line in lines:
         if 'Flop:' in line or 'flop:' in line:
             start_position = 'Post Flop'
         if 'Turn:' in line or 'turn:' in line:
@@ -604,19 +615,20 @@ def parser(hand) -> list:
         hand_position.append(start_position)
 
     curr_round = 0
-    for line in hand:
+    for line in lines:
         if 'starting hand' in line:
             curr_round = int(line.split('starting hand #')[1].split(' (')[0])
             break
 
     pot_size = 0
     lst = []
-    for ind, line in enumerate(hand):
+    for ind, line in enumerate(lines):
 
         if _request(line) is not None:
             new = Requests(line)
             new.current_round = curr_round
             new.pot_size = pot_size
+            new.time = times[ind]
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -627,6 +639,7 @@ def parser(hand) -> list:
             new = Approved(line)
             new.current_round = curr_round
             new.pot_size = pot_size
+            new.time = times[ind]
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -637,6 +650,7 @@ def parser(hand) -> list:
             new = Joined(line)
             new.current_round = curr_round
             new.pot_size = pot_size
+            new.time = times[ind]
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -647,6 +661,7 @@ def parser(hand) -> list:
             new = StandsUp(line)
             new.current_round = curr_round
             new.pot_size = pot_size
+            new.time = times[ind]
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -657,6 +672,7 @@ def parser(hand) -> list:
             new = SitsIn(line)
             new.current_round = curr_round
             new.pot_size = pot_size
+            new.time = times[ind]
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -667,6 +683,7 @@ def parser(hand) -> list:
             new = MyCards(line)
             new.current_round = curr_round
             new.pot_size = pot_size
+            new.time = times[ind]
 
             if new.cards is None:
                 new_cards = line.split(' hand is ')[1].split(',')
@@ -680,6 +697,7 @@ def parser(hand) -> list:
         if _small_blind(line) is not None:
             new = SmallBlind(line)
             new.current_round = curr_round
+            new.time = times[ind]
 
             if new.stack is None:
                 new.stack = int(line.split('of ')[1])
@@ -695,6 +713,7 @@ def parser(hand) -> list:
         if _big_blind(line) is not None:
             new = BigBlind(line)
             new.current_round = curr_round
+            new.time = times[ind]
 
             if new.stack is None:
                 new.stack = int(line.split('of ')[1])
@@ -711,6 +730,7 @@ def parser(hand) -> list:
             new = Folds(line)
             new.current_round = curr_round
             new.pot_size = pot_size
+            new.time = times[ind]
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -720,6 +740,7 @@ def parser(hand) -> list:
         if _calls(line) is not None:
             new = Calls(line)
             new.current_round = curr_round
+            new.time = times[ind]
 
             if new.stack is None:
                 new_stack = line.split(' calls ')[1]
@@ -740,6 +761,7 @@ def parser(hand) -> list:
         if _raises(line) is not None:
             new = Raises(line)
             new.current_round = curr_round
+            new.time = times[ind]
 
             if new.stack is None:
                 new_stack = 0
@@ -764,6 +786,7 @@ def parser(hand) -> list:
             new = Checks(line)
             new.current_round = curr_round
             new.pot_size = pot_size
+            new.time = times[ind]
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -774,6 +797,7 @@ def parser(hand) -> list:
             new = Wins(line)
             new.current_round = curr_round
             new.pot_size = pot_size
+            new.time = times[ind]
 
             if new.stack is None:
                 new.stack = int(line.split(' collected ')[1].split(' from ')[0])
@@ -799,6 +823,7 @@ def parser(hand) -> list:
             new = Shows(line)
             new.current_round = curr_round
             new.pot_size = pot_size
+            new.time = times[ind]
 
             if new.cards is None:
                 new_cards = line.split(' shows a ')[1].split('.')[0].split(',')
@@ -813,6 +838,7 @@ def parser(hand) -> list:
             new = Quits(line)
             new.current_round = curr_round
             new.pot_size = pot_size
+            new.time = times[ind]
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -823,6 +849,7 @@ def parser(hand) -> list:
             new = Flop(line)
             new.current_round = curr_round
             new.pot_size = pot_size
+            new.time = times[ind]
 
             if new.cards is None:
                 new_cards = line.split(' [')[1].split(']')[0].split(',')
@@ -837,6 +864,7 @@ def parser(hand) -> list:
             new = Turn(line)
             new.current_round = curr_round
             new.pot_size = pot_size
+            new.time = times[ind]
 
             if new.cards is None:
                 new.cards = line.split(' [')[1].split(']')[0].strip()
@@ -850,6 +878,7 @@ def parser(hand) -> list:
             new = River(line)
             new.current_round = curr_round
             new.pot_size = pot_size
+            new.time = times[ind]
 
             if new.cards is None:
                 new.cards = line.split(' [')[1].split(']')[0].strip()
@@ -863,6 +892,7 @@ def parser(hand) -> list:
             new = Undealt(line)
             new.current_round = curr_round
             new.pot_size = pot_size
+            new.time = times[ind]
 
             if new.cards is None:
                 new_cards = line.split(' [')[1].split(']')[0].split(',')
@@ -880,6 +910,7 @@ def parser(hand) -> list:
             new = PlayerStacks(line)
             new.current_round = curr_round
             new.pot_size = pot_size
+            new.time = times[ind]
 
             p_name_lst = []
             p_index_lst = []

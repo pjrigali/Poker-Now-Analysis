@@ -2,11 +2,12 @@ from typing import List, Optional, Union
 from dataclasses import dataclass
 import pandas as pd
 import numpy as np
+import datetime
 from os import walk
 from collections import Counter
 from poker.processor import Approved, MyCards, SmallBlind, BigBlind, Folds, Calls, Raises, Checks, Wins, Shows, Quits
 from poker.processor import Flop, Turn, River, Undealt, StandsUp, SitsIn, PlayerStacks, parser
-from poker.base import calc_gini, flatten
+from poker.base import calc_gini, flatten, native_mean, native_mode, unique_values
 
 
 def _convert_shapes(data: List[str]) -> List[str]:
@@ -15,20 +16,32 @@ def _convert_shapes(data: List[str]) -> List[str]:
             for row in data]
 
 
-def _get_hands(repo_location: str, file: str) -> List[str]:
+def _get_data(repo_location: str, file: str) -> pd.DataFrame:
+    """Load data and parse timestamps"""
+    df = pd.read_csv(repo_location + file, encoding='latin1')
+    time_lst = df['at'].to_list()
+    df['at'] = [datetime.datetime.strptime(i.replace('T', ' ').split('.')[0], '%Y-%m-%d %H:%M:%S') for i in time_lst]
+    return df.reindex(index=df.index[::-1]).reset_index(drop=True)
+
+
+def _get_hands(data: pd.DataFrame) -> List[dict]:
     """Split game into list of hands"""
-    df = pd.read_csv(repo_location + file, encoding='latin1')['entry']
-    lst = _convert_shapes(list(df.reindex(index=df.index[::-1]).reset_index(drop=True)))
+    data['entry'] = _convert_shapes(data=data['entry'].to_list())
     hands, hand_lst = [], []
-    for item in lst:
-        if ' starting hand ' in item:
-            if ' hand #1 ' in item:
+    for ind, row in data.iterrows():
+        if ' starting hand ' in row['entry']:
+            if ' hand #1 ' in row['entry']:
                 hands.append(hand_lst)
-            hand_lst = [item]
+            hand_lst = [ind]
             hands.append(hand_lst)
         else:
-            hand_lst.append(item)
-    return hands
+            hand_lst.append(ind)
+
+    dic_lst = []
+    for hand in hands:
+        temp_df = data.iloc[hand]
+        dic_lst.append({'lines': temp_df['entry'].to_list(), 'times': temp_df['at'].to_list()})
+    return dic_lst
 
 
 def _add_to_dic(item, player_dic: dict, location: str, player_index: str):
@@ -75,11 +88,20 @@ def _line_to_df(line_lst: list) -> pd.DataFrame:
         temp_win = False
         if line.player_index in line.winner:
             temp_win = True
-        lst.append({'Player Index': line.player_index, 'Player Name': line.player_name, 'Bet Amount': line.stack,
-                    'Position': line.position, 'Round': line.current_round, 'Player Reserve': line.chips,
-                    'Class': repr(line), 'Winner': line.winner, 'Win': temp_win, 'Win Stack': line.win_stack,
-                    'Win Hand': line.winning_hand, 'All In': line.all_in, 'Pot Size': line.pot_size,
-                    'Remaining Players': line.remaining_players, 'From Person': line.action_from_player})
+        if type(line) in [Raises, PlayerStacks, SmallBlind, BigBlind, Wins]:
+            lst.append({'Player Index': line.player_index, 'Player Name': line.player_name, 'Bet Amount': line.stack,
+                        'Position': line.position, 'Round': line.current_round, 'Player Reserve': line.chips,
+                        'Class': repr(line), 'Winner': line.winner, 'Win': temp_win, 'Win Stack': line.win_stack,
+                        'Win Hand': line.winning_hand, 'All In': line.all_in, 'Pot Size': line.pot_size,
+                        'Remaining Players': line.remaining_players, 'From Person': line.action_from_player,
+                        'Game Id': line.game_id})
+        else:
+            lst.append({'Player Index': line.player_index, 'Player Name': line.player_name,
+                        'Bet Amount': line.action_amount, 'Position': line.position, 'Round': line.current_round,
+                        'Player Reserve': line.chips, 'Class': repr(line), 'Winner': line.winner, 'Win': temp_win,
+                        'Win Stack': line.win_stack, 'Win Hand': line.winning_hand, 'All In': line.all_in,
+                        'Pot Size': line.pot_size, 'Remaining Players': line.remaining_players,
+                        'From Person': line.action_from_player, 'Game Id': line.game_id})
     return pd.DataFrame(lst).bfill()
 
 
@@ -89,7 +111,6 @@ def _count_cards(dic: dict) -> dict:
         if key in ['Flop', 'Turn', 'River', 'Win', 'My Cards']:
             if key in ['Flop', 'Win', 'My Cards']:
                 lst = flatten(data=dic[key]['Cards'])
-                # lst = [item for sublist in dic[key]['Cards'] for item in sublist]
             else:
                 lst = dic[key]['Cards']
             card_count_dic[key + ' Count'] = dict(Counter(flatten(data=lst)))
@@ -215,7 +236,8 @@ def _build_players(data: dict, money_df: pd.DataFrame) -> None:
                         temp = j - previous
             val1.largest_loss = [key2, temp]
             val1.hand_count = [key2, np.max(val2['Round'])]
-            val1.all_in = [key2, int(np.nan_to_num(np.mean(val2[val2['All In'] == True]['Bet Amount'])))]
+            # val1.all_in = [key2, int(np.nan_to_num(np.mean(val2[val2['All In'] == True]['Bet Amount'])))]
+            val1.all_in = [key2, list(val2[val2['All In'] == True]['Bet Amount'])]
 
 
 def _combine_dic(data: dict, grouped: list) -> dict:
@@ -455,6 +477,7 @@ class Hand:
                 _add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
                 continue
             elif line_type in [SitsIn, Shows, Approved, Checks]:
+                line.action_amount = 0
                 _add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
                 continue
 
@@ -713,10 +736,10 @@ class Game:
     :note: This class is intended to be used internally.
 
     """
-    def __init__(self, hand_lst: List[str], file_id: str, players_data: dict):
+    def __init__(self, hand_lst: List[dict], file_id: str, players_data: dict):
         self._file_id = file_id
         player_dic = {}
-        self._parsed_hands = [Hand(lst_hand_objects=[line for line in parser(hand=hand)],
+        self._parsed_hands = [Hand(lst_hand_objects=[line for line in parser(lines=hand['lines'], times=hand['times'])],
                                    file_id=file_id, player_dic=player_dic) for hand in hand_lst]
         self._players_data = _build_players_data(player_dic=player_dic, players_data=players_data,
                                                  file_id=self._file_id)
@@ -784,10 +807,20 @@ class Poker:
         if grouped:
             self._grouped = grouped
 
-        game_hands_lst_dic = {file: _get_hands(repo_location=self._repo_location, file=file) for file in self._files}
+        file_dic = {file: _get_data(repo_location=self._repo_location, file=file) for file in self._files}
+        game_hand_time_lst_dic = {file: _get_hands(data=file_dic[file]) for file in self._files}
+        # game_hands_lst_dic, game_times_lst_dic = {}, {}
+        # for file in self._files:
+        #     line_lst, time_lst = [], []
+        #     for dic in game_hand_time_lst_dic[file]:
+        #         line_lst.append(dic['lines'])
+        #         time_lst.append(dic['times'])
+        #     game_hands_lst_dic[file] = line_lst
+        #     game_times_lst_dic[file] = time_lst
+
         players_data = {}
-        self._matches = [Game(hand_lst=game_hands_lst_dic[file_id], file_id=file_id,
-                              players_data=players_data) for file_id in game_hands_lst_dic.keys()]
+        self._matches = [Game(hand_lst=game_hand_time_lst_dic[file_id], file_id=file_id,
+                              players_data=players_data) for file_id in self._files]
         player_dic = _build_player_dic(data=players_data, matches=self._matches)
         self._player_money_df = _group_money(data=pd.DataFrame.from_dict(player_dic, orient='index'),
                                              grouped=self._grouped, multi=money_multi)
