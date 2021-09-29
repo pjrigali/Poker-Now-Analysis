@@ -59,6 +59,7 @@ class LineAttributes:
         self.winner = None
         self.win_stack = None
         self.time = None
+        self.previous_time = None
 
         self._text = self.text
         self._player_name = self.player_name
@@ -78,6 +79,7 @@ class LineAttributes:
         self._winner = self.winner
         self._win_stack = self.win_stack
         self._time = self.time
+        self._previous_time = self.previous_time
 
     @property
     def text(self) -> str:
@@ -240,6 +242,15 @@ class LineAttributes:
     @time.setter
     def time(self, val):
         self._time = val
+
+    @property
+    def previous_time(self):
+        """Timestamp of previous action"""
+        return self._previous_time
+
+    @previous_time.setter
+    def previous_time(self, val):
+        self._previous_time = val
 
 
 @dataclass
@@ -622,13 +633,18 @@ def parser(lines: str, times) -> list:
 
     pot_size = 0
     lst = []
+    previous_time = None
     for ind, line in enumerate(lines):
+
+        if ind > 1:
+            previous_time = times[ind - 1]
 
         if _request(line) is not None:
             new = Requests(line)
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
+            new.previous_time = previous_time
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -640,6 +656,7 @@ def parser(lines: str, times) -> list:
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
+            new.previous_time = previous_time
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -651,6 +668,7 @@ def parser(lines: str, times) -> list:
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
+            new.previous_time = previous_time
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -662,6 +680,7 @@ def parser(lines: str, times) -> list:
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
+            new.previous_time = previous_time
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -673,6 +692,7 @@ def parser(lines: str, times) -> list:
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
+            new.previous_time = previous_time
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -684,6 +704,7 @@ def parser(lines: str, times) -> list:
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
+            new.previous_time = previous_time
 
             if new.cards is None:
                 new_cards = line.split(' hand is ')[1].split(',')
@@ -698,6 +719,7 @@ def parser(lines: str, times) -> list:
             new = SmallBlind(line)
             new.current_round = curr_round
             new.time = times[ind]
+            new.previous_time = previous_time
 
             if new.stack is None:
                 new.stack = int(line.split('of ')[1])
@@ -714,6 +736,7 @@ def parser(lines: str, times) -> list:
             new = BigBlind(line)
             new.current_round = curr_round
             new.time = times[ind]
+            new.previous_time = previous_time
 
             if new.stack is None:
                 new.stack = int(line.split('of ')[1])
@@ -731,6 +754,7 @@ def parser(lines: str, times) -> list:
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
+            new.previous_time = previous_time
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -741,6 +765,7 @@ def parser(lines: str, times) -> list:
             new = Calls(line)
             new.current_round = curr_round
             new.time = times[ind]
+            new.previous_time = previous_time
 
             if new.stack is None:
                 new_stack = line.split(' calls ')[1]
@@ -762,6 +787,7 @@ def parser(lines: str, times) -> list:
             new = Raises(line)
             new.current_round = curr_round
             new.time = times[ind]
+            new.previous_time = previous_time
 
             if new.stack is None:
                 new_stack = 0
@@ -787,6 +813,7 @@ def parser(lines: str, times) -> list:
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
+            new.previous_time = previous_time
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -798,6 +825,7 @@ def parser(lines: str, times) -> list:
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
+            new.previous_time = previous_time
 
             if new.stack is None:
                 new.stack = int(line.split(' collected ')[1].split(' from ')[0])
@@ -824,6 +852,7 @@ def parser(lines: str, times) -> list:
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
+            new.previous_time = previous_time
 
             if new.cards is None:
                 new_cards = line.split(' shows a ')[1].split('.')[0].split(',')
@@ -839,6 +868,7 @@ def parser(lines: str, times) -> list:
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
+            new.previous_time = previous_time
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -850,6 +880,7 @@ def parser(lines: str, times) -> list:
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
+            new.previous_time = previous_time
 
             if new.cards is None:
                 new_cards = line.split(' [')[1].split(']')[0].split(',')
@@ -865,6 +896,7 @@ def parser(lines: str, times) -> list:
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
+            new.previous_time = previous_time
 
             if new.cards is None:
                 new.cards = line.split(' [')[1].split(']')[0].strip()
@@ -879,6 +911,7 @@ def parser(lines: str, times) -> list:
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
+            new.previous_time = previous_time
 
             if new.cards is None:
                 new.cards = line.split(' [')[1].split(']')[0].strip()
@@ -893,6 +926,7 @@ def parser(lines: str, times) -> list:
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
+            new.previous_time = previous_time
 
             if new.cards is None:
                 new_cards = line.split(' [')[1].split(']')[0].split(',')
@@ -911,6 +945,7 @@ def parser(lines: str, times) -> list:
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
+            new.previous_time = previous_time
 
             p_name_lst = []
             p_index_lst = []
