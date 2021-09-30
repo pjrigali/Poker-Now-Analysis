@@ -1,9 +1,6 @@
-# WIP Poker Now Analysis WIP
-
-[![Documentation Status](https://readthedocs.org/projects/call-of-duty-warzone-analysis/badge/?version=latest)](https://call-of-duty-warzone-analysis.readthedocs.io/en/latest/?badge=latest)
-[![PyPI](https://img.shields.io/pypi/v/warzone-analysis?color=brightgreen&logoColor=lightgrey)](https://pypi.org/project/warzone-analysis/)
-[![Downloads](https://static.pepy.tech/personalized-badge/warzone-analysis?period=month&units=international_system&left_color=grey&right_color=blue&left_text=Downloads)](https://pepy.tech/project/warzone-analysis)
-[![GitHub commit activity](https://img.shields.io/github/commit-activity/m/pjrigali/Call-Of-Duty-Warzone-Analysis?color=blue&label=commits&logoColor=blue)](https://github.com/pjrigali)
+# Poker Now Analysis
+[![Documentation Status](https://readthedocs.org/projects/poker-now-analysis/badge/?version=latest)](https://poker-now-analysis.readthedocs.io/en/latest/?badge=latest)
+[![GitHub commit activity](https://img.shields.io/github/commit-activity/m/pjrigali/Poker-Now-Analysis?color=blue&label=commits&logoColor=blue)](https://github.com/pjrigali)
 
 This is a package for analyzing past performance and player habits from the Poker Now website.
 
@@ -14,11 +11,7 @@ The website allows you to download the data from the game.
 This package preforms NLP to parse the csv and creates a variety of objects for analyzing the game.
 
 ## Installation
-[Pypi Documentation](https://pypi.org/project/warzone-analysis/)
-
-The package can be accessed via pip install.
-
-    pip install cold-war-zombies
+In progress...
 
 ## Usage
 [Read the Docs](https://poker-now-analysis.readthedocs.io/en/latest/)
@@ -45,19 +38,8 @@ poker = Poker(repo_location=repo, grouped=grouped)
 ```
 
 ## Visualizations
+In progress...
 
-The *Analyze* class will return the following plots:
-* Damage Per Second
-* Damage Per Max Ammo
-* Damage Per Clip
-* Time To Kill
-* Shots To Kill
-
-![Damage Per Second](https://miro.medium.com/max/1280/1*IyfMpo7OxpXGAm4MZd9t7Q.png)
-![Damage Per Max Ammo](https://miro.medium.com/max/1280/1*eFT7lys6gkZMPO0LsOCQrA.png)
-![Damage Per Clip](https://miro.medium.com/max/1280/1*Qtxn3jtbH0kRXICa7W2MfQ.png)
-![Time To Kill](https://miro.medium.com/max/1280/1*VFABznePjcEVT_WdIPF5Og.png) 
-![Shots To Kill](https://miro.medium.com/max/1280/1*vrw4BIZnm_mPw-V-OeXJwg.png)
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
