@@ -4,8 +4,9 @@ from os import walk
 import matplotlib.pyplot as plt
 from poker.classes import Poker
 from poker.plot import Line, Scatter, Histogram
-from poker.analysis import face_card_in_winning_cards, longest_streak, raise_signal_winning, small_or_big_blind_win, best_cards, player_verse_player_reaction, player_response
-from poker.base import normalize, running_mean, cumulative_mean, round_to
+from poker.analysis import face_card_in_winning_cards, longest_streak, raise_signal_winning, small_or_big_blind_win
+from poker.analysis import player_verse_player, bluff_study, tsanalysis, staticanalysis
+from poker.base import normalize, running_mean, cumulative_mean, round_to, native_mean, native_mode, unique_values
 import time
 
 
@@ -25,7 +26,34 @@ if __name__ == '__main__':
     poker = Poker(repo_location=repo, grouped=grouped)
     start_timen = "--- %s seconds ---" % round((time.time() - start_timen), 2)
     print(start_timen)
-    poker
+
+    # data_peter = poker.players_history['mQWfGaGPXE'].moves_dic
+    # data_peter
+    # data_flynn = poker.players_history['DZy-22KNBS'].moves_dic
+    # data_henry = poker.players_history['HiZcYKvbcw'].moves_dic
+    # data_mike = poker.players_history['yUaYOqMtWh'].moves_dic
+    # a = player_habits_compared(data=data_peter)
+    # b = player_habits_compared(data=data_flynn)
+    # c = player_habits_compared(data=data_henry)
+    # d = player_habits_compared(data=data_mike)
+    # e = bluff_study(data=poker.players_history['mQWfGaGPXE'])
+    # f = bluff_study(data=data_flynn)
+    # g = bluff_study(data=data_henry)
+    # h = bluff_study(data=data_mike)
+
+    # ts = tsanalysis(data=data_peter)
+    # ss = staticanalysis(data=data_peter)
+    # fcwc1 = face_card_in_winning_cards(data=poker.players_history['mQWfGaGPXE'])
+    # fcwc2 = face_card_in_winning_cards(data=poker.matches[0])
+    # ls1 = longest_streak(data=poker.players_history['mQWfGaGPXE'])
+    # ls2 = longest_streak(data=poker.matches[1])
+    # rsw1 = raise_signal_winning(data=poker.players_history['mQWfGaGPXE'])
+    # rsw2 = raise_signal_winning(data=poker.matches[1])
+    # sb1 = small_or_big_blind_win(data=poker.players_history['mQWfGaGPXE'])
+    # sb2 = small_or_big_blind_win(data=poker.matches[1])
+    # pvp1 = player_verse_player(data=poker.players_history['mQWfGaGPXE'])
+    # pvp2 = player_verse_player(data=poker.matches[1])
+    # poker
 
     # print(''), print('Poker Built'), print("--- %s seconds ---" % round((time.time() - start_timen), 2))
 
@@ -125,3 +153,53 @@ if __name__ == '__main__':
     # tt = player_verse_player_reaction(data=poker.matches[9])
 
     # t = player_response(data=poker.players_history['mQWfGaGPXE'], player_reserve_chips=3000, percent_or_stack=False)
+
+# data = poker.players_history['mQWfGaGPXE'].moves_dic
+# awin_df = pd.DataFrame()
+# aloss_df = pd.DataFrame()
+# for key, val in data.items():
+#     awin_df = pd.concat([awin_df, val[val['Win'] == True]])
+#     aloss_df = pd.concat([aloss_df, val[val['Win'] == False]])
+# awin_df = awin_df.reset_index(drop=True)
+# aloss_df = aloss_df.reset_index(drop=True)
+
+# compare_dic = {'Win': {'Pre Flop': {}, 'Post Flop': {}, 'Post Turn': {}, 'Post River': {}},
+#                'Loss': {'Pre Flop': {}, 'Post Flop': {}, 'Post Turn': {}, 'Post River': {}}}
+#
+# for pos in ['Pre Flop', 'Post Flop', 'Post Turn', 'Post River']:
+#     temp_df = awin_df[awin_df['Position'] == pos]
+#     temp_dfn = aloss_df[aloss_df['Position'] == pos]
+#     for cl in ['Checks', 'Raises', 'Calls']:
+#         temp_lst = []
+#         for row in temp_df['Round'].unique():
+#             temp_lst.append(len(temp_df[(temp_df['Round'] == row) & (temp_df['Class'] == cl)]))
+#         compare_dic['Win'][pos][cl] = temp_lst
+#
+#     for cl in ['Checks', 'Raises', 'Calls']:
+#         temp_lst = []
+#         for row in temp_dfn['Round'].unique():
+#             temp_lst.append(len(temp_dfn[(temp_dfn['Round'] == row) & (temp_dfn['Class'] == cl)]))
+#         compare_dic['Loss'][pos][cl] = temp_lst
+#
+# compare_dic_mean = {'Win': {'Pre Flop': {'Checks': 0, 'Raises': 0, 'Calls': 0},
+#                             'Post Flop': {'Checks': 0, 'Raises': 0, 'Calls': 0},
+#                             'Post Turn': {'Checks': 0, 'Raises': 0, 'Calls': 0},
+#                             'Post River': {'Checks': 0, 'Raises': 0, 'Calls': 0}},
+#                     'Loss': {'Pre Flop': {'Checks': 0, 'Raises': 0, 'Calls': 0},
+#                              'Post Flop': {'Checks': 0, 'Raises': 0, 'Calls': 0},
+#                              'Post Turn': {'Checks': 0, 'Raises': 0, 'Calls': 0},
+#                              'Post River': {'Checks': 0, 'Raises': 0, 'Calls': 0}}}
+# compare_dic_std = {'Win': {'Pre Flop': {'Checks': 0, 'Raises': 0, 'Calls': 0},
+#                             'Post Flop': {'Checks': 0, 'Raises': 0, 'Calls': 0},
+#                             'Post Turn': {'Checks': 0, 'Raises': 0, 'Calls': 0},
+#                             'Post River': {'Checks': 0, 'Raises': 0, 'Calls': 0}},
+#                     'Loss': {'Pre Flop': {'Checks': 0, 'Raises': 0, 'Calls': 0},
+#                              'Post Flop': {'Checks': 0, 'Raises': 0, 'Calls': 0},
+#                              'Post Turn': {'Checks': 0, 'Raises': 0, 'Calls': 0},
+#                              'Post River': {'Checks': 0, 'Raises': 0, 'Calls': 0}}}
+#
+# for i in ['Win', 'Loss']:
+#     for j in ['Pre Flop', 'Post Flop', 'Post Turn', 'Post River']:
+#         for k in ['Checks', 'Raises', 'Calls']:
+#             compare_dic_mean[i][j][k] = round(np.mean(compare_dic[i][j][k]), 2)
+#             compare_dic_std[i][j][k] = round(np.std(compare_dic[i][j][k]), 2)

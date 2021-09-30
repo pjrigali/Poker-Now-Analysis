@@ -16,7 +16,7 @@ Class object for running the package.
 
 .. :currentmodule:: classes
 
-.. class:: Poker(repo_location, grouped):
+.. class:: Poker(repo_location, grouped, money_multi):
 
     Calculate stats for all games and players.
 
@@ -80,6 +80,8 @@ Class object for holding information from lines.
     poker.processor.LineAttributes.chips
     poker.processor.LineAttributes.winner
     poker.processor.LineAttributes.win_stack
+    poker.processor.LineAttributes.time
+    poker.processor.LineAttributes.previous_time
 
 .. _Game:
 
@@ -93,8 +95,8 @@ Class object used for getting specific game stats.
 
     Calculate stats for a game.
 
-    :param hand_lst: List of str's from the csv.
-    :type hand_lst: List[str]
+    :param hand_lst: List of dict's from the csv.
+    :type hand_lst: List[dict]
     :param file_id: Name of file.
     :type file_id: str
     :param players_data: A dict of player data.
@@ -133,13 +135,14 @@ Class object used for getting specific player stats.
     poker.classes.Player.largest_loss
     poker.classes.Player.hand_count
     poker.classes.Player.all_in
+    poker.classes.Player.player_index
+    poker.classes.Player.player_name
     poker.classes.Player.player_money_info
     poker.classes.Player.hand_dic
     poker.classes.Player.card_dic
     poker.classes.Player.line_dic
     poker.classes.Player.moves_dic
-    poker.classes.Player.player_index
-    poker.classes.Player.player_name
+
 
 .. _Hand:
 
@@ -263,6 +266,7 @@ Possible Legend Locations:
     :example:
         .. code-block:: python
 
+            # This example is from another package.
             from poker.plot import Line
             Line(data=data,
                  color_lst=['tab:orange', 'tab:blue'],
@@ -341,6 +345,7 @@ Possible Legend Locations:
     :example:
         .. code-block:: python
 
+            # This example is from another package.
             from poker.plot import Scatter
             Scatter(data=data,
                      compare_two=['teamSurvivalTime', 'placementPercent'],
@@ -425,6 +430,7 @@ Possible Legend Locations:
     :example:
         .. code-block:: python
 
+            # This example is from another package.
             from poker.plot import Histogram
             Histogram(data=data,
                       label_lst=['kills_log'],
