@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from scipy.stats import norm
-from poker.base import normalize, running_mean, cumulative_mean
+from poker.base import normalize, running_mean, cumulative_mean, _to_type, round_to
 from scipy import stats
 
 fonts = ['xx-small', 'x-small', 'small', 'medium', 'large', 'x-large', 'xx-large']
@@ -65,6 +65,8 @@ class Line:
     :type legend_transparency: float
     :param legend_location: legend location, default = 'lower right'. *Optional*
     :type legend_location: str
+    :param corr: Pass two strings to return the correlation.
+    :type corr: List[str]
     :example: *None*
     :note: *None*
 
@@ -94,6 +96,7 @@ class Line:
                  legend_fontsize: Optional[str] = 'medium',
                  legend_transparency: Optional[float] = 0.75,
                  legend_location: Optional[str] = 'lower right',
+                 corr: Optional[List[str]] = None
                  ):
 
         if label_lst is None:
@@ -136,6 +139,14 @@ class Line:
 
         ax.set_ylabel(ylabel, color=ylabel_color, fontsize=ylabel_size)
         ax.tick_params(axis='y', labelcolor=ylabel_color)
+
+        if corr:
+            if len(corr) == 2:
+                c = round_to(data=float(data[corr].corr().iloc[0, 1]), val=1000, remainder=True)
+                title = title + ' Corr: ' + str(c)
+            else:
+                raise AttributeError('Only two strings can be passed for corr')
+
         ax.set_title(title, fontsize=title_size)
 
         if grid:
@@ -288,7 +299,7 @@ class Scatter:
             label_lst = [compare_two[1]]
             x_axis = data[compare_two[0]]
             if compare_two[0] in normalize_x:
-                x_axis = normalize(x_axis)
+                x_axis = normalize(data=x_axis, keep_nan=True)
             elif compare_two[0] in running_mean_x:
                 x_axis = running_mean(x_axis, running_mean_value)
             elif compare_two[0] in cumulative_mean_x:
@@ -299,24 +310,36 @@ class Scatter:
 
             d = data[ind]
             if ind in normalize_x:
-                d = normalize(np.array(d))
+                d = normalize(data=d, keep_nan=True)
             elif ind in running_mean_x:
-                d = running_mean(np.array(d), running_mean_value)
+                d = running_mean(d, running_mean_value)
             elif ind in cumulative_mean_x:
-                d = cumulative_mean(np.array(d))
+                d = cumulative_mean(d)
+
+            nan_ind_lst = {}
+            for i, j in enumerate(x_axis):
+                if j != j:
+                    nan_ind_lst[i] = True
+                if d[i] != d[i]:
+                    nan_ind_lst[i] = True
+            if len(nan_ind_lst) != 0:
+                x_axis = [j for i, j in enumerate(x_axis) if i not in nan_ind_lst]
+                d = [j for i, j in enumerate(d) if i not in nan_ind_lst]
 
             ax.scatter(x=x_axis, y=d, color=color_lst[count], label=ind)
 
             if ind in regression_line:
                 slope, intercept, r_value, p_value, std_err = stats.linregress(x_axis, d)
+                slope, intercept = float(slope), float(intercept)
 
                 if len(label_lst) == 1:
                     c = regression_line_color
                 else:
                     c = color_lst[count]
 
-                ax.plot(x_axis, intercept + slope * x_axis, color=c, label=ind+'_ols_'+str(round(slope, 2)),
-                        linestyle='--', linewidth=regression_line_lineweight)
+                temp_x_axis = [min(x_axis), max(x_axis)]
+                ax.plot(temp_x_axis, [intercept + slope * i for i in temp_x_axis], color=c,
+                        label=ind+'_ols_'+str(round(slope, 2)), linestyle='--', linewidth=regression_line_lineweight)
             count += 1
 
         ax.set_ylabel(ylabel, color=ylabel_color, fontsize=ylabel_size)
