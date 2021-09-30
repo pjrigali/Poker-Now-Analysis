@@ -41,45 +41,25 @@ class LineAttributes:
 
     """
     def __init__(self, text: str):
-        self.text = text
-        self.player_name = _player_name(self.text)
-        self.player_index = _player_index(self.text)
-        self.stack = _stack(self.text)
-        self.position = None
-        self.winning_hand = None
-        self.cards = None
-        self.current_round = None
-        self.pot_size = 0
-        self.remaining_players = None
-        self.action_from_player = None
-        self.action_amount = None
-        self.all_in = False
-        self.game_id = None
-        self.chips = None
-        self.winner = None
-        self.win_stack = None
-        self.time = None
-        self.previous_time = None
-
-        self._text = self.text
-        self._player_name = self.player_name
-        self._player_index = self.player_index
-        self._stack = self.stack
-        self._position = self.position
-        self._winning_hand = self.winning_hand
-        self._cards = self.cards
-        self._current_round = self.current_round
-        self._pot_size = self.pot_size
-        self._remaining_players = self.remaining_players
-        self._action_from_player = self.action_from_player
-        self._action_amount = self.action_amount
-        self._all_in = self.all_in
-        self._game_id = self.game_id
-        self._chips = self.chips
-        self._winner = self.winner
-        self._win_stack = self.win_stack
-        self._time = self.time
-        self._previous_time = self.previous_time
+        self._text = text
+        self._player_name = _player_name(self.text)
+        self._player_index = _player_index(self.text)
+        self._stack = _stack(self.text)
+        self._position = None
+        self._winning_hand = None
+        self._cards = None
+        self._current_round = None
+        self._pot_size = 0
+        self._remaining_players = None
+        self._action_from_player = None
+        self._action_amount = None
+        self._all_in = False
+        self._game_id = None
+        self._chips = None
+        self._winner = None
+        self._win_stack = None
+        self._time = None
+        self._previous_time = None
 
     @property
     def text(self) -> str:
@@ -614,6 +594,7 @@ def _player_stacks(line: str) -> Optional[PlayerStacks]:
 
 
 def parser(lines: str, times) -> list:
+    """This parses strings and converts to class objects"""
     hand_position = []
     start_position = 'Pre Flop'
     for line in lines:
@@ -636,7 +617,7 @@ def parser(lines: str, times) -> list:
     previous_time = None
     for ind, line in enumerate(lines):
 
-        if ind > 1:
+        if ind >= 1:
             previous_time = times[ind - 1]
 
         if _request(line) is not None:
@@ -968,3 +949,7 @@ def parser(lines: str, times) -> list:
             continue
 
     return lst
+
+
+class_object_lst = [Requests, Approved, Joined, MyCards, SmallBlind, BigBlind, Folds, Calls, Raises, Checks, Wins,
+                    Shows, Quits, Flop, Turn, River, Undealt, StandsUp, SitsIn, PlayerStacks]
