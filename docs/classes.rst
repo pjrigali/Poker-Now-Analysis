@@ -263,18 +263,22 @@ Possible Legend Locations:
     :type legend_transparency: float
     :param legend_location: legend location, default = 'lower right'. *Optional*
     :type legend_location: str
+    :param corr: Pass two strings to return the correlation. *Optional*
+    :type corr: List[str]
+
     :example:
         .. code-block:: python
 
-            # This example is from another package.
             from poker.plot import Line
-            Line(data=data,
+            Line(data=val[['Pot Size', 'Win Stack']],
+                 normalize_x=['Pot Size', 'Win Stack'],
                  color_lst=['tab:orange', 'tab:blue'],
-                 title='Weapon Preference',
-                 ylabel='Percent',
-                 xlabel='Date')
+                 title='Pot Size and Winning Stack Amount (Player: ' + key + ')',
+                 ylabel='Value',
+                 xlabel='Time Periods',
+                 corr=['Pot Size', 'Win Stack'])
             plt.show()
-        .. image:: https://miro.medium.com/max/700/1*qMtEJwbMB9DpOOUKx5VDtg.png
+        .. image:: https://miro.medium.com/max/700/1*t4UJOrLU5ahOeBmQ-wmkoA.png
     :note: *None*
 
 .. autosummary::
@@ -345,19 +349,18 @@ Possible Legend Locations:
     :example:
         .. code-block:: python
 
-            # This example is from another package.
             from poker.plot import Scatter
-            Scatter(data=data,
-                     compare_two=['teamSurvivalTime', 'placementPercent'],
-                     normalize_x=['teamSurvivalTime'],
-                     color_lst=['tab:orange'],
-                     regression_line=['placementPercent'],
-                     regression_line_color='tab:blue',
-                     title='Team Survival Time vs Placement Percent',
-                     ylabel='Placement Percent',
-                     xlabel='Team Survival Time (seconds)')
-             plt.show()
-        .. image:: https://miro.medium.com/max/700/1*w0T6lztljOKIAFbeSR3ayQ.png
+            Scatter(data=val,
+                    compare_two=['Round Seconds', 'Player Reserve'],
+                    normalize_x=['Round Seconds', 'Player Reserve'],
+                    color_lst=['tab:orange'],
+                    regression_line=['Player Reserve'],
+                    regression_line_color='tab:blue',
+                    title='Time per Hand vs Player Reserve (Player: ' + key + ')',
+                    ylabel='Player Chip Count',
+                    xlabel='Total Round Seconds')
+            plt.show()
+        .. image:: https://miro.medium.com/max/1400/1*RIz78uu27Fr5dTf_EHUOnA.png
     :note: Slope of the regression line is noted in he legend.
 
 .. autosummary::
@@ -430,14 +433,13 @@ Possible Legend Locations:
     :example:
         .. code-block:: python
 
-            # This example is from another package.
             from poker.plot import Histogram
-            Histogram(data=data,
-                      label_lst=['kills_log'],
-                      include_norm='kills_log',
-                      title='Kills Histogram')
+            Histogram(data=val,
+                      label_lst=['Move Seconds'],
+                      include_norm='Move Seconds',
+                      title='Move Second Histogram (Player: ' + key + ')')
             plt.show()
-        .. image:: https://miro.medium.com/max/700/1*gzO4N258m-0pEb-5pmaKFA.png
+        .. image:: https://miro.medium.com/max/700/1*1oTyksxTA7ZTyG-dJ0XMVw.png
     :note: *None*
 
 .. autosummary::
