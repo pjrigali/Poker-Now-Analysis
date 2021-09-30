@@ -13,6 +13,7 @@ This chapter documents the Functions used in this package.
 Analysis
 --------
 One off functions for various analysis.
+Almost all Analysis functions take either a Game or Player Class Object.
 
 .. :currentmodule:: analysis
 
@@ -128,6 +129,8 @@ One off functions for various analysis.
 Base
 ----
 One off functions for helping analysis.
+These are helper functions that were constructed to limit the reliance on other packages.
+Most take a list, np.ndarray, or pd.Series and return a list of floats or ints.
 
 .. :currentmodule:: base
 
@@ -256,8 +259,6 @@ One off functions for helping analysis.
     :note: If multiple values have the same count, will return the mean.
         Median is used if there is an odd number of same count values.
 
-
-
 .. function:: native_mean(data):
 
     Calculate Mean of a list.
@@ -268,8 +269,6 @@ One off functions for helping analysis.
     :rtype: float
     :example: *None*
     :note: *None*
-
-
 
 .. function:: native_std(data, ddof):
 
@@ -293,6 +292,28 @@ One off functions for helping analysis.
     :param ddof: Set the degrees of freedom, default is 1. *Optional*
     :type ddof: int
     :return: Returns the Standard Deviation.
+    :rtype: float
+    :example: *None*
+    :note: *None*
+
+.. function:: native_sum(data):
+
+    Calculate Sum of a list.
+
+    :param data: Input data.
+    :type data: list, np.ndarray, or pd.Series
+    :return: Returns the Sum.
+    :rtype: float
+    :example: *None*
+    :note: *None*
+
+.. function:: native_max(data):
+
+    Calculate Max of a list.
+
+    :param data: Input data.
+    :type data: list, np.ndarray, or pd.Series
+    :return: Returns the Max.
     :rtype: float
     :example: *None*
     :note: *None*
