@@ -274,7 +274,7 @@ def native_mode(data: Union[list, np.ndarray, pd.Series]) -> float:
     elif len(equal_lst) % 2 == 0:
         return native_mean(data=equal_lst)
     else:
-        return float(np.median(equal_lst))
+        return native_median(data=equal_lst)
 
 
 def native_median(data: Union[list, np.ndarray, pd.Series]) -> float:
@@ -353,6 +353,55 @@ def native_std(data: Union[list, np.ndarray, pd.Series], ddof: Optional[int] = 1
 
     """
     return native_variance(data=_to_list(data=data), ddof=ddof) ** .5
+
+
+def native_sum(data: Union[list, np.ndarray, pd.Series]) -> float:
+    """
+
+    Calculate Sum of a list.
+
+    :param data: Input data.
+    :type data: list, np.ndarray, or pd.Series
+    :return: Returns the Sum.
+    :rtype: float
+    :example: *None*
+    :note: *None*
+
+    """
+    data = _to_type(data=_remove_nan(data=_to_list(data=data)), new_type='float')
+    if len(data) > 1:
+        return sum(data)
+    elif len(data) == 0:
+        return 0.0
+    else:
+        return data
+
+
+def native_max(data: Union[list, np.ndarray, pd.Series]) -> float:
+    """
+
+    Calculate Max of a list.
+
+    :param data: Input data.
+    :type data: list, np.ndarray, or pd.Series
+    :return: Returns the Max.
+    :rtype: float
+    :example: *None*
+    :note: *None*
+
+    """
+    data = _to_type(data=_remove_nan(data=_to_list(data=data)), new_type='float')
+
+    if len(data) > 1:
+        largest = 0
+        for i in data:
+            if i > largest:
+                largest = i
+        return largest
+    elif len(data) == 0:
+        return 0.0
+    else:
+        return data
 
 
 def unique_values(data: Union[list, np.ndarray, pd.Series], count: Optional[bool] = False) -> Union[list, dict]:
