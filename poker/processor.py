@@ -204,7 +204,7 @@ class LineAttributes:
 
     @property
     def current_chips(self) -> Union[int, None]:
-        """Player's chip count at start of hand"""
+        """Player's chip count at time of move"""
         return self._current_chips
 
     @current_chips.setter
