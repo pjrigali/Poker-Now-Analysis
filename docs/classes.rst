@@ -82,7 +82,7 @@ Class object used for getting specific player stats.
 
 .. :currentmodule:: player_class
 
-.. class:: Player(player_index, hands):
+.. class:: Player(player_index):
 
     Calculate stats for a player.
 

@@ -118,7 +118,7 @@ def _poker_group_money(data: dict, grouped: Union[list, None], multi: Union[int,
         final_df['Buy in Total'] = (final_df['Buy in Total'] / 100).astype(int)
         final_df['Leave Table Amount'] = (final_df['Leave Table Amount'] / 100).astype(int)
         final_df['Profit'] = (final_df['Profit'] / 100).astype(int)
-    return final_df.sort_values('Profit', ascending=False)
+    return final_df.sort_values('Profit', ascending=False).reset_index(drop=True)
 
 
 def _poker_get_dist(matches: list) -> List[pd.DataFrame]:
@@ -252,7 +252,7 @@ class Poker:
     :param money_multi: Multiple to divide the money amounts to translate them to dollars *Optional*
     :type money_multi: int
     :example:
-        >>> from poker.classes import Poker
+        >>> from poker.poker_class import Poker
         >>> repo = 'location of your previous game'
         >>> grouped = [['YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS'],
         >>>             ['48QVRRsiae', 'u8_FUbXpAz']]
