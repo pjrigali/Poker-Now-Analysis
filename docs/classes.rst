@@ -11,7 +11,7 @@ This chapter documents the Classes used in this package.
 .. _Poker:
 
 Poker
------
+=====
 Class object for running the package.
 
 .. :currentmodule:: classes
@@ -38,6 +38,8 @@ Class object for running the package.
         The grouped stats are only taken into account within this class
 
 .. autosummary::
+    :recursive:
+
     poker.classes.Poker.files
     poker.classes.Poker.matches
     poker.classes.Poker.players_money_overview
@@ -48,7 +50,7 @@ Class object for running the package.
 .. _Game:
 
 Game
-----
+====
 Class object used for getting specific game stats.
 
 .. class:: Game(hand_lst, file_id, players_data):
@@ -75,7 +77,7 @@ Class object used for getting specific game stats.
 .. _Player:
 
 Player
-------
+======
 Class object used for getting specific player stats.
 
 .. class:: Player(player_index, hands):
@@ -106,7 +108,7 @@ Class object used for getting specific player stats.
 .. _Hand:
 
 Hand
-----
+====
 Class object used for getting specific hand stats.
 
 .. class:: Hand(hand):
@@ -145,7 +147,7 @@ Class object used for getting specific hand stats.
 .. _Processor:
 
 Processor
----------
+=========
 Class object for holding information from lines.
 
 The following child classes use this framework:
@@ -207,7 +209,7 @@ The following child classes use this framework:
 .. _Plot:
 
 Plot Classes
-------------
+============
 Plot Class objects.
 
 Possible Font Size Strings:
