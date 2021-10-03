@@ -82,6 +82,8 @@ Class object for holding information from lines.
     poker.processor.LineAttributes.win_stack
     poker.processor.LineAttributes.time
     poker.processor.LineAttributes.previous_time
+    poker.processor.LineAttributes.starting_chips
+    poker.processor.LineAttributes.current_chips
 
 .. _Game:
 
@@ -110,6 +112,7 @@ Class object used for getting specific game stats.
     poker.classes.Game.card_distribution
     poker.classes.Game.winning_hand_distribution
     poker.classes.Game.players_data
+    poker.classes.Game.game_stats
 
 .. _Player:
 
@@ -142,7 +145,7 @@ Class object used for getting specific player stats.
     poker.classes.Player.card_dic
     poker.classes.Player.line_dic
     poker.classes.Player.moves_dic
-
+    poker.classes.Player.merged_moves
 
 .. _Hand:
 
@@ -180,6 +183,10 @@ Class object used for getting specific hand stats.
     poker.classes.Hand.gini_coef
     poker.classes.Hand.pot_size_lst
     poker.classes.Hand.players
+    poker.classes.Hand.start_time
+    poker.classes.Hand.end_time
+    poker.classes.Hand.win_stack
+    poker.classes.Hand.bet_lst
 
 .. _Plot:
 
