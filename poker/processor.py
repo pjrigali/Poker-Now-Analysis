@@ -40,11 +40,16 @@ class LineAttributes:
     :note: This class is intended to be used internally.
 
     """
-    def __init__(self, text: str):
-        self._text = text
-        self._player_name = _player_name(self.text)
-        self._player_index = _player_index(self.text)
-        self._stack = _stack(self.text)
+    def __init__(self, text: Union[str, None]):
+        self._text = None
+        self._player_name = None
+        self._player_index = None
+        self._stack = None
+        if text is not None:
+            self.text = text
+            self._player_name = _player_name(self.text)
+            self._player_index = _player_index(self.text)
+            self._stack = _stack(self.text)
         self._position = None
         self._winning_hand = None
         self._cards = None
@@ -55,14 +60,15 @@ class LineAttributes:
         self._action_amount = None
         self._all_in = False
         self._game_id = None
-        self._chips = None
+        self._start_chips = None
+        self._current_chips = None
         self._winner = None
         self._win_stack = None
         self._time = None
         self._previous_time = None
 
     @property
-    def text(self) -> str:
+    def text(self) -> Union[str, None]:
         """Text input"""
         return self._text
 
@@ -188,13 +194,22 @@ class LineAttributes:
         self._game_id = val
 
     @property
-    def chips(self) -> Union[int, None]:
+    def starting_chips(self) -> Union[int, None]:
         """Player's chip count at start of hand"""
-        return self._chips
+        return self._start_chips
 
-    @chips.setter
-    def chips(self, val):
-        self._chips = val
+    @starting_chips.setter
+    def starting_chips(self, val):
+        self._start_chips = val
+
+    @property
+    def current_chips(self) -> Union[int, None]:
+        """Player's chip count at start of hand"""
+        return self._current_chips
+
+    @current_chips.setter
+    def current_chips(self, val):
+        self._current_chips = val
 
     @property
     def winner(self) -> Union[str, None]:
@@ -366,7 +381,7 @@ class Quits(LineAttributes):
 @dataclass
 class Flop(LineAttributes):
     """Class for Flop cards."""
-    def __init__(self, text: str):
+    def __init__(self, text: Union[str, None]):
         super().__init__(text)
 
     def __repr__(self):
@@ -376,7 +391,7 @@ class Flop(LineAttributes):
 @dataclass
 class Turn(LineAttributes):
     """Class for Turn card."""
-    def __init__(self, text: str):
+    def __init__(self, text: Union[str, None]):
         super().__init__(text)
 
     def __repr__(self):
@@ -386,7 +401,7 @@ class Turn(LineAttributes):
 @dataclass
 class River(LineAttributes):
     """Class for River card."""
-    def __init__(self, text: str):
+    def __init__(self, text: Union[str, None]):
         super().__init__(text)
 
     def __repr__(self):
@@ -593,7 +608,7 @@ def _player_stacks(line: str) -> Optional[PlayerStacks]:
         return None
 
 
-def parser(lines: str, times) -> list:
+def parser(lines: List[str], times: list, game_id: str) -> list:
     """This parses strings and converts to class objects"""
     hand_position = []
     start_position = 'Pre Flop'
@@ -612,9 +627,26 @@ def parser(lines: str, times) -> list:
             curr_round = int(line.split('starting hand #')[1].split(' (')[0])
             break
 
+    player_name_lst, player_index_lst, player_value_lst = [], [], []
+    for line in lines:
+        if _player_stacks(line=line) is not None:
+            for play in line.split('#')[1:]:
+                player_name_lst.append(play.split('@')[0].split('"')[1].strip())
+                player_index_lst.append(play.split('@')[1].split('"')[0].strip())
+                player_value_lst.append(int(play.split('(')[1].split(')')[0]))
+
+    check_players_name_lst = False
+    if len(player_name_lst) > 0:
+        starting_chip_values = dict(zip(player_index_lst, player_value_lst))
+        current_chip_values = dict(zip(player_index_lst, player_value_lst))
+        check_players_name_lst = True
+
     pot_size = 0
     lst = []
     previous_time = None
+    pressor = 'None'
+    pressor_amount = 0
+    players_left = player_index_lst
     for ind, line in enumerate(lines):
 
         if ind >= 1:
@@ -622,10 +654,15 @@ def parser(lines: str, times) -> list:
 
         if _request(line) is not None:
             new = Requests(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
             new.previous_time = previous_time
+            new.action_from_player = 'None'
+            new.action_amount = 0
+            new.starting_chips = 0
+            new.current_chips = 0
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -634,10 +671,15 @@ def parser(lines: str, times) -> list:
 
         if _approved(line) is not None:
             new = Approved(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
             new.previous_time = previous_time
+            new.action_from_player = 'None'
+            new.action_amount = 0
+            new.starting_chips = 0
+            new.current_chips = 0
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -646,10 +688,15 @@ def parser(lines: str, times) -> list:
 
         if _joined(line) is not None:
             new = Joined(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
             new.previous_time = previous_time
+            new.action_from_player = 'None'
+            new.action_amount = 0
+            new.starting_chips = 0
+            new.current_chips = 0
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -658,10 +705,19 @@ def parser(lines: str, times) -> list:
 
         if _stand_up(line) is not None:
             new = StandsUp(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
             new.previous_time = previous_time
+            new.action_from_player = 'None'
+            new.action_amount = 0
+            players_left = [player for player in players_left if player != new.player_index]
+            new.remaining_players = players_left
+
+            if check_players_name_lst is True:
+                new.starting_chips = starting_chip_values[new.player_index]
+                new.current_chips = current_chip_values[new.player_index]
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -670,10 +726,16 @@ def parser(lines: str, times) -> list:
 
         if _sit_in(line) is not None:
             new = SitsIn(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
             new.previous_time = previous_time
+            new.action_from_player = 'None'
+            new.action_amount = 0
+            if check_players_name_lst is True:
+                new.starting_chips = new.stack
+                new.current_chips = new.stack
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -682,6 +744,7 @@ def parser(lines: str, times) -> list:
 
         if _my_cards(line) is not None:
             new = MyCards(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
@@ -698,15 +761,26 @@ def parser(lines: str, times) -> list:
 
         if _small_blind(line) is not None:
             new = SmallBlind(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.time = times[ind]
             new.previous_time = previous_time
+            new.action_from_player = 'None'
+            new.action_amount = pressor_amount
+            new.remaining_players = players_left
 
             if new.stack is None:
                 new.stack = int(line.split('of ')[1])
 
             pot_size += new.stack
             new.pot_size = pot_size
+            pressor = new.player_index
+            pressor_amount = new.stack
+
+            if check_players_name_lst is True:
+                current_chip_values[new.player_index] -= new.stack
+                new.current_chips = current_chip_values[new.player_index]
+                new.starting_chips = starting_chip_values[new.player_index]
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -715,15 +789,25 @@ def parser(lines: str, times) -> list:
 
         if _big_blind(line) is not None:
             new = BigBlind(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.time = times[ind]
             new.previous_time = previous_time
+            new.action_from_player = pressor
+            new.action_amount = pressor_amount
+            new.remaining_players = players_left
 
             if new.stack is None:
                 new.stack = int(line.split('of ')[1])
 
             pot_size += new.stack
             new.pot_size = pot_size
+            pressor = new.player_index
+            pressor_amount = new.stack
+            if check_players_name_lst is True:
+                current_chip_values[new.player_index] -= new.stack
+                new.current_chips = current_chip_values[new.player_index]
+                new.starting_chips = starting_chip_values[new.player_index]
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -732,10 +816,18 @@ def parser(lines: str, times) -> list:
 
         if _folds(line) is not None:
             new = Folds(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
             new.previous_time = previous_time
+            new.action_from_player = pressor
+            new.action_amount = pressor_amount
+            players_left = [player for player in players_left if player != new.player_index]
+            new.remaining_players = players_left
+            if check_players_name_lst is True:
+                new.current_chips = current_chip_values[new.player_index]
+                new.starting_chips = starting_chip_values[new.player_index]
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -744,9 +836,11 @@ def parser(lines: str, times) -> list:
 
         if _calls(line) is not None:
             new = Calls(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.time = times[ind]
             new.previous_time = previous_time
+            new.remaining_players = players_left
 
             if new.stack is None:
                 new_stack = line.split(' calls ')[1]
@@ -758,6 +852,12 @@ def parser(lines: str, times) -> list:
 
             pot_size += new.stack
             new.pot_size = pot_size
+            new.action_from_player = pressor
+            new.action_amount = pressor_amount
+            if check_players_name_lst is True:
+                current_chip_values[new.player_index] -= new.stack
+                new.current_chips = current_chip_values[new.player_index]
+                new.starting_chips = starting_chip_values[new.player_index]
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -766,9 +866,11 @@ def parser(lines: str, times) -> list:
 
         if _raises(line) is not None:
             new = Raises(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.time = times[ind]
             new.previous_time = previous_time
+            new.remaining_players = players_left
 
             if new.stack is None:
                 new_stack = 0
@@ -783,6 +885,14 @@ def parser(lines: str, times) -> list:
 
             pot_size += new.stack
             new.pot_size = pot_size
+            new.action_from_player = pressor
+            new.action_amount = pressor_amount
+            pressor = new.player_index
+            pressor_amount = new.stack
+            if check_players_name_lst is True:
+                current_chip_values[new.player_index] -= new.stack
+                new.current_chips = current_chip_values[new.player_index]
+                new.starting_chips = starting_chip_values[new.player_index]
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -791,10 +901,17 @@ def parser(lines: str, times) -> list:
 
         if _checks(line) is not None:
             new = Checks(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
             new.previous_time = previous_time
+            new.action_from_player = pressor
+            new.action_amount = 0
+            new.remaining_players = players_left
+            if check_players_name_lst is True:
+                new.current_chips = current_chip_values[new.player_index]
+                new.starting_chips = starting_chip_values[new.player_index]
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -803,10 +920,12 @@ def parser(lines: str, times) -> list:
 
         if _wins(line) is not None:
             new = Wins(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
             new.previous_time = previous_time
+            new.remaining_players = players_left
 
             if new.stack is None:
                 new.stack = int(line.split(' collected ')[1].split(' from ')[0])
@@ -825,15 +944,28 @@ def parser(lines: str, times) -> list:
 
             if new.position is None:
                 new.position = hand_position[ind]
+
+            if check_players_name_lst is True:
+                current_chip_values[new.player_index] += new.stack
+                new.current_chips = current_chip_values[new.player_index]
+                new.starting_chips = starting_chip_values[new.player_index]
             lst.append(new)
             continue
 
         if _shows(line) is not None:
             new = Shows(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
             new.previous_time = previous_time
+            new.action_from_player = 'None'
+            new.action_amount = 0
+            new.remaining_players = players_left
+            new.stack = 0
+            if check_players_name_lst is True:
+                new.current_chips = current_chip_values[new.player_index]
+                new.starting_chips = starting_chip_values[new.player_index]
 
             if new.cards is None:
                 new_cards = line.split(' shows a ')[1].split('.')[0].split(',')
@@ -846,10 +978,19 @@ def parser(lines: str, times) -> list:
 
         if _quits(line) is not None:
             new = Quits(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
             new.previous_time = previous_time
+            new.action_from_player = 'None'
+            new.action_amount = 0
+            players_left = [player for player in players_left if player != new.player_index]
+            new.remaining_players = players_left
+            if check_players_name_lst is True:
+                if new.player_index in starting_chip_values:
+                    new.current_chips = current_chip_values[new.player_index]
+                    new.starting_chips = starting_chip_values[new.player_index]
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -857,11 +998,19 @@ def parser(lines: str, times) -> list:
             continue
 
         if _flop(line) is not None:
+            pressor = 'None'
+            pressor_amount = 0
             new = Flop(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
             new.previous_time = previous_time
+            new.action_from_player = pressor
+            new.action_amount = pressor_amount
+            new.remaining_players = players_left
+            new.current_chips = 0
+            new.starting_chips = 0
 
             if new.cards is None:
                 new_cards = line.split(' [')[1].split(']')[0].split(',')
@@ -873,11 +1022,19 @@ def parser(lines: str, times) -> list:
             continue
 
         if _turn(line) is not None:
+            pressor = 'None'
+            pressor_amount = 0
             new = Turn(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
             new.previous_time = previous_time
+            new.action_from_player = pressor
+            new.action_amount = pressor_amount
+            new.remaining_players = players_left
+            new.current_chips = 0
+            new.starting_chips = 0
 
             if new.cards is None:
                 new.cards = line.split(' [')[1].split(']')[0].strip()
@@ -888,11 +1045,19 @@ def parser(lines: str, times) -> list:
             continue
 
         if _river(line) is not None:
+            pressor = 'None'
+            pressor_amount = 0
             new = River(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
             new.previous_time = previous_time
+            new.action_from_player = pressor
+            new.action_amount = pressor_amount
+            new.remaining_players = players_left
+            new.current_chips = 0
+            new.starting_chips = 0
 
             if new.cards is None:
                 new.cards = line.split(' [')[1].split(']')[0].strip()
@@ -903,11 +1068,20 @@ def parser(lines: str, times) -> list:
             continue
 
         if _undealt(line) is not None:
+            pressor = 'None'
+            pressor_amount = 0
             new = Undealt(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
             new.previous_time = previous_time
+            new.action_from_player = pressor
+            new.action_amount = pressor_amount
+            new.remaining_players = players_left
+            new.current_chips = 0
+            new.starting_chips = 0
+            new.stack = 0
 
             if new.cards is None:
                 new_cards = line.split(' [')[1].split(']')[0].split(',')
@@ -923,25 +1097,20 @@ def parser(lines: str, times) -> list:
 
         if _player_stacks(line) is not None:
             new = PlayerStacks(line)
+            new.game_id = game_id
             new.current_round = curr_round
             new.pot_size = pot_size
             new.time = times[ind]
             new.previous_time = previous_time
-
-            p_name_lst = []
-            p_index_lst = []
-            p_value_lst = []
-            for play in line.split('#')[1:]:
-                p_name = play.split('@')[0].split('"')[1].strip()
-                p_index = play.split('@')[1].split('"')[0].strip()
-                p_value = int(play.split('(')[1].split(')')[0])
-                p_name_lst.append(p_name)
-                p_index_lst.append(p_index)
-                p_value_lst.append(p_value)
-
-            new.player_name = p_name_lst
-            new.player_index = p_index_lst
-            new.stack = p_value_lst
+            new.action_from_player = 'None'
+            new.action_amount = 0
+            new.player_name = player_name_lst
+            new.player_index = player_index_lst
+            new.stack = 0
+            new.remaining_players = players_left
+            if check_players_name_lst is True:
+                new.current_chips = player_value_lst
+                new.starting_chips = player_value_lst
 
             if new.position is None:
                 new.position = hand_position[ind]
