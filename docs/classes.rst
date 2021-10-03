@@ -1,14 +1,19 @@
 .. raw:: html
 
-    <style> .red {color:red} </style>
-    <style> .lightblue {color:#2980b9; font-weight:700; font-size:75%; max-width: 100%; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,Courier,monospace;} </style>
-    <style> .grey {color:grey; font-weight:700; font-size:12px; background-color:white; padding: 2px 5px;} </style>
-    <style> .reddish {color:#e74c3c; font-size:75%; background-color:white; padding: 2px 5px; border: 1px solid #e1e4e5; white-space: nowrap; max-width: 100%; overflow-x: auto; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,Courier,monospace;} </style>
-    <style> .bb {color: #000; font-size:75%; background-color:white; padding: 2px 5px; border: 1px solid #e1e4e5; white-space: nowrap; max-width: 100%; overflow-x: auto; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,Courier,monospace;} </style>
+    <style> .lbi {color:#2980b9; font-weight:400; font-style: italic; font-size:100%; max-width: 100%; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,Courier,monospace;} </style>
+    <style> .lb {color:#2980b9; font-weight:400; font-size:100%; max-width: 100%; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,Courier,monospace;} </style>
+    <style> .grey {color:#404040; font-weight:700; font-size:16px; padding: 6px; background:#edf0f2; border-top: 1px solid grey} </style>
+    <style> .attribute_table_description {font-family: Lato,proxima-nova,Helvetica Neue,Arial,sans-serif; font-weight: 400; color: #404040; min-height: 100%;} </style>
+    <style> .attribute_table_header {font-family: Lato,proxima-nova,Helvetica Neue,Arial,sans-serif; font-weight: 700; color: #404040; min-height: 100%; font-size: 16px} </style>
+    <style> .rb {color:#e74c3c; font-size:75%; background-color:white; padding: 2px 5px; border: 1px solid #e1e4e5; white-space: nowrap; max-width: 100%; overflow-x: auto; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,Courier,monospace;} </style>
+    <style> .bb {color: #000; font-size:90%; font-weight:700; background-color:white; padding: 2px 5px; border: 1px solid #e1e4e5; white-space: nowrap; max-width: 100%; overflow-x: auto; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,Courier,monospace;} </style>
 
+.. role:: grey
 .. role:: bb
-.. role:: reddish
-.. role:: lightblue
+.. role:: lbi
+.. role:: attribute_table_description
+.. role:: attribute_table_header
+
 
 .. _Classes:
 
@@ -49,33 +54,33 @@ Class object for running the package.
     :note: Grouped will need to be figured out by the player.
         The grouped stats are only taken into account within this class
 
-.. autosummary::
-    poker.poker_class.Poker.files
-    poker.poker_class.Poker.matches
-    poker.poker_class.Poker.players_money_overview
-    poker.poker_class.Poker.card_distribution
-    poker.poker_class.Poker.winning_hand_distribution
-    poker.poker_class.Poker.players_history
+:grey:`Poker Attributes:`
 
-.. list-table:: Attributes
-    :widths: 100 100 200
+.. list-table::
+    :widths: 100 50 200
     :header-rows: 1
 
-    .. role:: red
-
-    * - Name
-      - Type
-      - Description
+    * - :attribute_table_header:`Name`
+      - :attribute_table_header:`Type`
+      - :attribute_table_header:`Description`
     * - :bb:`Poker.files`
-      - :lightblue:`List[str]`
-      - :reddish:`Returns list of data files`
+      - :lbi:`List[str]`
+      - :attribute_table_description:`Returns list of data files`
     * - :bb:`Poker.matches`
-      - :lightblue:`dict`
-      - :reddish:`Returns list of data files`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns list of data files`
     * - :bb:`Poker.players_money_overview`
-      - :lightblue:`pd.DataFrame`
-      - :reddish:`Returns summary info for each player across games`
-
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Returns summary info for each player across games`
+    * - :bb:`Poker.card_distribution`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Returns count and percent for each card that showed up across games`
+    * - :bb:`Poker.winning_hand_distribution`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Returns count and percent of each type of winning hand across games`
+    * - :bb:`Poker.players_history`
+      - :lbi:`dict`
+      - :attribute_table_description:`Collects player stats for all matches and groups based on grouper input`
 
 .. _Game:
 
@@ -98,13 +103,33 @@ Class object used for getting specific game stats.
     :example: *None*
     :note: This class is intended to be used internally.
 
-.. autosummary::
-    poker.game_class.Game.file_name
-    poker.game_class.Game.hands_lst
-    poker.game_class.Game.card_distribution
-    poker.game_class.Game.winning_hand_distribution
-    poker.game_class.Game.players_data
-    poker.game_class.Game.game_stats
+:grey:`Game Attributes:`
+
+.. list-table::
+    :widths: 100 50 200
+    :header-rows: 1
+
+    * - :attribute_table_header:`Name`
+      - :attribute_table_header:`Type`
+      - :attribute_table_header:`Description`
+    * - :bb:`Game.file_name`
+      - :lbi:`str`
+      - :attribute_table_description:`Returns name of data file`
+    * - :bb:`Game.hands_lst`
+      - :lbi:`List[Hand]`
+      - :attribute_table_description:`Returns list of hands in the game`
+    * - :bb:`Game.card_distribution`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns count of each card that showed up`
+    * - :bb:`Game.winning_hand_distribution`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns count of winning hands`
+    * - :bb:`Game.players_data`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns Player stats for players across hands`
+    * - :bb:`Game.game_stats`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns Mean stats for Game across hands`
 
 .. _Player:
 
@@ -123,21 +148,57 @@ Class object used for getting specific player stats.
     :example: *None*
     :note: This class is intended to be used internally.
 
-.. autosummary::
-    poker.player_class.Player.win_percent
-    poker.player_class.Player.win_count
-    poker.player_class.Player.largest_win
-    poker.player_class.Player.largest_loss
-    poker.player_class.Player.hand_count
-    poker.player_class.Player.all_in
-    poker.player_class.Player.player_index
-    poker.player_class.Player.player_name
-    poker.player_class.Player.player_money_info
-    poker.player_class.Player.hand_dic
-    poker.player_class.Player.card_dic
-    poker.player_class.Player.line_dic
-    poker.player_class.Player.moves_dic
-    poker.player_class.Player.merged_moves
+:grey:`Player Attributes:`
+
+.. list-table::
+    :widths: 100 50 200
+    :header-rows: 1
+
+    * - :attribute_table_header:`Name`
+      - :attribute_table_header:`Type`
+      - :attribute_table_header:`Description`
+    * - :bb:`Player.win_percent`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns player win percent`
+    * - :bb:`Player.win_count`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns player win count`
+    * - :bb:`Player.largest_win`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns players largest win`
+    * - :bb:`Player.largest_loss`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns players largest loss`
+    * - :bb:`Player.hand_count`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns total hand count when player involved`
+    * - :bb:`Player.all_in`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns a dict documenting when the player went all in`
+    * - :bb:`Player.player_index`
+      - :lbi:`List[str]`
+      - :attribute_table_description:`Returns player index or indexes`
+    * - :bb:`Player.player_name`
+      - :lbi:`List[str]`
+      - :attribute_table_description:`Returns player name or names`
+    * - :bb:`Player.player_money_info`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns a dict of DataFrames documenting player buy-in and loss counts`
+    * - :bb:`Player.hand_dic`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns a dict of DataFrames documenting hands when the player won`
+    * - :bb:`Player.card_dic`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns a dict of DataFrames documenting card appearances`
+    * - :bb:`Player.line_dic`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns a dict with a list of objects where player involved`
+    * - :bb:`Player.moves_dic`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns a players moves on the table`
+    * - :bb:`Player.merged_moves`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns a combined dict of player moves`
 
 .. _Hand:
 
