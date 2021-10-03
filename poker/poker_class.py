@@ -268,10 +268,10 @@ class Poker:
         if grouped:
             self._grouped = grouped
 
-        game_hand_time_lst_dic = _poker_collect_data(repo_location=repo_location)
-        self._files = list(game_hand_time_lst_dic.keys())
+        x = _poker_collect_data(repo_location=repo_location)
+        self._files = list(x.keys())
         players_data = {}
-        self._matches = {file: Game(hand_lst=game_hand_time_lst_dic[file], file_id=file, players_data=players_data) for file in self._files}
+        self._matches = {file: Game(hand_lst=x[file], file_id=file, players_data=players_data) for file in self._files}
         player_dic = _poker_build_player_dic(data=players_data, matches=list(self._matches.values()))
         self._player_money_df = _poker_group_money(data=player_dic, grouped=self._grouped, multi=money_multi)
         self._card_distribution, self._winning_hand_dist = _poker_get_dist(matches=list(self._matches.values()))
