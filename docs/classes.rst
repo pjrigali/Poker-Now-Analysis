@@ -45,6 +45,103 @@ Class object for running the package.
     poker.classes.Poker.winning_hand_distribution
     poker.classes.Poker.players_history
 
+.. _Game:
+
+Game
+----
+Class object used for getting specific game stats.
+
+.. class:: Game(hand_lst, file_id, players_data):
+
+    Calculate stats for a game.
+
+    :param hand_lst: List of dict's from the csv.
+    :type hand_lst: List[dict]
+    :param file_id: Name of file.
+    :type file_id: str
+    :param players_data: A dict of player data.
+    :type players_data: dict
+    :example: *None*
+    :note: This class is intended to be used internally.
+
+.. autosummary::
+    poker.classes.Game.file_name
+    poker.classes.Game.hands_lst
+    poker.classes.Game.card_distribution
+    poker.classes.Game.winning_hand_distribution
+    poker.classes.Game.players_data
+    poker.classes.Game.game_stats
+
+.. _Player:
+
+Player
+------
+Class object used for getting specific player stats.
+
+.. class:: Player(player_index, hands):
+
+    Calculate stats for a player.
+
+    :param player_index: A unique player ID.
+    :type player_index: str or List[str]
+    :example: *None*
+    :note: This class is intended to be used internally.
+
+.. autosummary::
+    poker.classes.Player.win_percent
+    poker.classes.Player.win_count
+    poker.classes.Player.largest_win
+    poker.classes.Player.largest_loss
+    poker.classes.Player.hand_count
+    poker.classes.Player.all_in
+    poker.classes.Player.player_index
+    poker.classes.Player.player_name
+    poker.classes.Player.player_money_info
+    poker.classes.Player.hand_dic
+    poker.classes.Player.card_dic
+    poker.classes.Player.line_dic
+    poker.classes.Player.moves_dic
+    poker.classes.Player.merged_moves
+
+.. _Hand:
+
+Hand
+----
+Class object used for getting specific hand stats.
+
+.. class:: Hand(hand):
+
+    Organizes a hand with a class and adds the stands to the player_dic.
+
+    :param lst_hand_objects: A list of Class Objects connected to a hand.
+    :type lst_hand_objects: list
+    :param file_id: Unique file name.
+    :type file_id: str
+    :param player_dic: Dict of players.
+    :type player_dic: dict
+    :example: *None*
+    :note: This class is intended to be used internally.
+
+.. autosummary::
+    poker.classes.Hand.parsed_hand
+    poker.classes.Hand.small_blind
+    poker.classes.Hand.big_blind
+    poker.classes.Hand.winner
+    poker.classes.Hand.starting_players
+    poker.classes.Hand.starting_players_chips
+    poker.classes.Hand.flop_cards
+    poker.classes.Hand.turn_card
+    poker.classes.Hand.river_card
+    poker.classes.Hand.my_cards
+    poker.classes.Hand.chips_on_board
+    poker.classes.Hand.gini_coef
+    poker.classes.Hand.pot_size_lst
+    poker.classes.Hand.players
+    poker.classes.Hand.start_time
+    poker.classes.Hand.end_time
+    poker.classes.Hand.win_stack
+    poker.classes.Hand.bet_lst
+
 .. _Processor:
 
 Processor
@@ -106,109 +203,6 @@ The following child classes use this framework:
     poker.processor.LineAttributes.previous_time
     poker.processor.LineAttributes.starting_chips
     poker.processor.LineAttributes.current_chips
-
-.. _Game:
-
-Game
-----
-Class object used for getting specific game stats.
-
-.. :currentmodule:: classes
-
-.. class:: Game(hand_lst, file_id, players_data):
-
-    Calculate stats for a game.
-
-    :param hand_lst: List of dict's from the csv.
-    :type hand_lst: List[dict]
-    :param file_id: Name of file.
-    :type file_id: str
-    :param players_data: A dict of player data.
-    :type players_data: dict
-    :example: *None*
-    :note: This class is intended to be used internally.
-
-.. autosummary::
-    poker.classes.Game.file_name
-    poker.classes.Game.hands_lst
-    poker.classes.Game.card_distribution
-    poker.classes.Game.winning_hand_distribution
-    poker.classes.Game.players_data
-    poker.classes.Game.game_stats
-
-.. _Player:
-
-Player
-------
-Class object used for getting specific player stats.
-
-.. :currentmodule:: classes
-
-.. class:: Player(player_index, hands):
-
-    Calculate stats for a player.
-
-    :param player_index: A unique player ID.
-    :type player_index: str or List[str]
-    :example: *None*
-    :note: This class is intended to be used internally.
-
-.. autosummary::
-    poker.classes.Player.win_percent
-    poker.classes.Player.win_count
-    poker.classes.Player.largest_win
-    poker.classes.Player.largest_loss
-    poker.classes.Player.hand_count
-    poker.classes.Player.all_in
-    poker.classes.Player.player_index
-    poker.classes.Player.player_name
-    poker.classes.Player.player_money_info
-    poker.classes.Player.hand_dic
-    poker.classes.Player.card_dic
-    poker.classes.Player.line_dic
-    poker.classes.Player.moves_dic
-    poker.classes.Player.merged_moves
-
-.. _Hand:
-
-Hand
-----
-Class object used for getting specific hand stats.
-
-.. :currentmodule:: base
-
-.. class:: Hand(hand):
-
-    Organizes a hand with a class and adds the stands to the player_dic.
-
-    :param lst_hand_objects: A list of Class Objects connected to a hand.
-    :type lst_hand_objects: list
-    :param file_id: Unique file name.
-    :type file_id: str
-    :param player_dic: Dict of players.
-    :type player_dic: dict
-    :example: *None*
-    :note: This class is intended to be used internally.
-
-.. autosummary::
-    poker.classes.Hand.parsed_hand
-    poker.classes.Hand.small_blind
-    poker.classes.Hand.big_blind
-    poker.classes.Hand.winner
-    poker.classes.Hand.starting_players
-    poker.classes.Hand.starting_players_chips
-    poker.classes.Hand.flop_cards
-    poker.classes.Hand.turn_card
-    poker.classes.Hand.river_card
-    poker.classes.Hand.my_cards
-    poker.classes.Hand.chips_on_board
-    poker.classes.Hand.gini_coef
-    poker.classes.Hand.pot_size_lst
-    poker.classes.Hand.players
-    poker.classes.Hand.start_time
-    poker.classes.Hand.end_time
-    poker.classes.Hand.win_stack
-    poker.classes.Hand.bet_lst
 
 .. _Plot:
 
