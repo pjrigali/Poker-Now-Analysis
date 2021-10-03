@@ -2,7 +2,8 @@ from typing import Union
 import pandas as pd
 import numpy as np
 from poker.processor import Wins
-from poker.classes import Game, Player
+from poker.player_class import Player
+from poker.game_class import Game
 from poker.base import round_to, flatten, unique_values, running_mean, running_std, native_std, native_mean
 # from poker.base import normalize
 # import matplotlib.pyplot as plt
@@ -87,6 +88,7 @@ def longest_streak(data: Union[Game, Player]) -> dict:
             datan[key] = {}
             for play in data.player_index:
                 datan[key][play] = val
+        # datan = data.merged_moves['All']
     elif type(data) == Game:
         datan = {data.file_name: {}}
         for ind, player in data.players_data.items():
@@ -134,6 +136,7 @@ def raise_signal_winning(data: Union[Game, Player]) -> pd.DataFrame:
 
     """
     if type(data) == Player:
+        # datan = data.merged_moves['All']
         datan = {}
         for key, val in data.moves_dic.items():
             datan[key] = {}
@@ -327,28 +330,28 @@ def bluff_study(data: Player) -> dict:
         Win = Average and std when they Win.
 
     """
-    data = data.moves_dic
+    data = data.merged_moves
     pos_lst = ['Pre Flop', 'Post Flop', 'Post Turn', 'Post River']
-    awin_dic, aloss_dic, aboth_dic = {}, {}, {}
-    for key, val in data.items():
-        for key1, val1 in val[val['Win'] == True].to_dict(orient='list').items():
-            if key1 in awin_dic.keys():
-                awin_dic[key1] += val1
-            else:
-                awin_dic[key1] = val1
-
-        for key1, val1 in val[val['Win'] == False].to_dict(orient='list').items():
-            if key1 in aloss_dic.keys():
-                aloss_dic[key1] += val1
-            else:
-                aloss_dic[key1] = val1
-
-        for key1, val1 in val.to_dict(orient='list').items():
-            if key1 in aboth_dic.keys():
-                aboth_dic[key1] += val1
-            else:
-                aboth_dic[key1] = val1
-
+    # awin_dic, aloss_dic, aboth_dic = {}, {}, {}
+    # for key, val in data.items():
+    #     for key1, val1 in val[val['Win'] == True].to_dict(orient='list').items():
+    #         if key1 in awin_dic.keys():
+    #             awin_dic[key1] += val1
+    #         else:
+    #             awin_dic[key1] = val1
+    #
+    #     for key1, val1 in val[val['Win'] == False].to_dict(orient='list').items():
+    #         if key1 in aloss_dic.keys():
+    #             aloss_dic[key1] += val1
+    #         else:
+    #             aloss_dic[key1] = val1
+    #
+    #     for key1, val1 in val.to_dict(orient='list').items():
+    #         if key1 in aboth_dic.keys():
+    #             aboth_dic[key1] += val1
+    #         else:
+    #             aboth_dic[key1] = val1
+    awin_dic, aloss_dic, aboth_dic = data['Win'], data['Loss'], data['All']
     win_loss_dic = {'Win': pd.DataFrame.from_dict(awin_dic),
                     'Loss': pd.DataFrame.from_dict(aloss_dic),
                     'Both': pd.DataFrame.from_dict(aboth_dic)}
@@ -484,7 +487,7 @@ def staticanalysis(data: Union[Player, dict]) -> pd.DataFrame:
 
     """
     if type(data) == Player:
-        data = data.moves_dic
+        data = data.merged_moves
     elif type(data) == dict:
         pass
     else:
@@ -493,15 +496,15 @@ def staticanalysis(data: Union[Player, dict]) -> pd.DataFrame:
     pos_lst = ['Pre Flop', 'Post Flop', 'Post Turn', 'Post River']
     mov_lst = ['Raises', 'Calls', 'Folds']
     group_lst = ['Win', 'Loss', 'Both']
-    dic = {}
-    for key, val in data.items():
-        for key1, val1 in val.to_dict(orient='list').items():
-            if key1 in dic.keys():
-                dic[key1] += val1
-            else:
-                dic[key1] = val1
+    # dic = {}
+    # for key, val in data.items():
+    #     for key1, val1 in val.to_dict(orient='list').items():
+    #         if key1 in dic.keys():
+    #             dic[key1] += val1
+    #         else:
+    #             dic[key1] = val1
 
-    ss_data = pd.DataFrame.from_dict(dic)
+    ss_data = pd.DataFrame.from_dict(data)
     ind_dic = {wlb: {pos: {mov: [] for mov in mov_lst} for pos in pos_lst} for wlb in group_lst}
     ss_data['Win String'] = ['Win' if i is True else 'Loss' for i in ss_data['Win']]
     win_lst = (ss_data['Win String']+'_splitpoint_'+ss_data['Position']+'_splitpoint_'+ss_data['Class']).tolist()
@@ -564,7 +567,7 @@ def tsanalysis(data: Union[Player, dict]) -> pd.DataFrame:
 
     """
     if type(data) == Player:
-        data = data.moves_dic
+        data = data.merged_moves
     elif type(data) == dict:
         pass
     else:
@@ -572,15 +575,15 @@ def tsanalysis(data: Union[Player, dict]) -> pd.DataFrame:
 
     pos_lst = ['Pre Flop', 'Post Flop', 'Post Turn', 'Post River']
     mov_lst = ['Checks', 'Raises', 'Calls', 'Folds']
-    dic = {}
-    for key, val in data.items():
-        for key1, val1 in val.to_dict(orient='list').items():
-            if key1 in dic.keys():
-                dic[key1] += val1
-            else:
-                dic[key1] = val1
+    # dic = {}
+    # for key, val in data.items():
+    #     for key1, val1 in val.to_dict(orient='list').items():
+    #         if key1 in dic.keys():
+    #             dic[key1] += val1
+    #         else:
+    #             dic[key1] = val1
 
-    ts_data = pd.DataFrame.from_dict(dic)
+    ts_data = pd.DataFrame.from_dict(data)
     ts_data['Game_Round_ID'] = ts_data['Game Id'] + '_splitpoint_' + [str(i) for i in ts_data['Round']]
 
     final_dic = {}
@@ -588,7 +591,7 @@ def tsanalysis(data: Union[Player, dict]) -> pd.DataFrame:
         temp_dic = {}
         for mov in mov_lst:
             temp_dic[mov] = {'Times': [], 'Values': [], 'Seconds': [], 'Player Reserve': [], 'Game Id': [],
-                             'Pot Size': [], 'Win': [], 'Position': [], 'Class': []}
+                             'Pot Size': [], 'Win': [], 'Position': [], 'Class': [], 'Round': []}
         final_dic[pos] = temp_dic
 
     ind_dic = {pos: {mov: [] for mov in mov_lst} for pos in pos_lst}
@@ -614,20 +617,22 @@ def tsanalysis(data: Union[Player, dict]) -> pd.DataFrame:
                     new_val['Win'].append(row['Win'])
                     new_val['Position'].append(row['Position'])
                     new_val['Class'].append(row['Class'])
+                    new_val['Round'].append(row['Round'])
 
     df_lst = []
     for pos in pos_lst:
         for mov in mov_lst:
             temp_df = pd.DataFrame(final_dic[pos][mov]).set_index('Times').sort_index(ascending=True)
             if temp_df.empty is False:
+                temp_df_len = len(temp_df)
                 temp_df['Running Mean Values'] = round_to(data=running_mean(data=temp_df['Values'], num=10), val=1,
-                                                          remainder=False)
+                                                          remainder=False)[:temp_df_len]
                 temp_df['Running Std Values'] = round_to(data=running_std(data=temp_df['Values'], num=10), val=1,
-                                                         remainder=False)
+                                                         remainder=False)[:temp_df_len]
                 temp_df['Running Mean Seconds'] = round_to(data=running_mean(data=temp_df['Seconds'], num=10), val=1,
-                                                           remainder=False)
+                                                           remainder=False)[:temp_df_len]
                 temp_df['Running Std Seconds'] = round_to(data=running_std(data=temp_df['Seconds'], num=10), val=1,
-                                                          remainder=False)
+                                                          remainder=False)[:temp_df_len]
                 df_lst.append(temp_df)
 
     final_df = pd.concat(df_lst, axis=0).sort_index(ascending=True)
