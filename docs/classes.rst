@@ -38,7 +38,6 @@ Class object for running the package.
         The grouped stats are only taken into account within this class
 
 .. autosummary::
-    :recursive:
 
     poker.classes.Poker.files
     poker.classes.Poker.matches
@@ -67,6 +66,7 @@ Class object used for getting specific game stats.
     :note: This class is intended to be used internally.
 
 .. autosummary::
+
     poker.classes.Game.file_name
     poker.classes.Game.hands_lst
     poker.classes.Game.card_distribution
@@ -90,6 +90,7 @@ Class object used for getting specific player stats.
     :note: This class is intended to be used internally.
 
 .. autosummary::
+
     poker.classes.Player.win_percent
     poker.classes.Player.win_count
     poker.classes.Player.largest_win
@@ -125,6 +126,7 @@ Class object used for getting specific hand stats.
     :note: This class is intended to be used internally.
 
 .. autosummary::
+
     poker.classes.Hand.parsed_hand
     poker.classes.Hand.small_blind
     poker.classes.Hand.big_blind
