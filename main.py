@@ -2,11 +2,15 @@ import pandas as pd
 import numpy as np
 from os import walk
 import matplotlib.pyplot as plt
-from poker.classes import Poker
+from poker.poker_class import Poker
+from poker.game_class import Game
+from poker.player_class import Player
+from poker.hand_class import Hand
 from poker.plot import Line, Scatter, Histogram
 from poker.analysis import face_card_in_winning_cards, longest_streak, raise_signal_winning, small_or_big_blind_win
 from poker.analysis import player_verse_player, bluff_study, tsanalysis, staticanalysis
-from poker.base import normalize, running_mean, cumulative_mean, round_to, native_mean, native_mode, unique_values
+from poker.base import normalize, running_mean, cumulative_mean, round_to, native_mean, native_mode, unique_values, running_std, calc_gini, search_dic_values, flatten, native_median
+from poker.base import native_variance, native_std, native_sum, native_max
 import time
 
 
@@ -26,6 +30,66 @@ if __name__ == '__main__':
     poker = Poker(repo_location=repo, grouped=grouped)
     start_timen = "--- %s seconds ---" % round((time.time() - start_timen), 2)
     print(start_timen)
+
+    # full_dic = {}
+    # for key, val in poker.players_history.items():
+    #     full_dic[key] = pd.DataFrame(val.merged_moves['All'])
+    #     full_dic[key]['Game_Id_Round'] = full_dic[key]['Game Id'] + '_splitpoint_' + [str(i) for i in full_dic[key]['Round']]
+    #     old_df = full_dic[key].drop_duplicates('Game_Id_Round', keep='first').reset_index()
+    #     new_df = full_dic[key].drop_duplicates('Game_Id_Round', keep='last').reset_index()
+    #     unique_lst = unique_values(data=full_dic[key]['Game_Id_Round'])
+    #
+    #     second_dic = {}
+    #     for id_rnd in unique_lst:
+    #         t = (new_df[new_df['Game_Id_Round'] == id_rnd]['Time'] - old_df[old_df['Game_Id_Round'] == id_rnd][
+    #             'Time']).tolist()[0].total_seconds()
+    #         second_dic[id_rnd] = t
+    #
+    #     second_lst = []
+    #     for i in full_dic[key]['Game_Id_Round']:
+    #         second_lst.append(second_dic[i])
+    #     full_dic[key]['Round Seconds'] = second_lst
+    #     full_dic[key]['Move Seconds'] = [(row['Time'] - row['Previous Time']).total_seconds() for ind, row in full_dic[key].iterrows()]
+    #     full_dic[key]['Win Number'] = [1.0 if i is True else 0.0 for i in full_dic[key]['Win']]
+    #
+    # for key, val in full_dic.items():
+    #     Scatter(data=val,
+    #             compare_two=['Round Seconds', 'Player Reserve'],
+    #             normalize_x=['Round Seconds', 'Player Reserve'],
+    #             color_lst=['tab:orange'],
+    #             regression_line=['Player Reserve'],
+    #             regression_line_color='tab:blue',
+    #             title='Time per Hand vs Player Reserve (Player: ' + key + ')',
+    #             ylabel='Player Chip Count',
+    #             xlabel='Total Round Seconds')
+    #     plt.show()
+    #     Histogram(data=val,
+    #               label_lst=['Move Seconds'],
+    #               include_norm='Move Seconds',
+    #               title='Move Second Histogram (Player: ' + key + ')')
+    #     plt.show()
+    #     Line(data=val[['Pot Size', 'Win Stack']],
+    #          normalize_x=['Pot Size', 'Win Stack'],
+    #          color_lst=['tab:orange', 'tab:blue'],
+    #          title='Pot Size and Winning Stack Amount (Player: ' + key + ')',
+    #          ylabel='Value',
+    #          xlabel='Date',
+    #          corr=['Pot Size', 'Win Stack'])
+    #     plt.show()
+
+
+    # ts_dic = {}
+    # for person, val in poker.players_history.items():
+    #     try:
+    #         ts_dic[person] = tsanalysis(data=val.moves_dic)
+    #     except:
+    #         pass
+    # temp_df = ts_dic['3fuMmmzEQ-'].reset_index()
+    # t = pd.DataFrame()
+    # for col in ['Running Std Values', 'Player Reserve']:
+    #     t[col] = normalize(data=temp_df[col], keep_nan=True)
+    # t.plot()
+    # plt.show()
 
     # data_peter = poker.players_history['mQWfGaGPXE'].moves_dic
     # data_peter
@@ -53,7 +117,7 @@ if __name__ == '__main__':
     # sb2 = small_or_big_blind_win(data=poker.matches[1])
     # pvp1 = player_verse_player(data=poker.players_history['mQWfGaGPXE'])
     # pvp2 = player_verse_player(data=poker.matches[1])
-    # poker
+    poker
 
     # print(''), print('Poker Built'), print("--- %s seconds ---" % round((time.time() - start_timen), 2))
 

@@ -18,7 +18,7 @@ In progress...
 
 ```python
 import poker
-from poker.classes import Poker
+from poker.poker_class import Poker
 
 # Input past Data folder location.
 repo = '\\location of past Data folder'
