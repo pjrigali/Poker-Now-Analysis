@@ -14,7 +14,7 @@ Poker
 =====
 Class object for running the package.
 
-.. :currentmodule:: poker.poker_class
+.. :currentmodule:: poker_class
 
 .. class:: Poker(repo_location, grouped, money_multi):
 
