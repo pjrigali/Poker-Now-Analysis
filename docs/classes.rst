@@ -52,26 +52,26 @@ Processor
 Class object for holding information from lines.
 
 The following child classes use this framework:
-* Requests
-* Approved
-* Joined
-* MyCards
-* SmallBlind
-* BigBlind
-* Folds
-* Calls
-* Raises
-* Checks
-* Wins
-* Shows
-* Quits
-* Flop
-* Turn
-* River
-* Undealt
-* StandsUp
-* SitsIn
-* PlayerStacks
+    * Requests
+    * Approved
+    * Joined
+    * MyCards
+    * SmallBlind
+    * BigBlind
+    * Folds
+    * Calls
+    * Raises
+    * Checks
+    * Wins
+    * Shows
+    * Quits
+    * Flop
+    * Turn
+    * River
+    * Undealt
+    * StandsUp
+    * SitsIn
+    * PlayerStacks
 
 .. :currentmodule:: processor
 
