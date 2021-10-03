@@ -14,7 +14,7 @@ Poker
 =====
 Class object for running the package.
 
-.. :currentmodule:: classes
+.. :currentmodule:: poker_class
 
 .. class:: Poker(repo_location, grouped, money_multi):
 
@@ -29,7 +29,7 @@ Class object for running the package.
     :example:
         .. code-block:: python
 
-            from poker.classes import Poker
+            from poker.poker_class import Poker
             repo = 'location of your previous game'
             grouped = [['YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS'],
                         ['48QVRRsiae', 'u8_FUbXpAz']]
@@ -38,18 +38,20 @@ Class object for running the package.
         The grouped stats are only taken into account within this class
 
 .. autosummary::
-    poker.classes.Poker.files
-    poker.classes.Poker.matches
-    poker.classes.Poker.players_money_overview
-    poker.classes.Poker.card_distribution
-    poker.classes.Poker.winning_hand_distribution
-    poker.classes.Poker.players_history
+    poker.poker_class.Poker.files
+    poker.poker_class.Poker.matches
+    poker.poker_class.Poker.players_money_overview
+    poker.poker_class.Poker.card_distribution
+    poker.poker_class.Poker.winning_hand_distribution
+    poker.poker_class.Poker.players_history
 
 .. _Game:
 
 Game
 ====
 Class object used for getting specific game stats.
+
+.. :currentmodule:: game_class
 
 .. class:: Game(hand_lst, file_id, players_data):
 
@@ -65,19 +67,20 @@ Class object used for getting specific game stats.
     :note: This class is intended to be used internally.
 
 .. autosummary::
-
-    poker.classes.Game.file_name
-    poker.classes.Game.hands_lst
-    poker.classes.Game.card_distribution
-    poker.classes.Game.winning_hand_distribution
-    poker.classes.Game.players_data
-    poker.classes.Game.game_stats
+    poker.game_class.Game.file_name
+    poker.game_class.Game.hands_lst
+    poker.game_class.Game.card_distribution
+    poker.game_class.Game.winning_hand_distribution
+    poker.game_class.Game.players_data
+    poker.game_class.Game.game_stats
 
 .. _Player:
 
 Player
 ======
 Class object used for getting specific player stats.
+
+.. :currentmodule:: player_class
 
 .. class:: Player(player_index, hands):
 
@@ -89,27 +92,28 @@ Class object used for getting specific player stats.
     :note: This class is intended to be used internally.
 
 .. autosummary::
-
-    poker.classes.Player.win_percent
-    poker.classes.Player.win_count
-    poker.classes.Player.largest_win
-    poker.classes.Player.largest_loss
-    poker.classes.Player.hand_count
-    poker.classes.Player.all_in
-    poker.classes.Player.player_index
-    poker.classes.Player.player_name
-    poker.classes.Player.player_money_info
-    poker.classes.Player.hand_dic
-    poker.classes.Player.card_dic
-    poker.classes.Player.line_dic
-    poker.classes.Player.moves_dic
-    poker.classes.Player.merged_moves
+    poker.player_class.Player.win_percent
+    poker.player_class.Player.win_count
+    poker.player_class.Player.largest_win
+    poker.player_class.Player.largest_loss
+    poker.player_class.Player.hand_count
+    poker.player_class.Player.all_in
+    poker.player_class.Player.player_index
+    poker.player_class.Player.player_name
+    poker.player_class.Player.player_money_info
+    poker.player_class.Player.hand_dic
+    poker.player_class.Player.card_dic
+    poker.player_class.Player.line_dic
+    poker.player_class.Player.moves_dic
+    poker.player_class.Player.merged_moves
 
 .. _Hand:
 
 Hand
 ====
 Class object used for getting specific hand stats.
+
+.. :currentmodule:: hand_class
 
 .. class:: Hand(hand):
 
@@ -125,25 +129,24 @@ Class object used for getting specific hand stats.
     :note: This class is intended to be used internally.
 
 .. autosummary::
-
-    poker.classes.Hand.parsed_hand
-    poker.classes.Hand.small_blind
-    poker.classes.Hand.big_blind
-    poker.classes.Hand.winner
-    poker.classes.Hand.starting_players
-    poker.classes.Hand.starting_players_chips
-    poker.classes.Hand.flop_cards
-    poker.classes.Hand.turn_card
-    poker.classes.Hand.river_card
-    poker.classes.Hand.my_cards
-    poker.classes.Hand.chips_on_board
-    poker.classes.Hand.gini_coef
-    poker.classes.Hand.pot_size_lst
-    poker.classes.Hand.players
-    poker.classes.Hand.start_time
-    poker.classes.Hand.end_time
-    poker.classes.Hand.win_stack
-    poker.classes.Hand.bet_lst
+    poker.hand_class.Hand.parsed_hand
+    poker.hand_class.Hand.small_blind
+    poker.hand_class.Hand.big_blind
+    poker.hand_class.Hand.winner
+    poker.hand_class.Hand.starting_players
+    poker.hand_class.Hand.starting_players_chips
+    poker.hand_class.Hand.flop_cards
+    poker.hand_class.Hand.turn_card
+    poker.hand_class.Hand.river_card
+    poker.hand_class.Hand.my_cards
+    poker.hand_class.Hand.chips_on_board
+    poker.hand_class.Hand.gini_coef
+    poker.hand_class.Hand.pot_size_lst
+    poker.hand_class.Hand.players
+    poker.hand_class.Hand.start_time
+    poker.hand_class.Hand.end_time
+    poker.hand_class.Hand.win_stack
+    poker.hand_class.Hand.bet_lst
 
 .. _Processor:
 
