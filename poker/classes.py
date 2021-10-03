@@ -5,122 +5,50 @@ import pandas as pd
 import datetime
 from os import walk
 from poker.processor import Approved, MyCards, SmallBlind, BigBlind, Folds, Calls, Raises, Checks, Wins, Shows, Quits
-from poker.processor import Flop, Turn, River, Undealt, StandsUp, SitsIn, PlayerStacks, parser
-from poker.base import calc_gini, flatten, unique_values, round_to, native_sum, native_max
+from poker.processor import Flop, Turn, River, Undealt, StandsUp, SitsIn, PlayerStacks, parser, class_object_lst
+from poker.base import calc_gini, flatten, unique_values, round_to, native_sum, native_max, native_mean
 
 
-def _convert_shapes(data: List[str]) -> List[str]:
+def _poker_convert_shape(data: List[str]) -> list:
     """Converts card icons into shapes"""
-    return [row.replace("â£", " Clubs").replace("â¦", " Diamonds").replace("â¥", " Hearts").replace("â", " Spades")
-            for row in data]
+    return [row.replace("â£", " Clubs").replace("â¦", " Diamonds").replace("â¥", " Hearts").replace("â", " Spades") for row in data]
 
 
-def _get_data(repo_location: str, file: str) -> pd.DataFrame:
-    """Load data and parse timestamps"""
-    df = pd.read_csv(repo_location + file, encoding='latin1')
-    time_lst = df['at'].to_list()
-    df['at'] = [datetime.datetime.strptime(i.replace('T', ' ').split('.')[0], '%Y-%m-%d %H:%M:%S') for i in time_lst]
-    return df.reindex(index=df.index[::-1]).reset_index(drop=True)
+def _poker_convert_timestamp(data: List[str]) -> list:
+    """Converts strs to timestamps"""
+    return [datetime.datetime.strptime(i.replace('T', ' ').split('.')[0], '%Y-%m-%d %H:%M:%S') for i in data]
 
 
-def _get_hands(data: pd.DataFrame) -> List[dict]:
-    """Split game into list of hands"""
-    data['entry'] = _convert_shapes(data=data['entry'].to_list())
-    hands, hand_lst = [], []
-    for ind, row in data.iterrows():
-        if ' starting hand ' in row['entry']:
-            if ' hand #1 ' in row['entry']:
+def _poker_collect_data(repo_location: str) -> dict:
+    """Open file, clean data and return a dict"""
+    files = next(walk(repo_location))[2]
+    file_dic = {}
+    for file in files:
+        df = pd.read_csv(repo_location + file, encoding='latin1')
+        time_lst = _poker_convert_timestamp(data=df['at'].tolist())
+        entry_lst = _poker_convert_shape(data=df['entry'].tolist())
+        time_lst.reverse()
+        entry_lst.reverse()
+        hands, hand_lst = [], []
+        for ind, item in enumerate(entry_lst):
+            if ' starting hand ' in item:
+                if ' hand #1 ' in item:
+                    hands.append(hand_lst)
+                hand_lst = [ind]
                 hands.append(hand_lst)
-            hand_lst = [ind]
-            hands.append(hand_lst)
-        else:
-            hand_lst.append(ind)
-
-    dic_lst = []
-    for hand in hands:
-        temp_df = data.iloc[hand]
-        dic_lst.append({'lines': temp_df['entry'].to_list(), 'times': temp_df['at'].to_list()})
-    return dic_lst
-
-
-def _add_to_dic(item, player_dic: dict, location: str, player_index: str):
-    """Updates Player Class"""
-    if type(item) == tuple:
-        item = list(item)
-    if player_index in player_dic.keys():
-        if location in player_dic[player_index].keys():
-            player_dic[player_index][location].append(item)
-        else:
-            player_dic[player_index][location] = [item]
-    else:
-        player_dic[player_index] = {'Cards': [], 'Hands': [], 'Lines': []}
-        player_dic[player_index][location].append(item)
-
-
-def _calc_money(lst: list, ind: str) -> pd.DataFrame:
-    """Returns a dataframe recording player action related to money on the table for a game."""
-    player_money_dic = {'Player Names': [], 'Player Stack': [], 'Player Quits': [], 'Player Stands Up': [],
-                        'Player Sits In': []}
-    for line in lst:
-        if type(line) == Approved:
-            player_money_dic['Player Names'].append(line.player_name)
-            player_money_dic['Player Stack'].append(line.stack)
-        elif type(line) == Quits:
-            player_money_dic['Player Quits'].append(line.stack)
-        elif type(line) == StandsUp:
-            player_money_dic['Player Stands Up'].append(line.stack)
-        elif type(line) == SitsIn:
-            player_money_dic['Player Sits In'].append(line.stack)
-
-    temp_df = pd.DataFrame(index=[ind])
-    temp_df['Player Names'] = [list(set(player_money_dic['Player Names']))]
-    temp_df['Buy in Total'] = native_sum(data=player_money_dic['Player Stack'])
-    temp_df['Loss Count'] = len(player_money_dic['Player Quits'])
-    temp_df['player stands up sum'] = native_sum(data=player_money_dic['Player Stands Up'])
-    temp_df['player sits in sum'] = native_sum(data=player_money_dic['Player Sits In'])
-    temp_df['Leave Table Amount'] = temp_df['player stands up sum'] - temp_df['player sits in sum']
-    return temp_df[['Player Names', 'Buy in Total', 'Loss Count', 'Leave Table Amount']]
-
-
-def _line_to_df(line_lst: list) -> pd.DataFrame:
-    """Takes line info and converts to a pd.dataframe"""
-    lst = []
-    for line in line_lst:
-        temp_win = False
-        if line.player_index in line.winner:
-            temp_win = True
-        if type(line) in [Raises, PlayerStacks, SmallBlind, BigBlind, Wins]:
-            lst.append({'Player Index': line.player_index, 'Player Name': line.player_name, 'Bet Amount': line.stack,
-                        'Position': line.position, 'Round': line.current_round, 'Player Reserve': line.chips,
-                        'Class': repr(line), 'Winner': line.winner, 'Win': temp_win, 'Win Stack': line.win_stack,
-                        'Win Hand': line.winning_hand, 'All In': line.all_in, 'Pot Size': line.pot_size,
-                        'Remaining Players': line.remaining_players, 'From Person': line.action_from_player,
-                        'Game Id': line.game_id, 'Time': line.time, 'Previous Time': line.previous_time})
-        else:
-            lst.append({'Player Index': line.player_index, 'Player Name': line.player_name,
-                        'Bet Amount': line.action_amount, 'Position': line.position, 'Round': line.current_round,
-                        'Player Reserve': line.chips, 'Class': repr(line), 'Winner': line.winner, 'Win': temp_win,
-                        'Win Stack': line.win_stack, 'Win Hand': line.winning_hand, 'All In': line.all_in,
-                        'Pot Size': line.pot_size, 'Remaining Players': line.remaining_players,
-                        'From Person': line.action_from_player, 'Game Id': line.game_id, 'Time': line.time,
-                        'Previous Time': line.previous_time})
-    return pd.DataFrame(lst).bfill()
-
-
-def _count_cards(dic: dict) -> dict:
-    """Counts cards"""
-    card_count_dic = {}
-    for key in dic.keys():
-        if key in ['Flop', 'Turn', 'River', 'Win', 'My Cards']:
-            if key in ['Flop', 'Win', 'My Cards']:
-                lst = flatten(data=dic[key]['Cards'])
             else:
-                lst = dic[key]['Cards']
-            card_count_dic[key + ' Count'] = unique_values(data=flatten(data=lst), count=True)
-    return card_count_dic
+                hand_lst.append(ind)
+        hand_dic = []
+        for hand in hands:
+            temp_entry_lst, temp_time_lst = [], []
+            for ind in hand:
+                temp_entry_lst.append(entry_lst[ind]), temp_time_lst.append(time_lst[ind])
+            hand_dic.append({'lines': temp_entry_lst, 'times': temp_time_lst})
+        file_dic[file.split(".")[0]] = hand_dic
+    return file_dic
 
 
-def _build_player_dic(data: dict, matches: list) -> dict:
+def _poker_build_player_dic(data: dict, matches: list) -> dict:
     """Updates Player Class"""
     player_dic = {}
     for match in matches:
@@ -129,26 +57,28 @@ def _build_player_dic(data: dict, matches: list) -> dict:
                 temp_df = match.players_data[player_index].player_money_info[key]
                 if player_index in player_dic.keys():
                     if key not in player_dic[player_index]['Games']:
-                        player_dic[player_index]['Player Names'] = list(
-                            set(player_dic[player_index]['Player Names'] + temp_df['Player Names'][0]))
-                        player_dic[player_index]['Player Ids'] = player_index
-                        player_dic[player_index]['Buy in Total'] += int(temp_df['Buy in Total'])
-                        player_dic[player_index]['Loss Count'] += temp_df['Loss Count'][0]
-                        player_dic[player_index]['Leave Table Amount'] += temp_df['Leave Table Amount'][0]
-                        player_dic[player_index]['Game Count'] += 1
-                        player_dic[player_index]['Games'].append(key)
+                        val = player_dic[player_index]
+                        val['Player Names'] = list(set(val['Player Names'] + list(temp_df['Player Names'][0])))
+                        val['Player Ids'] = list(set(val['Player Ids'] + [player_index]))
+                        val['Buy in Total'] += int(temp_df['Buy in Total'])
+                        val['Loss Count'] += int(temp_df['Loss Count'][0])
+                        val['Leave Table Amount'] += temp_df['Leave Table Amount'][0]
+                        val['Game Count'] += 1
+                        val['Games'].append(key)
                 else:
-                    player_dic[player_index] = {'Player Names': temp_df['Player Names'][0],
+                    player_dic[player_index] = {'Player Names': list(temp_df['Player Names'][0]),
                                                 'Player Ids': [player_index],
                                                 'Buy in Total': int(temp_df['Buy in Total'][0]),
-                                                'Loss Count': temp_df['Loss Count'][0],
+                                                'Loss Count': int(temp_df['Loss Count'][0]),
                                                 'Leave Table Amount': temp_df['Leave Table Amount'][0],
-                                                'Game Count': 1, 'Games': [key]}
+                                                'Game Count': 1,
+                                                'Games': [key]}
     return player_dic
 
 
-def _group_money(data: pd.DataFrame, grouped: Union[list, None], multi: Union[int, None]) -> pd.DataFrame:
+def _poker_group_money(data: dict, grouped: Union[list, None], multi: Union[int, None]) -> pd.DataFrame:
     """Groups players by id and tally's earnings"""
+    data = pd.DataFrame.from_dict(data, orient='index')
     if grouped is not None:
         final_lst = []
         for ind_group in grouped:
@@ -193,7 +123,7 @@ def _group_money(data: pd.DataFrame, grouped: Union[list, None], multi: Union[in
     return final_df.sort_values('Profit', ascending=False)
 
 
-def _get_dist(matches: list) -> List[pd.DataFrame]:
+def _poker_get_dist(matches: list) -> List[pd.DataFrame]:
     """Calculate distributions"""
     hand_ind = unique_values(data=flatten(data=[list(match.winning_hand_distribution.keys()) for match in matches]))
     hand_dic = {item: 0 for item in hand_ind}
@@ -222,7 +152,7 @@ def _get_dist(matches: list) -> List[pd.DataFrame]:
     return [card_distribution, winning_hand_dist]
 
 
-def _build_players(data: dict, money_df: pd.DataFrame) -> None:
+def _poker_build_players(data: dict, money_df: pd.DataFrame) -> None:
     """Update Player Class"""
     for key1, val1 in data.items():
         for i, j in enumerate(money_df['Player Ids']):
@@ -234,19 +164,27 @@ def _build_players(data: dict, money_df: pd.DataFrame) -> None:
             val1.win_percent = [key2, round(len((val2[val2['Win'] == True])) / len(val2), 3)]
             val1.win_count = [key2, len(val2[val2['Win'] == True])]
             val1.largest_win = [key2, native_max(data=val2[val2['Win'] == True]['Win Stack'])]
-            lst = list(val2[val2['Class'] == 'Player Stacks']['Player Reserve'])
+            temp_df = val2[val2['Class'] == 'Player Stacks']
+            temp_player_index_lst = temp_df['Player Index'].tolist()
+            temp_player_stack_lst = temp_df['Player Current Chips'].tolist()
+            index_lst = []
+            for i in temp_player_index_lst:
+                for j in i:
+                    if key1 == j:
+                        index_lst.append(i.index(key1))
             temp = 0
-            for i, j in enumerate(lst):
-                if i > 1:
-                    previous = lst[i - 1]
-                    if j - previous < temp:
-                        temp = j - previous
+            for i, j in enumerate(temp_player_stack_lst):
+                val = j[index_lst[i]]
+                if val > 1:
+                    previous = temp_player_stack_lst[i - 1][index_lst[i - 1]]
+                    if val - previous < temp:
+                        temp = val - previous
             val1.largest_loss = [key2, temp]
             val1.hand_count = [key2, max(val2['Round'].tolist())]
             val1.all_in = [key2, list(val2[val2['All In'] == True]['Bet Amount'])]
 
 
-def _combine_dic(data: dict, grouped: list) -> dict:
+def _poker_combine_dic(data: dict, grouped: list) -> dict:
     """Setter function"""
     completed_lst = []
     completed_dic = {}
@@ -274,7 +212,86 @@ def _combine_dic(data: dict, grouped: list) -> dict:
     return completed_dic
 
 
-def _build_players_data(player_dic: dict, players_data: dict, file_id: str) -> dict:
+def _poker_add_merged_moves(player_dic: dict):
+    """Flattens all Player.moves_dic into one"""
+    for key, val in player_dic.items():
+        if player_dic[key].merged_moves is None:
+            player_dic[key].merged_moves = {}
+        all_dic, win_dic, loss_dic = {}, {}, {}
+        for key1, val1 in val.moves_dic.items():
+            for key2, val2 in val1.to_dict(orient='list').items():
+                if key2 in all_dic.keys():
+                    all_dic[key2] += val2
+                else:
+                    all_dic[key2] = val2
+        player_dic[key].merged_moves['All'] = all_dic
+        for key1, val1 in val.moves_dic.items():
+            for key2, val2 in val1[val1['Win'] == True].to_dict(orient='list').items():
+                if key2 in win_dic.keys():
+                    win_dic[key2] += val2
+                else:
+                    win_dic[key2] = val2
+        player_dic[key].merged_moves['Win'] = win_dic
+        for key1, val1 in val.moves_dic.items():
+            for key2, val2 in val1[val1['Win'] == False].to_dict(orient='list').items():
+                if key2 in loss_dic.keys():
+                    loss_dic[key2] += val2
+                else:
+                    loss_dic[key2] = val2
+        player_dic[key].merged_moves['Loss'] = loss_dic
+
+
+def _game_calc_money(lst: list, ind: str) -> pd.DataFrame:
+    """Returns a dataframe recording player action related to money on the table for a game."""
+    player_money_dic = {'Player Names': [], 'Player Stack': [], 'Player Quits': [], 'Player Stands Up': [],
+                        'Player Sits In': []}
+    for line in lst:
+        if type(line) == Approved:
+            player_money_dic['Player Names'].append(line.player_name)
+            player_money_dic['Player Stack'].append(line.stack)
+        elif type(line) == Quits:
+            player_money_dic['Player Quits'].append(line.stack)
+        elif type(line) == StandsUp:
+            player_money_dic['Player Stands Up'].append(line.stack)
+        elif type(line) == SitsIn:
+            player_money_dic['Player Sits In'].append(line.stack)
+
+    temp_df = pd.DataFrame(index=[ind])
+    temp_df['Player Names'] = [list(set(player_money_dic['Player Names']))]
+    temp_df['Buy in Total'] = native_sum(data=player_money_dic['Player Stack'])
+    temp_df['Loss Count'] = len(player_money_dic['Player Quits'])
+    temp_df['player stands up sum'] = native_sum(data=player_money_dic['Player Stands Up'])
+    temp_df['player sits in sum'] = native_sum(data=player_money_dic['Player Sits In'])
+    temp_df['Leave Table Amount'] = temp_df['player stands up sum'] - temp_df['player sits in sum']
+    return temp_df[['Player Names', 'Buy in Total', 'Loss Count', 'Leave Table Amount']]
+
+
+def _game_line_to_df(line_lst: list) -> pd.DataFrame:
+    """Takes line info and converts to a pd.dataframe"""
+    lst = []
+    for line in line_lst:
+        temp_win = False
+        if line.player_index in line.winner:
+            temp_win = True
+        if type(line) in [Raises, PlayerStacks, SmallBlind, BigBlind, Wins]:
+            lst.append({'Player Index': line.player_index, 'Player Name': line.player_name, 'Bet Amount': line.stack,
+                        'Position': line.position, 'Round': line.current_round, 'Player Starting Chips': line.starting_chips, 'Player Current Chips': line.current_chips,
+                        'Class': repr(line), 'Winner': line.winner, 'Win': temp_win, 'Win Stack': line.win_stack,
+                        'Win Hand': line.winning_hand, 'All In': line.all_in, 'Pot Size': line.pot_size,
+                        'Remaining Players': line.remaining_players, 'From Person': line.action_from_player,
+                        'Game Id': line.game_id, 'Time': line.time, 'Previous Time': line.previous_time})
+        else:
+            lst.append({'Player Index': line.player_index, 'Player Name': line.player_name,
+                        'Bet Amount': line.action_amount, 'Position': line.position, 'Round': line.current_round, 'Player Starting Chips': line.starting_chips,
+                        'Player Current Chips': line.current_chips, 'Class': repr(line), 'Winner': line.winner, 'Win': temp_win,
+                        'Win Stack': line.win_stack, 'Win Hand': line.winning_hand, 'All In': line.all_in,
+                        'Pot Size': line.pot_size, 'Remaining Players': line.remaining_players,
+                        'From Person': line.action_from_player, 'Game Id': line.game_id, 'Time': line.time,
+                        'Previous Time': line.previous_time})
+    return pd.DataFrame(lst).bfill()
+
+
+def _game_build_players_data(player_dic: dict, players_data: dict, file_id: str) -> dict:
     """Updates Player Class"""
     player_info_dic = {}
     for key, val in player_dic.items():
@@ -282,7 +299,7 @@ def _build_players_data(player_dic: dict, players_data: dict, file_id: str) -> d
             player_info_dic[key] = val
 
     for player_index in player_info_dic.keys():
-        val = _calc_money(lst=player_info_dic[player_index]['Lines'], ind=file_id)
+        val = _game_calc_money(lst=player_info_dic[player_index]['Lines'], ind=file_id)
         card_dic = unique_values(data=[item for sublist in player_info_dic[player_index]['Cards'] for item in sublist],
                                  count=True)
         card_df = pd.DataFrame.from_dict(card_dic, orient='index', columns=['Count']).fillna(0.0).astype(int)
@@ -296,8 +313,77 @@ def _build_players_data(player_dic: dict, players_data: dict, file_id: str) -> d
         players_data[player_index].player_money_info = [file_id, val]
         players_data[player_index].hand_dic = [file_id, hand_df]
         players_data[player_index].card_dic = [file_id, card_df]
-        players_data[player_index].moves_dic = [file_id, _line_to_df(line_lst=line_dic)]
+        players_data[player_index].moves_dic = [file_id, _game_line_to_df(line_lst=line_dic)]
     return players_data
+
+
+def _game_count_cards(dic: dict) -> dict:
+    """Counts cards"""
+    card_count_dic = {}
+    for key in dic.keys():
+        if key in ['Flop', 'Turn', 'River', 'Win', 'My Cards']:
+            if key in ['Flop', 'Win', 'My Cards']:
+                lst = flatten(data=dic[key]['Cards'])
+            else:
+                lst = dic[key]['Cards']
+            card_count_dic[key + ' Count'] = unique_values(data=flatten(data=lst), count=True)
+    return card_count_dic
+
+
+def _game_game_stats(hand_lst: list) -> dict:
+    temp_dic = {'Average Hand Time': [], 'Average Win Amount': [], 'Average Bet Size': [], 'Average Pot Size': [],
+                'Average Gini Coef': []}
+    for hand in hand_lst:
+        temp_dic['Average Hand Time'].append((hand.end_time - hand.start_time).total_seconds())
+        temp_dic['Average Win Amount'].append(hand.win_stack)
+        temp_dic['Average Bet Size'].append(hand.bet_lst)
+        temp_dic['Average Pot Size'].append(hand.pot_size_lst[-1])
+        temp_dic['Average Gini Coef'].append(hand.gini_coef)
+    for key, val in temp_dic.items():
+        if key == 'Average Bet Size':
+            val = flatten(data=val, type_used='int')
+        if key == 'Average Gini Coef':
+            temp_dic[key] = round_to(data=native_mean(data=val), val=100, remainder=True)
+        else:
+            temp_dic[key] = round_to(data=native_mean(data=val), val=1)
+    return temp_dic
+
+
+def _hand_add_to_dic(item, player_dic: dict, location: str, player_index: str):
+    """Updates Player Class"""
+    if type(item) == tuple:
+        item = list(item)
+    if player_index in player_dic.keys():
+        if location in player_dic[player_index].keys():
+            player_dic[player_index][location].append(item)
+        else:
+            player_dic[player_index][location] = [item]
+    else:
+        player_dic[player_index] = {'Cards': [], 'Hands': [], 'Lines': []}
+        player_dic[player_index][location].append(item)
+
+
+def _hand_copy_line_to_line(original_object, new_object):
+    new_object.action_amount = original_object.action_amount
+    new_object.action_from_player = original_object.action_from_player
+    new_object.all_in = original_object.all_in
+    new_object.current_chips = original_object.current_chips
+    new_object.current_round = original_object.current_round
+    new_object.game_id = original_object.game_id
+    new_object.player_index = original_object.player_index
+    new_object.player_name = original_object.player_name
+    new_object.position = original_object.position
+    new_object.pot_size = original_object.pot_size
+    new_object.previous_time = original_object.previous_time
+    new_object.remaining_players = original_object.remaining_players
+    new_object.stack = original_object.stack
+    new_object.starting_chips = original_object.starting_chips
+    new_object.text = original_object.text
+    new_object.time = original_object.time
+    new_object.win_stack = original_object.win_stack
+    new_object.winner = original_object.winner
+    new_object.winning_hand = original_object.winning_hand
+    return new_object
 
 
 @dataclass
@@ -307,7 +393,7 @@ class Hand:
     Organizes a hand with a class and adds the stands to the player_dic.
 
     :param lst_hand_objects: A list of Class Objects connected to a hand.
-    :type lst_hand_objects: list
+    :type lst_hand_objects: dict
     :param file_id: Unique file name.
     :type file_id: str
     :param player_dic: Dict of players.
@@ -316,8 +402,9 @@ class Hand:
     :note: This class is intended to be used internally.
 
     """
-    def __init__(self, lst_hand_objects: list, file_id: str, player_dic: dict):
-        self._parsed_hand = lst_hand_objects
+    def __init__(self, lst_hand_objects: dict, file_id: str, player_dic: dict):
+        parsed_hand = parser(lines=lst_hand_objects['lines'], times=lst_hand_objects['times'], game_id=file_id)
+        self._parsed_hand = [line for line in parsed_hand]
         self._small_blind = None
         self._big_blind = None
         self._wins = []
@@ -330,10 +417,11 @@ class Hand:
         self._total_chips_in_play = None
         self._gini_value = None
         self._pot_size_lst = []
+        self._hand_start_time = self._parsed_hand[0].time
+        self._hand_end_time = self._parsed_hand[-1].time
+        self._bet_lst = []
+        self._win_amount = None
 
-        presser = None
-        presser_amount = 0
-        players_left = []
         winner_lst = []
         winner_line_lst = []
         winner_hand = None
@@ -345,145 +433,123 @@ class Hand:
                     winner_hand = line.winning_hand
                 if line.stack is not None:
                     winner_stack += line.stack
+        if winner_stack != 0:
+            self._win_amount = winner_stack
 
         for line in self._parsed_hand:
             line_type = type(line)
             self._pot_size_lst.append(line.pot_size)
-            line.action_from_player = presser
-            line.action_amount = presser_amount
-            line.game_id = file_id
-            line.remaining_players = players_left
             line.winner = winner_lst
             line.winning_hand = winner_hand
             line.win_stack = winner_stack
-            if line.player_index is not None and self._starting_player_chips is not None:
-                if line.player_index in self._starting_player_chips.keys():
-                    line.chips = self._starting_player_chips[line.player_index]
             if line_type == SmallBlind:
-                presser = line.player_index
-                presser_amount = line.stack
                 self._small_blind = line
-                _add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
+                _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
                 continue
             elif line_type == BigBlind:
-                presser = line.player_index
-                presser_amount = line.stack
                 self._big_blind = line
-                _add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
+                _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
                 continue
             elif line_type == Wins:
-                _add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
+                _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
                 if line.cards is not None:
-                    _add_to_dic(item=line.cards, player_dic=player_dic, location='Cards',
-                                player_index=line.player_index)
-                    _add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='Win')
-                _add_to_dic(item=line.winning_hand, player_dic=player_dic, location='Hands',
-                            player_index=line.player_index)
-                _add_to_dic(item=line.winning_hand, player_dic=player_dic, location='Hands', player_index='Win')
+                    _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards',
+                                     player_index=line.player_index)
+                    _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='Win')
+                _hand_add_to_dic(item=line.winning_hand, player_dic=player_dic, location='Hands',
+                                 player_index=line.player_index)
+                _hand_add_to_dic(item=line.winning_hand, player_dic=player_dic, location='Hands', player_index='Win')
                 winner_line_lst.append(line)
                 continue
             elif line_type == PlayerStacks:
                 self._starting_players = dict(zip(line.player_index, line.player_name))
-                players_left = line.player_index
-                self._starting_player_chips = dict(zip(line.player_index, line.stack))
-                self._total_chips_in_play = sum(line.stack)
-                self._gini_value = calc_gini(data=line.stack)
+                self._starting_player_chips = dict(zip(line.player_index, line.starting_chips))
+                self._total_chips_in_play = sum(line.starting_chips)
+                self._gini_value = calc_gini(data=line.starting_chips)
                 for player in self._starting_players.keys():
-                    _add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=player)
+                    _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=player)
                 continue
             elif line_type == Flop:
                 self._flop = line
-                _add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='Flop')
-                presser = None
-                presser_amount = 0
+                _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='Flop')
                 continue
             elif line_type == Turn:
                 self._turn = line
-                _add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='Turn')
-                presser = None
-                presser_amount = 0
+                _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='Turn')
                 continue
             elif line_type == River:
                 self._river = line
-                _add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='River')
-                presser = None
-                presser_amount = 0
+                _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='River')
                 continue
             elif line_type == MyCards:
                 self._my_cards = line
-                _add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='My Cards')
+                _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='My Cards')
                 continue
             elif line_type == Undealt:
                 if len(line.cards) == 1:
-                    # if self._river is None:
-                    #     self._river = River
-                    self._river = line.cards[0]
-                    _add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='River')
+                    river_val = line.cards[0]
+                    if self._river is None:
+                        self._river = _hand_copy_line_to_line(new_object=River(text=None), original_object=line)
+                        self._river.cards = river_val
+                        self._parsed_hand.append(self._river)
                 elif len(line.cards) == 2:
                     if type(line.cards[0]) == list:
                         turn_val = line.cards[0][0]
                     else:
                         turn_val = line.cards[0]
-                    # if self._turn is None:
-                    #     self._turn = Turn
-                    self._turn = turn_val
+                    if self._turn is None:
+                        self._turn = _hand_copy_line_to_line(new_object=Turn(text=None), original_object=line)
+                        self._turn.cards = turn_val
+                        self._parsed_hand.append(self._turn)
                     if type(line.cards[1]) == list:
                         river_val = line.cards[1][0]
                     else:
                         river_val = line.cards[1]
-                    # if self._river is None:
-                    #     self._river = River
-                    self._river = river_val
-                    _add_to_dic(item=turn_val, player_dic=player_dic, location='Cards', player_index='Turn')
-                    _add_to_dic(item=river_val, player_dic=player_dic, location='Cards', player_index='River')
+                    if self._river is None:
+                        self._river = _hand_copy_line_to_line(new_object=River(text=None), original_object=line)
+                        self._river.cards = river_val
+                        self._parsed_hand.append(self._river)
                 else:
-                    # if self._flop is None:
-                    #     self._flop = Flop
-                    self._flop = line.cards[:3]
+                    flop_vals = line.cards[:3]
+                    if self._flop is None:
+                        self._flop = _hand_copy_line_to_line(new_object=Flop(text=None), original_object=line)
+                        self._flop.cards = flop_vals
+                        self._parsed_hand.append(self._flop)
                     if type(line.cards[3]) == list:
                         turn_val = line.cards[3][0]
                     else:
                         turn_val = line.cards[3]
-                    # if self._turn is None:
-                    #     self._turn = Turn
-                    self._turn = turn_val
+                    if self._turn is None:
+                        self._turn = _hand_copy_line_to_line(new_object=Turn(text=None), original_object=line)
+                        self._turn.cards = turn_val
+                        self._parsed_hand.append(self._turn)
                     if type(line.cards[4]) == list:
                         river_val = line.cards[4][0]
                     else:
                         river_val = line.cards[4]
-                    # if self._river is None:
-                    #     self._river = River
-                    self._river = river_val
-                    _add_to_dic(item=line.cards[:3], player_dic=player_dic, location='Cards', player_index='Flop')
-                    _add_to_dic(item=turn_val, player_dic=player_dic, location='Cards', player_index='Turn')
-                    _add_to_dic(item=river_val, player_dic=player_dic, location='Cards', player_index='River')
+                    if self._river is None:
+                        self._river = _hand_copy_line_to_line(new_object=River(text=None), original_object=line)
+                        self._river.cards = river_val
+                        self._parsed_hand.append(self._river)
                 continue
             elif line_type == Raises:
-                presser = line.player_index
-                presser_amount = line.stack
-                _add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
+                self._bet_lst.append(line.stack)
+                _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
                 continue
             elif line_type == Calls:
-                _add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
+                _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
                 continue
             elif line_type == Folds:
-                players_left = [player for player in players_left if player != line.player_index]
-                line.remaining_players = players_left
-                _add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
+                _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
                 continue
             elif line_type == StandsUp:
-                players_left = [player for player in players_left if player != line.player_index]
-                line.remaining_players = players_left
-                _add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
+                _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
                 continue
             elif line_type == Quits:
-                players_left = [player for player in players_left if player != line.player_index]
-                line.remaining_players = players_left
-                _add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
+                _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
                 continue
             elif line_type in [SitsIn, Shows, Approved, Checks]:
-                line.action_amount = 0
-                _add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
+                _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
                 continue
 
         for winner in winner_line_lst:
@@ -491,9 +557,9 @@ class Hand:
                 for temp_line in self.parsed_hand:
                     if type(temp_line) == Shows and temp_line.player_index == winner.player_index:
                         winner.cards = temp_line.cards
-                        _add_to_dic(item=temp_line.cards, player_dic=player_dic, location='Cards', player_index='Win')
-                        _add_to_dic(item=temp_line.cards, player_dic=player_dic, location='Cards',
-                                    player_index=temp_line.player_index)
+                        _hand_add_to_dic(item=temp_line.cards, player_dic=player_dic, location='Cards', player_index='Win')
+                        _hand_add_to_dic(item=temp_line.cards, player_dic=player_dic, location='Cards',
+                                         player_index=temp_line.player_index)
                         break
 
         self._wins = winner_lst
@@ -572,6 +638,26 @@ class Hand:
         """Returns dict of player moves"""
         return self._players
 
+    @property
+    def start_time(self):
+        """Returns time of first hand item"""
+        return self._hand_start_time
+
+    @property
+    def end_time(self):
+        """Returns time of last hand item"""
+        return self._hand_end_time
+
+    @property
+    def win_stack(self) -> Union[int, None]:
+        """Returns win amount for the hand"""
+        return self._win_amount
+
+    @property
+    def bet_lst(self) -> list[int]:
+        """Returns Raise amounts for the hand"""
+        return self._bet_lst
+
 
 @dataclass
 class Player:
@@ -603,6 +689,7 @@ class Player:
         self._hand_count = {}
         self._all_in = {}
         self._player_name = []
+        self._player_merged_moves = None
 
     def __repr__(self):
         return str(self._player_name)
@@ -724,6 +811,15 @@ class Player:
     def moves_dic(self, val):
         self._moves_dic[val[0]] = val[1]
 
+    @property
+    def merged_moves(self) -> Union[dict, None]:
+        """Returns a combined dict of player moves"""
+        return self._player_merged_moves
+
+    @merged_moves.setter
+    def merged_moves(self, val):
+        self._player_merged_moves = val
+
 
 @dataclass
 class Game:
@@ -744,19 +840,14 @@ class Game:
     def __init__(self, hand_lst: List[dict], file_id: str, players_data: dict):
         self._file_id = file_id
         player_dic = {}
-        self._parsed_hands = [Hand(lst_hand_objects=[line for line in parser(lines=hand['lines'], times=hand['times'])],
-                                   file_id=file_id, player_dic=player_dic) for hand in hand_lst]
-        self._players_data = _build_players_data(player_dic=player_dic, players_data=players_data,
-                                                 file_id=self._file_id)
-        self._card_distribution = _count_cards(dic=player_dic)
-        # self._winning_hand_dist = dict(Counter(player_dic['Win']['Hands']))
+        self._parsed_hands = [Hand(lst_hand_objects=hand, file_id=file_id, player_dic=player_dic) for hand in hand_lst]
+        self._players_data = _game_build_players_data(player_dic=player_dic, players_data=players_data, file_id=file_id)
+        self._card_dist = _game_count_cards(dic=player_dic)
         self._winning_hand_dist = unique_values(data=player_dic['Win']['Hands'], count=True)
+        self._game_stats = _game_game_stats(hand_lst=self._parsed_hands)
 
     def __repr__(self):
-        val = self._file_id
-        if "." in val:
-            val = self._file_id.split(".")[0]
-        return val
+        return self._file_id
 
     @property
     def file_name(self) -> str:
@@ -771,7 +862,7 @@ class Game:
     @property
     def card_distribution(self) -> dict:
         """Returns count of each card that showed up"""
-        return self._card_distribution
+        return self._card_dist
 
     @property
     def winning_hand_distribution(self) -> dict:
@@ -780,8 +871,13 @@ class Game:
 
     @property
     def players_data(self) -> dict:
-        """Returns Player stats for players across games"""
+        """Returns Player stats for players across hands"""
         return self._players_data
+
+    @property
+    def game_stats(self) -> dict:
+        """Returns Mean stats for Game across hands"""
+        return self._game_stats
 
 
 @dataclass
@@ -808,23 +904,21 @@ class Poker:
     """
     def __init__(self, repo_location: str, grouped: Optional[list] = None, money_multi: Optional[int] = 100):
         self._repo_location = repo_location
-        self._files = next(walk(self._repo_location))[2]
 
         self._grouped = None
         if grouped:
             self._grouped = grouped
 
-        file_dic = {file: _get_data(repo_location=self._repo_location, file=file) for file in self._files}
-        game_hand_time_lst_dic = {file: _get_hands(data=file_dic[file]) for file in self._files}
+        game_hand_time_lst_dic = _poker_collect_data(repo_location=repo_location)
+        self._files = list(game_hand_time_lst_dic.keys())
         players_data = {}
-        self._matches = [Game(hand_lst=game_hand_time_lst_dic[file_id], file_id=file_id,
-                              players_data=players_data) for file_id in self._files]
-        player_dic = _build_player_dic(data=players_data, matches=self._matches)
-        self._player_money_df = _group_money(data=pd.DataFrame.from_dict(player_dic, orient='index'),
-                                             grouped=self._grouped, multi=money_multi)
-        self._card_distribution, self._winning_hand_dist = _get_dist(matches=self._matches)
-        _build_players(data=players_data, money_df=self._player_money_df)
-        self._players = _combine_dic(data=players_data, grouped=self._grouped)
+        self._matches = {file: Game(hand_lst=game_hand_time_lst_dic[file], file_id=file, players_data=players_data) for file in self._files}
+        player_dic = _poker_build_player_dic(data=players_data, matches=list(self._matches.values()))
+        self._player_money_df = _poker_group_money(data=player_dic, grouped=self._grouped, multi=money_multi)
+        self._card_distribution, self._winning_hand_dist = _poker_get_dist(matches=list(self._matches.values()))
+        _poker_build_players(data=players_data, money_df=self._player_money_df)
+        self._players = _poker_combine_dic(data=players_data, grouped=self._grouped)
+        _poker_add_merged_moves(player_dic=self._players)
 
     def __repr__(self):
         return "Poker"
@@ -835,7 +929,7 @@ class Poker:
         return self._files
 
     @property
-    def matches(self) -> List[Game]:
+    def matches(self) -> dict:
         """Returns list of games"""
         return self._matches
 
