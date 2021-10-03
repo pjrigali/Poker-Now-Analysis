@@ -38,8 +38,6 @@ Class object for running the package.
         The grouped stats are only taken into account within this class
 
 .. autosummary::
-    :toctree: classes
-
     poker.classes.Poker.files
     poker.classes.Poker.matches
     poker.classes.Poker.players_money_overview
