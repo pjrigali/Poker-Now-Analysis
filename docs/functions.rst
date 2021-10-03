@@ -144,7 +144,15 @@ Most take a list, np.ndarray, or pd.Series and return a list of floats or ints.
     :type keep_nan: bool
     :return: Normalized list.
     :rtype: list
-    :example: *None*
+    :example:
+        .. code-block:: python
+
+            from poker.base import normalize
+            data = [1, 2, 3, None, np.nan, 4]
+            # keep_nan set to False (default)
+            test = normalize(data, keep_nan=False) # [0.0, 0.3333333333333333, 0.6666666666666666, 1.0]
+            # keep_nan set to True
+            test = normalize(data, keep_nan=False) # [0.0, 0.3333333333333333, 0.6666666666666666, nan, nan, 1.0]
     :note: If an int or float is passed for keep_nan, that value will be placed where nan's are present.
 
 .. function:: running_mean(data, num):
@@ -157,8 +165,32 @@ Most take a list, np.ndarray, or pd.Series and return a list of floats or ints.
     :type num: int
     :return: Running mean for a given  np.ndarray, pd.Series, or list.
     :rtype: List[float]
-    :example: *None*
-    :note: Maintains the input data type in output.
+    :example:
+        .. code-block:: python
+
+            from poker.base import running_mean
+            data = [1, 2, 3, None, np.nan, 4]
+            test = running_mean(data=data, num=2) # [1.5, 1.5, 1.5, 2.5, 2.75, 2.5]
+    :note: None and np.nan values are replaced with the mean value.
+
+.. function:: running_std(data, num):
+
+    Calculate the Running Std on *num* interval.
+
+    :param data: Input data.
+    :type data: list, np.ndarray, or pd.Series
+    :param num: Input val used for Running Std window.
+    :type num: int
+    :return: Running mean for a given  np.ndarray, pd.Series, or list.
+    :rtype: List[float]
+    :example:
+        .. code-block:: python
+
+            from poker.base import running_std
+            data = [1, 2, 3, None, np.nan, 4]
+            test = running_std(data=data, num=2) # [0.7071067811865476, 0.7071067811865476, 0.7071067811865476,
+                                                 #  0.7071067811865476, 0.3535533905932738, 0.0]
+    :note: None and np.nan values are replaced with the mean value.
 
 .. function:: cumulative_mean(data):
 
@@ -168,8 +200,13 @@ Most take a list, np.ndarray, or pd.Series and return a list of floats or ints.
     :type data: list, np.ndarray, or pd.Series
     :return: Cumulative mean for a given np.ndarray, pd.Series, or list.
     :rtype: List[float]
-    :example: *None*
-    :note: Maintains the input data type in output.
+    :example:
+        .. code-block:: python
+
+            from poker.base import cumulative_mean
+            data = [1, 2, 3, None, np.nan, 4]
+            test = cumulative_mean(data=data) # [0.0, 1.0, 1.5, 2.0, 2.125, 2.2]
+    :note: None and np.nan values are replaced with the mean value.
 
 .. function:: round_to(data, val, remainder):
 
@@ -223,7 +260,7 @@ Most take a list, np.ndarray, or pd.Series and return a list of floats or ints.
 
 .. function:: flatten(data, type_used):
 
-    Flattens a list and checks the list.
+    Flattens a list of lists and checks the list.
 
     :param data: Input data.
     :type data: list
@@ -234,7 +271,7 @@ Most take a list, np.ndarray, or pd.Series and return a list of floats or ints.
     :return: Returns a flattened list.
     :rtype: list
     :example: *None*
-    :note: *None*
+    :note: Will work when lists are mixed with non-list items.
 
 .. function:: native_mode(data):
 
@@ -328,6 +365,14 @@ Most take a list, np.ndarray, or pd.Series and return a list of floats or ints.
     :type count: bool
     :return: Returns either a list of unique values or a dict of unique values with counts.
     :rtype: Union[list, dict]
-    :example: *None*
+    :example:
+        .. code-block:: python
+
+            from poker.base import unique_values
+            data = [1, 2, 3, None, np.nan, 4]
+            # count set to False (default)
+            test = normalize(data, keep_nan=False) # [1, 2, 3, 4]
+            # count set to True
+            test = normalize(data, keep_nan=False) # {1: 1, 2: 1, 3: 1, 4: 1}
     :note: *None*
 
