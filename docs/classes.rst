@@ -99,7 +99,6 @@ The following child classes use this framework:
     poker.processor.LineAttributes.action_amount
     poker.processor.LineAttributes.all_in
     poker.processor.LineAttributes.game_id
-    poker.processor.LineAttributes.chips
     poker.processor.LineAttributes.winner
     poker.processor.LineAttributes.win_stack
     poker.processor.LineAttributes.time
