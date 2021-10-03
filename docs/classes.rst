@@ -1,3 +1,15 @@
+.. raw:: html
+
+    <style> .red {color:red} </style>
+    <style> .lightblue {color:#2980b9; font-weight:700; font-size:75%; max-width: 100%; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,Courier,monospace;} </style>
+    <style> .grey {color:grey; font-weight:700; font-size:12px; background-color:white; padding: 2px 5px;} </style>
+    <style> .reddish {color:#e74c3c; font-size:75%; background-color:white; padding: 2px 5px; border: 1px solid #e1e4e5; white-space: nowrap; max-width: 100%; overflow-x: auto; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,Courier,monospace;} </style>
+    <style> .bb {color: #000; font-size:75%; background-color:white; padding: 2px 5px; border: 1px solid #e1e4e5; white-space: nowrap; max-width: 100%; overflow-x: auto; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,Courier,monospace;} </style>
+
+.. role:: bb
+.. role:: reddish
+.. role:: lightblue
+
 .. _Classes:
 
 Classes
@@ -44,6 +56,26 @@ Class object for running the package.
     poker.poker_class.Poker.card_distribution
     poker.poker_class.Poker.winning_hand_distribution
     poker.poker_class.Poker.players_history
+
+.. list-table:: Attributes
+    :widths: 100 100 200
+    :header-rows: 1
+
+    .. role:: red
+
+    * - Name
+      - Type
+      - Description
+    * - :bb:`Poker.files`
+      - :lightblue:`List[str]`
+      - :reddish:`Returns list of data files`
+    * - :bb:`Poker.matches`
+      - :lightblue:`dict`
+      - :reddish:`Returns list of data files`
+    * - :bb:`Poker.players_money_overview`
+      - :lightblue:`pd.DataFrame`
+      - :reddish:`Returns summary info for each player across games`
+
 
 .. _Game:
 
