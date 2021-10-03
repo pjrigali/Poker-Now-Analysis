@@ -40,6 +40,8 @@ def _hand_copy_line_to_line(original_object, new_object):
     new_object.win_stack = original_object.win_stack
     new_object.winner = original_object.winner
     new_object.winning_hand = original_object.winning_hand
+    new_object.start_time = original_object.start_time
+    new_object.end_time = original_object.end_time
     return new_object
 
 
@@ -74,8 +76,8 @@ class Hand:
         self._total_chips_in_play = None
         self._gini_value = None
         self._pot_size_lst = []
-        self._hand_start_time = self._parsed_hand[0].time
-        self._hand_end_time = self._parsed_hand[-1].time
+        self._hand_start_time = self._parsed_hand[0].start_time
+        self._hand_end_time = self._parsed_hand[0].end_time
         self._bet_lst = []
         self._win_amount = None
 
@@ -94,6 +96,8 @@ class Hand:
             self._win_amount = winner_stack
 
         for line in self._parsed_hand:
+            line.start_time = self._hand_start_time
+            line.end_time = self._hand_end_time
             line_type = type(line)
             self._pot_size_lst.append(line.pot_size)
             line.winner = winner_lst
@@ -214,11 +218,11 @@ class Hand:
                 for temp_line in self.parsed_hand:
                     if type(temp_line) == Shows and temp_line.player_index == winner.player_index:
                         winner.cards = temp_line.cards
-                        _hand_add_to_dic(item=temp_line.cards, player_dic=player_dic, location='Cards', player_index='Win')
+                        _hand_add_to_dic(item=temp_line.cards, player_dic=player_dic, location='Cards',
+                                         player_index='Win')
                         _hand_add_to_dic(item=temp_line.cards, player_dic=player_dic, location='Cards',
                                          player_index=temp_line.player_index)
                         break
-
         self._wins = winner_lst
         self._players = player_dic
 
@@ -311,6 +315,6 @@ class Hand:
         return self._win_amount
 
     @property
-    def bet_lst(self) -> list[int]:
+    def bet_lst(self) -> List[int]:
         """Returns Raise amounts for the hand"""
         return self._bet_lst
