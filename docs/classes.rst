@@ -85,6 +85,7 @@ The following child classes use this framework:
     :note: This class is intended to be used internally.
 
 .. autosummary::
+
     poker.processor.LineAttributes.text
     poker.processor.LineAttributes.player_name
     poker.processor.LineAttributes.player_index

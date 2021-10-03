@@ -19,7 +19,7 @@ def _to_list(data: Union[list, np.ndarray, pd.Series, int, float]) -> Union[List
 def _remove_nan(data: list, replace_val: Optional[Union[int, float, str]] = None) -> list:
     """Remove or replace nan values"""
     if replace_val:
-        if type(replace_val) == 'mean':
+        if replace_val == 'mean':
             replace_val = native_mean(data=data)
         elif type(replace_val) in [int, float]:
             pass
@@ -87,10 +87,10 @@ def running_mean(data: Union[list, np.ndarray, pd.Series], num: int) -> Union[np
     :return: Running mean for a given  np.ndarray, pd.Series, or list.
     :rtype: np.ndarray, pd.Series, or list
     :example: *None*
-    :note: Maintains the input data type in output.
+    :note: None and np.nan values are replaced with the mean value.
 
     """
-    data = _to_list(data=data)
+    data = _remove_nan(data=_to_list(data=data), replace_val='mean')
     pre, ran = [native_mean(data=data[:num])] * num, range(num, len(data))
     return pre + [native_mean(data=data[i - num:i]) for i in ran]
 
@@ -107,10 +107,10 @@ def running_std(data: Union[list, np.ndarray, pd.Series], num: int) -> List[floa
     :return: Running mean for a given  np.ndarray, pd.Series, or list.
     :rtype: List[float]
     :example: *None*
-    :note: Maintains the input data type in output.
+    :note: None and np.nan values are replaced with the mean value.
 
     """
-    data = _to_list(data=data)
+    data = _remove_nan(data=_to_list(data=data), replace_val='mean')
     pre, ran = [native_std(data=data[:num])] * num, range(num, len(data))
     return pre + [native_std(data=data[i - num:i]) for i in ran]
 
@@ -125,10 +125,10 @@ def cumulative_mean(data: Union[list, np.ndarray, pd.Series]) -> List[float]:
     :return: Cumulative mean for a given np.ndarray, pd.Series, or list.
     :rtype: List[float]
     :example: *None*
-    :note: Maintains the input data type in output.
+    :note: None and np.nan values are replaced with the mean value.
 
     """
-    data = _to_list(data=data)
+    data = _remove_nan(data=_to_list(data=data), replace_val='mean')
     ran = range(1, len(data))
     return [0.0] + [native_mean(data=data[:i]) for i in ran]
 
@@ -234,7 +234,7 @@ def flatten(data: list, type_used: str = 'str') -> list:
     :return: Returns a flattened list.
     :rtype: list
     :example: *None*
-    :note: *None*
+    :note: Will work when lists are mixed with non-list items.
 
     """
     new_type = {'str': [str], 'int': [int], 'float': [float], 'class objects': class_object_lst}[type_used]

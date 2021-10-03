@@ -8,7 +8,7 @@ This is a package for analyzing past performance and player habits from the Poke
 
 Poker Now is a website that allows individuals to set up private poker tables.
 The website allows you to download the data from the game. 
-This package preforms NLP to parse the csv and creates a variety of objects for analyzing the game.
+This package preforms NLP to parse the csv and creates a variety of objects for analyzing a poker game.
 
 ## Installation
 In progress...
@@ -40,6 +40,8 @@ poker = Poker(repo_location=repo, grouped=grouped)
 ## Visualizations
 In progress...
 
+## Changelog
+* *1.0.0* - Working package.
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
