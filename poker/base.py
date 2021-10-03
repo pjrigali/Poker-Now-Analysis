@@ -25,8 +25,8 @@ def _remove_nan(data: list, replace_val: Optional[Union[int, float, str]] = None
             pass
         else:
             raise AttributeError('replace_val needs to be an int or float. If "mean" is passed, will use mean.')
-        return [i if i == i else replace_val for i in data]
-    return [i for i in data if i == i]
+        return [i if i == i and i is not None else replace_val for i in data]
+    return [i for i in data if i == i and i is not None]
 
 
 def _to_type(data: Union[list, np.float64, np.float32, np.float16, np.float_, np.int64, np.int32, np.int16, np.int8,
@@ -72,7 +72,7 @@ def normalize(data: Union[list, np.ndarray, pd.Series], keep_nan: Optional[Union
         data = _remove_nan(data=data, replace_val=keep_nan)
         return [(item - min_val) / max_min_val for item in data]
     else:
-        return [(item - min_val) / max_min_val if item == item else np.nan for item in data]
+        return [(item - min_val) / max_min_val if item == item and item is not None else np.nan for item in data]
 
 
 def running_mean(data: Union[list, np.ndarray, pd.Series], num: int) -> Union[np.ndarray, pd.Series, list]:
