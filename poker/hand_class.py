@@ -20,6 +20,7 @@ def _hand_add_to_dic(item, player_dic: dict, location: str, player_index: str):
 
 
 def _hand_copy_line_to_line(original_object, new_object):
+    """Copies one class object attributes to another class object"""
     new_object.action_amount = original_object.action_amount
     new_object.action_from_player = original_object.action_from_player
     new_object.all_in = original_object.all_in

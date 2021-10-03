@@ -115,7 +115,7 @@ Class object used for getting specific hand stats.
 
 .. :currentmodule:: hand_class
 
-.. class:: Hand(hand):
+.. class:: Hand(lst_hand_objects, file_id, player_dic):
 
     Organizes a hand with a class and adds the stands to the player_dic.
 
