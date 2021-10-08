@@ -116,7 +116,7 @@ def running_mean(data: Union[list, np.ndarray, pd.Series], num: int) -> List[flo
     :param num: Input val used for running mean.
     :type num: int
     :return: Running mean for a given  np.ndarray, pd.Series, or list.
-    :rtype: list
+    :rtype: List[float]
     :example: *None*
     :note: None and np.nan values are replaced with the mean value.
 
