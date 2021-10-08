@@ -124,7 +124,7 @@ class LineAttributes:
         self._winning_hand = val
 
     @property
-    def cards(self) -> Union[str, tuple, None]:
+    def cards(self) -> Union[str, list, None]:
         """Card or cards"""
         return self._cards
 
@@ -1001,7 +1001,7 @@ def parser(lines: List[str], times: list, game_id: str) -> list:
 
             if new.cards is None:
                 new_cards = line.split(' shows a ')[1].split('.')[0].split(',')
-                new.cards = tuple([i.strip() for i in new_cards])
+                new.cards = [i.strip() for i in new_cards]
 
             if new.position is None:
                 new.position = hand_position[ind]
@@ -1047,7 +1047,7 @@ def parser(lines: List[str], times: list, game_id: str) -> list:
 
             if new.cards is None:
                 new_cards = line.split(' [')[1].split(']')[0].split(',')
-                new.cards = tuple([i.strip() for i in new_cards])
+                new.cards = [i.strip() for i in new_cards]
 
             if new.position is None:
                 new.position = 'Flop'
@@ -1117,7 +1117,7 @@ def parser(lines: List[str], times: list, game_id: str) -> list:
 
             if new.cards is None:
                 new_cards = line.split(' [')[1].split(']')[0].split(',')
-                new.cards = tuple([i.strip() for i in new_cards])
+                new.cards = [i.strip() for i in new_cards]
 
             if new.position is None:
                 if len(new.cards) == 1:
@@ -1139,6 +1139,7 @@ def parser(lines: List[str], times: list, game_id: str) -> list:
             new.remaining_players = players_left
             new.start_time = start_time_val
             new.end_time = end_time_val
+            new.stack = 0
 
             if check_players_name_lst is True:
                 new.current_chips = player_value_lst
