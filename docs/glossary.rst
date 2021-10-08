@@ -1,12 +1,13 @@
 .. _Glossary:
 
+********
 Glossary
 ********
 .. meta::
    :description: Landing page for poker-now-analysis.
    :keywords: Poker, Python, Analysis, Texas Hold'em
 
-Terms used in this documentation.
+*Terms used in this documentation.*
 
 .. glossary::
     :sorted:
