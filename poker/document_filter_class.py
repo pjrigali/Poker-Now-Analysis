@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import pandas as pd
 from poker.poker_class import Poker
 from poker.base import flatten
+pd.set_option('use_inf_as_na', True)
 
 
 def _df_convert_list(data: Union[List[str], str, None]) -> Union[List[str], None]:
@@ -139,7 +140,31 @@ class DocumentFilter:
 
             for key, val in dic.items():
                 dic[key] = [val[ind] for ind in final_ind]
-        self._df = pd.DataFrame(dic)
+
+        final_df = pd.DataFrame(dic).drop_duplicates('Time', keep='first').sort_values('Time', ascending=True).reset_index(drop=True)
+        if 'Player Index' in final_df.columns:
+            psc, pcc = [], []
+            for ind, row in final_df.iterrows():
+                if ind == 0:
+                    if type(row['Player Index']) == str:
+                        prev = row['Player Index']
+
+                if row['Class'] != 'Player Stacks':
+                    psc.append(row['Player Starting Chips'])
+                    pcc.append(row['Player Current Chips'])
+                else:
+                    val = row['Player Index'].index(prev)
+                    psc.append(row['Player Starting Chips'][val])
+                    pcc.append(row['Player Current Chips'][val])
+
+                if type(row['Player Index']) == str:
+                    prev = row['Player Index']
+
+            final_df['Player Starting Chips'], final_df['Player Current Chips'] = psc, pcc
+        final_df['Seconds'] = [(row['Time'] - row['Previous Time']).total_seconds() for ind, row in final_df.iterrows()]
+        final_df['Seconds into Hand'] = [(row['Time'] - row['Start Time']).total_seconds() for ind, row in final_df.iterrows()]
+        self._df = final_df
+        # self._df = pd.DataFrame(dic).drop_duplicates('Time', keep='first').sort_values('Time', ascending=True).reset_index(drop=True)
 
     def __repr__(self):
         return "DocumentFilter"
