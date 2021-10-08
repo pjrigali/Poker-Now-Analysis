@@ -43,6 +43,7 @@ class DocumentFilter:
     :type column_lst: Union[List[str], str, None]
     :example: *None*
     :note: All inputs, except data, are *Optional* and defaults are set to None.
+        Any str inputs are placed in a list.
 
     """
     def __init__(self, data: Poker,
