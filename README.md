@@ -40,6 +40,13 @@ poker = Poker(repo_location=repo, grouped=grouped)
 ## Visualizations
 In progress...
 
+## Below are some write-ups utilizing the package.
+
+![Time and Performance](https://miro.medium.com/max/700/1*AbNNC1xrWLb5XiswbRfiaQ.png)
+[Time and Performance](https://medium.com/@peterjrigali/how-does-decision-time-affect-performance-in-poker-fde88f1adae9)
+_Example of the package to run tests._
+
+
 ## Changelog
 * *1.0.0* - Working package.
 
