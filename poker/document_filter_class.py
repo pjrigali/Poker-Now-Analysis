@@ -141,8 +141,14 @@ class DocumentFilter:
             for key, val in dic.items():
                 dic[key] = [val[ind] for ind in final_ind]
 
+        temp_class_bool = False
+        if self._class_lst is not None and 'Player Stacks' not in self._class_lst:
+            temp_class_bool = True
+        elif self._class_lst is None:
+            temp_class_bool = True
+
         final_df = pd.DataFrame(dic).drop_duplicates('Time', keep='first').sort_values('Time', ascending=True).reset_index(drop=True)
-        if 'Player Index' in final_df.columns:
+        if 'Player Index' in final_df.columns and temp_class_bool is True:
             psc, pcc = [], []
             for ind, row in final_df.iterrows():
                 if ind == 0:
