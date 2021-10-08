@@ -5,18 +5,19 @@
     <style> .grey {color:#404040; font-weight:700; font-size:16px; padding: 6px; background:#edf0f2; border-top: 1px solid grey} </style>
     <style> .attribute_table_description {font-family: Lato,proxima-nova,Helvetica Neue,Arial,sans-serif; font-weight: 400; color: #404040; min-height: 100%;} </style>
     <style> .attribute_table_header {font-family: Lato,proxima-nova,Helvetica Neue,Arial,sans-serif; font-weight: 700; color: #404040; min-height: 100%; font-size: 16px} </style>
-    <style> .rb {color:#e74c3c; font-size:75%; background-color:white; padding: 2px 5px; border: 1px solid #e1e4e5; white-space: nowrap; max-width: 100%; overflow-x: auto; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,Courier,monospace;} </style>
+    <style> .rb {color:#e74c3c; font-size:90%; font-weight:700; background-color:white; padding: 2px 5px; border: 1px solid #e1e4e5; white-space: nowrap; max-width: 100%; overflow-x: auto; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,Courier,monospace;} </style>
     <style> .bb {color: #000; font-size:90%; font-weight:700; background-color:white; padding: 2px 5px; border: 1px solid #e1e4e5; white-space: nowrap; max-width: 100%; overflow-x: auto; font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,Courier,monospace;} </style>
 
 .. role:: grey
 .. role:: bb
+.. role:: rb
 .. role:: lbi
 .. role:: attribute_table_description
 .. role:: attribute_table_header
 
-
 .. _Classes:
 
+*******
 Classes
 *******
 .. meta::
@@ -27,6 +28,7 @@ This chapter documents the Classes used in this package.
 
 .. _Poker:
 
+=====
 Poker
 =====
 Class object for running the package.
@@ -82,8 +84,134 @@ Class object for running the package.
       - :lbi:`dict`
       - :attribute_table_description:`Collects player stats for all matches and groups based on grouper input`
 
+.. _DocumentFilter:
+
+==============
+DocumentFilter
+==============
+
+Class for getting data from Poker.
+
+The **class_lst** can have any of the following:
+    * Requests
+    * Approved
+    * Joined
+    * MyCards
+    * SmallBlind
+    * BigBlind
+    * Folds
+    * Calls
+    * Raises
+    * Checks
+    * Wins
+    * Shows
+    * Quits
+    * Flop
+    * Turn
+    * River
+    * Undealt
+    * StandsUp
+    * SitsIn
+    * PlayerStacks
+
+The **position_lst** can have any of the following:
+    * 'Pre Flop'
+    * 'Post Flop'
+    * 'Post Turn'
+    * 'Post River'
+
+The **win_loss_all** can be one of the following:
+    * 'Win'
+    * 'Loss'
+    * 'All'
+
+The **column_lst** can have any of the following:
+    * 'All In'
+    * 'Bet Amount'
+    * 'Class'
+    * 'End Time'
+    * 'From Person'
+    * 'Game Id'
+    * 'Player Current Chips'
+    * 'Player Index'
+    * 'Player Name'
+    * 'Player Starting Chips'
+    * 'Position'
+    * 'Pot Size'
+    * 'Previous Time'
+    * 'Remaining Players'
+    * 'Round'
+    * 'Start Time'
+    * 'Time'
+    * 'Win'
+    * 'Win Hand'
+    * 'Win Stack'
+    * 'Winner'
+
+.. :currentmodule:: document_filter_class
+
+.. class:: DocumentFilter(data):
+
+    Get a selection from the Poker Object.
+    Uses a set of filters to return a desired set of data to be used in later analysis.
+
+    :param data: Input Poker object to be filtered.
+    :type data: Poker
+    :param game_id_lst: Game Id filter, default is None. *Optional*
+    :type game_id_lst: Union[List[str], str, None]
+    :param player_index_lst: Player Index filter, default is None. *Optional*
+    :type player_index_lst: Union[List[str], str, None]
+    :param player_name_lst: Player Name filter, default is None. *Optional*
+    :type player_name_lst: Union[List[str], str, None]
+    :param class_lst: Filter by class objects, default is None. *Optional*
+    :type class_lst: Union[List[str], str, None]
+    :param position_lst: Filter by position, default is None. *Optional*
+    :type position_lst: Union[List[str], str, None]
+    :param win_loss_all: Filter by Win, Loss or All, default is None. *Optional*
+    :type win_loss_all: Union[str, None]
+    :param column_lst: Filter by column name, default is None. *Optional*
+    :type column_lst: Union[List[str], str, None]
+    :example: *None*
+    :note: All inputs, except data, are *Optional* and defaults are set to None.
+        Any str inputs are placed in a list.
+
+:grey:`DocumentFilter Attributes:`
+
+.. list-table::
+    :widths: 100 50 200
+    :header-rows: 1
+
+    * - :attribute_table_header:`Name`
+      - :attribute_table_header:`Type`
+      - :attribute_table_header:`Description`
+    * - :bb:`DocumentFilter.df`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Returns a DataFrame of requested items`
+    * - :bb:`DocumentFilter.game_id_lst`
+      - :lbi:`Union[List[str], None]`
+      - :attribute_table_description:`Returns game id input`
+    * - :bb:`DocumentFilter.player_index_lst`
+      - :lbi:`Union[List[str], None]`
+      - :attribute_table_description:`Returns player index input`
+    * - :bb:`DocumentFilter.player_name_lst`
+      - :lbi:`Union[List[str], None]`
+      - :attribute_table_description:`Returns player name input`
+    * - :bb:`DocumentFilter.class_lst`
+      - :lbi:`Union[List[str], None]`
+      - :attribute_table_description:`Returns class input`
+    * - :bb:`DocumentFilter.position_lst`
+      - :lbi:`Union[List[str], None]`
+      - :attribute_table_description:`Returns position input`
+    * - :bb:`DocumentFilter.win_loss_all`
+      - :lbi:`Union[List[str], None]`
+      - :attribute_table_description:`Returns win loss or all input`
+    * - :bb:`DocumentFilter.column_lst`
+      - :lbi:`Union[List[str], None]`
+      - :attribute_table_description:`Returns column input`
+
 .. _Game:
 
+====
 Game
 ====
 Class object used for getting specific game stats.
@@ -133,6 +261,7 @@ Class object used for getting specific game stats.
 
 .. _Player:
 
+======
 Player
 ======
 Class object used for getting specific player stats.
@@ -202,6 +331,7 @@ Class object used for getting specific player stats.
 
 .. _Hand:
 
+====
 Hand
 ====
 Class object used for getting specific hand stats.
@@ -221,28 +351,73 @@ Class object used for getting specific hand stats.
     :example: *None*
     :note: This class is intended to be used internally.
 
-.. autosummary::
-    poker.hand_class.Hand.parsed_hand
-    poker.hand_class.Hand.small_blind
-    poker.hand_class.Hand.big_blind
-    poker.hand_class.Hand.winner
-    poker.hand_class.Hand.starting_players
-    poker.hand_class.Hand.starting_players_chips
-    poker.hand_class.Hand.flop_cards
-    poker.hand_class.Hand.turn_card
-    poker.hand_class.Hand.river_card
-    poker.hand_class.Hand.my_cards
-    poker.hand_class.Hand.chips_on_board
-    poker.hand_class.Hand.gini_coef
-    poker.hand_class.Hand.pot_size_lst
-    poker.hand_class.Hand.players
-    poker.hand_class.Hand.start_time
-    poker.hand_class.Hand.end_time
-    poker.hand_class.Hand.win_stack
-    poker.hand_class.Hand.bet_lst
+:grey:`Hand Attributes:`
+
+.. list-table::
+    :widths: 100 50 200
+    :header-rows: 1
+
+    * - :attribute_table_header:`Name`
+      - :attribute_table_header:`Type`
+      - :attribute_table_header:`Description`
+    * - :bb:`Hand.merged_moves`
+      - :lbi:`list`
+      - :attribute_table_description:`Returns a list of actions as objects`
+    * - :bb:`Hand.small_blind`
+      - :lbi:`SmallBlind`
+      - :attribute_table_description:`Returns SmallBlind Class`
+    * - :bb:`Hand.big_blind`
+      - :lbi:`BigBlind`
+      - :attribute_table_description:`Returns BigBlind Class`
+    * - :bb:`Hand.winner`
+      - :lbi:`Wins`
+      - :attribute_table_description:`Returns Wins Class or list of Wins Classes`
+    * - :bb:`Hand.starting_players`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns dict of name and ID for each player that was present at the hand start`
+    * - :bb:`Hand.starting_players_chips`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns dict of name and stack amount for each player that was present at the hand start`
+    * - :bb:`Hand.flop_cards`
+      - :lbi:`Flop`
+      - :attribute_table_description:`Returns Flop Class`
+    * - :bb:`Hand.turn_card`
+      - :lbi:`Turn`
+      - :attribute_table_description:`Returns Turn Class`
+    * - :bb:`Hand.river_card`
+      - :lbi:`River`
+      - :attribute_table_description:`Returns River Class`
+    * - :bb:`Hand.my_cards`
+      - :lbi:`MyCards`
+      - :attribute_table_description:`Returns MyCards Class`
+    * - :bb:`Hand.chips_on_board`
+      - :lbi:`int`
+      - :attribute_table_description:`Returns the count of chips on the table`
+    * - :bb:`Hand.gini_coef`
+      - :lbi:`float`
+      - :attribute_table_description:`Returns the gini coef for the board`
+    * - :bb:`Hand.pot_size_lst`
+      - :lbi:`List[int]`
+      - :attribute_table_description:`Returns pot size over course of hand`
+    * - :bb:`Hand.players`
+      - :lbi:`dict`
+      - :attribute_table_description:`Returns dict of player moves`
+    * - :bb:`Hand.start_time`
+      - :lbi:`TimeStamp`
+      - :attribute_table_description:`Returns time of first hand item`
+    * - :bb:`Hand.end_time`
+      - :lbi:`TimeStamp`
+      - :attribute_table_description:`Returns time of last hand item`
+    * - :bb:`Hand.win_stack`
+      - :lbi:`Union[int, None]`
+      - :attribute_table_description:`Returns win amount for the hand`
+    * - :bb:`Hand.bet_lst`
+      - :lbi:`List[int]`
+      - :attribute_table_description:`Returns Raise amounts for the hand`
 
 .. _Processor:
 
+=========
 Processor
 =========
 Class object for holding information from lines.
@@ -278,33 +453,179 @@ The following child classes use this framework:
     :param text: A line of text from the data.
     :type text: str
     :example: *None*
-    :note: This class is intended to be used internally.
+    :note: This class is intended to be used internally. All values are set to None or 0 by default.
 
-.. autosummary::
+:grey:`LineAttributes Attributes:`
 
-    poker.processor.LineAttributes.text
-    poker.processor.LineAttributes.player_name
-    poker.processor.LineAttributes.player_index
-    poker.processor.LineAttributes.stack
-    poker.processor.LineAttributes.position
-    poker.processor.LineAttributes.winning_hand
-    poker.processor.LineAttributes.cards
-    poker.processor.LineAttributes.current_round
-    poker.processor.LineAttributes.pot_size
-    poker.processor.LineAttributes.remaining_players
-    poker.processor.LineAttributes.action_from_player
-    poker.processor.LineAttributes.action_amount
-    poker.processor.LineAttributes.all_in
-    poker.processor.LineAttributes.game_id
-    poker.processor.LineAttributes.winner
-    poker.processor.LineAttributes.win_stack
-    poker.processor.LineAttributes.time
-    poker.processor.LineAttributes.previous_time
-    poker.processor.LineAttributes.starting_chips
-    poker.processor.LineAttributes.current_chips
+.. list-table::
+    :widths: 100 50 200
+    :header-rows: 1
+
+    * - :attribute_table_header:`Name`
+      - :attribute_table_header:`Type`
+      - :attribute_table_header:`Description`
+    * - :bb:`LineAttributes.text`
+      - :lbi:`Union[str, None]`
+      - :attribute_table_description:`Text input`
+    * - :bb:`LineAttributes.player_name`
+      - :lbi:`Union[str, None]`
+      - :attribute_table_description:`Player Name`
+    * - :bb:`LineAttributes.player_index`
+      - :lbi:`Union[str, None]`
+      - :attribute_table_description:`Player Id`
+    * - :bb:`LineAttributes.stack`
+      - :lbi:`Union[int, None]`
+      - :attribute_table_description:`Amount offered to the table`
+    * - :bb:`LineAttributes.position`
+      - :lbi:`Union[str, None]`
+      - :attribute_table_description:`Position of move in relation to table cards being drawn`
+    * - :bb:`LineAttributes.winning_hand`
+      - :lbi:`Union[str, None]`
+      - :attribute_table_description:`Winning hand`
+    * - :bb:`LineAttributes.cards`
+      - :lbi:`Union[str, list, None]`
+      - :attribute_table_description:`Card or cards`
+    * - :bb:`LineAttributes.current_round`
+      - :lbi:`Union[int, None]`
+      - :attribute_table_description:`Round number within the game`
+    * - :bb:`LineAttributes.pot_size`
+      - :lbi:`Union[int, None]`
+      - :attribute_table_description:`Size of pot when move happens`
+    * - :bb:`LineAttributes.remaining_players`
+      - :lbi:`Union[List[str], None]`
+      - :attribute_table_description:`Players left in hand`
+    * - :bb:`LineAttributes.action_from_player`
+      - :lbi:`Union[str, None]`
+      - :attribute_table_description:`Who bet previously`
+    * - :bb:`LineAttributes.action_amount`
+      - :lbi:`Union[int, None]`
+      - :attribute_table_description:`Previous bet amount`
+    * - :bb:`LineAttributes.all_in`
+      - :lbi:`Union[bool, None]`
+      - :attribute_table_description:`Notes if player when all-in`
+    * - :bb:`LineAttributes.game_id`
+      - :lbi:`Union[str, None]`
+      - :attribute_table_description:`File name`
+    * - :bb:`LineAttributes.starting_chips`
+      - :lbi:`Union[int, None]`
+      - :attribute_table_description:`Player's chip count at start of hand`
+    * - :bb:`LineAttributes.current_chips`
+      - :lbi:`Union[int, None]`
+      - :attribute_table_description:`Player's chip count at time of move`
+    * - :bb:`LineAttributes.winner`
+      - :lbi:`Union[str, None]`
+      - :attribute_table_description:`Player Name who wins the hand`
+    * - :bb:`LineAttributes.win_stack`
+      - :lbi:`Union[int, None]`
+      - :attribute_table_description:`Amount won at end of hand`
+    * - :bb:`LineAttributes.time`
+      - :lbi:`TimeStamp`
+      - :attribute_table_description:`Timestamp of action`
+    * - :bb:`LineAttributes.previous_time`
+      - :lbi:`TimeStamp`
+      - :attribute_table_description:`Timestamp of previous action`
+    * - :bb:`LineAttributes.start_time`
+      - :lbi:`TimeStamp`
+      - :attribute_table_description:`Timestamp of the start of the hand`
+    * - :bb:`LineAttributes.end_time`
+      - :lbi:`TimeStamp`
+      - :attribute_table_description:`Timestamp of the end of the hand`
+
+.. _TSanalysis:
+
+==========
+TSanalysis
+==========
+Class for Time Series Analysis.
+The ts_analysis function in Analysis does not compute running values.
+
+.. :currentmodule:: time_series_class
+
+.. class:: TSanalysis:
+
+    Calculate Time Series stats for a player.
+
+    :param data: Input DocumentFilter.
+    :type data: DocumentFilter
+    :param upper_q: Upper Quantile percent, default is 0.841. *Optional*
+    :type upper_q: float
+    :param lower_q: Lower Quantile percent, default is 0.159. *Optional*
+    :type lower_q: float
+    :param window: Rolling window, default is 5. *Optional*
+    :type window: int
+    :example:
+        >>> from poker.time_series_class import TSanalysis
+        >>> docu_filter = DocumentFilter(data=poker, player_index_lst=['DZy-22KNBS'])
+        >>> TSanalysis(data=docu_filter)
+    :note: This class expects a DocumentFilter with only one player_index used.
+
+:grey:`TSanalysis Attributes:`
+
+.. list-table::
+    :widths: 100 50 200
+    :header-rows: 1
+
+    * - :attribute_table_header:`Name`
+      - :attribute_table_header:`Type`
+      - :attribute_table_header:`Description`
+    * - :bb:`TSanalysis.ts_hand`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Hand Related base data`
+    * - :bb:`TSanalysis.ts_hand_mean`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Hand Related mean data`
+    * - :bb:`TSanalysis.ts_hand_std`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Hand Related std data`
+    * - :bb:`TSanalysis.ts_hand_median`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Hand Related median data`
+    * - :bb:`TSanalysis.ts_hand_upper_quantile`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Hand Related upper quantile data`
+    * - :bb:`TSanalysis.ts_hand_lower_quantile`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Hand Related lower quantile data`
+    * - :bb:`TSanalysis.ts_position`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Position Related base data`
+    * - :bb:`TSanalysis.ts_position_mean`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Position Related mean data`
+    * - :bb:`TSanalysis.ts_position_std`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Position Related std data`
+    * - :bb:`TSanalysis.ts_position_median`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Position Related median data`
+    * - :bb:`TSanalysis.ts_position_upper_quantile`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Position Related upper quantile data`
+    * - :bb:`TSanalysis.ts_position_lower_quantile`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Position Related lower quantile data`
+    * - :bb:`TSanalysis.ts_class`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Class Related base data`
+    * - :bb:`TSanalysis.ts_class_mean`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Class Related mean data`
+    * - :bb:`TSanalysis.ts_class_std`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Class Related std data`
+    * - :bb:`TSanalysis.ts_class_median`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Class Related median data`
+    * - :bb:`TSanalysis.ts_class_upper_quantile`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Class Related upper quantile data`
+    * - :bb:`TSanalysis.ts_class_lower_quantile`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Class Related lower quantile data`
 
 .. _Plot:
 
+============
 Plot Classes
 ============
 Plot Class objects.
@@ -331,6 +652,9 @@ Possible Legend Locations:
     * 'upper center'
     * 'center
 
+""""
+Line
+""""
 .. :currentmodule:: plot
 
 .. class:: Line(data):
@@ -403,9 +727,22 @@ Possible Legend Locations:
         .. image:: https://miro.medium.com/max/700/1*t4UJOrLU5ahOeBmQ-wmkoA.png
     :note: *None*
 
-.. autosummary::
-    poker.plot.Line.ax
+:grey:`Line Attributes:`
 
+.. list-table::
+    :widths: 100 50 200
+    :header-rows: 1
+
+    * - :attribute_table_header:`Name`
+      - :attribute_table_header:`Type`
+      - :attribute_table_header:`Description`
+    * - :bb:`Line.ax`
+      - :lbi:`plt`
+      - :attribute_table_description:`Returns a Line Plot`
+
+"""""""
+Scatter
+"""""""
 .. class:: Scatter(data):
 
     Class for Scatter plots.
@@ -485,9 +822,22 @@ Possible Legend Locations:
         .. image:: https://miro.medium.com/max/1400/1*RIz78uu27Fr5dTf_EHUOnA.png
     :note: Slope of the regression line is noted in he legend.
 
-.. autosummary::
-    poker.plot.Scatter.ax
+:grey:`Scatter Attributes:`
 
+.. list-table::
+    :widths: 100 50 200
+    :header-rows: 1
+
+    * - :attribute_table_header:`Name`
+      - :attribute_table_header:`Type`
+      - :attribute_table_header:`Description`
+    * - :bb:`Scatter.ax`
+      - :lbi:`plt`
+      - :attribute_table_description:`Returns a Scatter Plot`
+
+"""""""""
+Histogram
+"""""""""
 .. class:: Histogram(data):
 
     Class for Histogram plots.
@@ -564,5 +914,15 @@ Possible Legend Locations:
         .. image:: https://miro.medium.com/max/700/1*1oTyksxTA7ZTyG-dJ0XMVw.png
     :note: *None*
 
-.. autosummary::
-    poker.plot.Histogram.ax
+:grey:`Histogram Attributes:`
+
+.. list-table::
+    :widths: 100 50 200
+    :header-rows: 1
+
+    * - :attribute_table_header:`Name`
+      - :attribute_table_header:`Type`
+      - :attribute_table_header:`Description`
+    * - :bb:`Histogram.ax`
+      - :lbi:`plt`
+      - :attribute_table_description:`Returns a Histogram Plot`

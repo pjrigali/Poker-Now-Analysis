@@ -1,5 +1,6 @@
 .. _Intro:
 
+*****
 Intro
 *****
 .. meta::
@@ -8,8 +9,9 @@ Intro
 
 This is a package for analyzing past performance and player habits from the Poker Now website.
 
+=====
 Usage
------
+=====
 In progress...
 
 .. code-block:: python
@@ -34,8 +36,8 @@ In progress...
     poker = Poker(repo_location=repo, grouped=grouped)
 
 
-
+=========
 More Info
----------
+=========
 In progress...
 

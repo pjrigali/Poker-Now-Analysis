@@ -1,642 +1,691 @@
-from typing import Union
+from typing import Union, Optional, List
 import pandas as pd
 import numpy as np
-from poker.processor import Wins
-from poker.player_class import Player
-from poker.game_class import Game
-from poker.base import round_to, flatten, unique_values, running_mean, running_std, native_std, native_mean
-# from poker.base import normalize
+from poker.base import round_to, flatten, unique_values, running_mean, running_std, native_std, native_mean, native_max, native_sum, native_median, native_percentile
+from poker.document_filter_class import DocumentFilter
 # import matplotlib.pyplot as plt
+pd.set_option('use_inf_as_na', True)
 
 
 # Wining Hand Face Card or Not?
-def face_card_in_winning_cards(data: Union[Game, Player]) -> dict:
+def face_card_in_winning_cards(data: DocumentFilter) -> dict:
     """
 
     Find what percent of the time a face card is used to win.
 
     :param data: Input data.
-    :type data: Union[Game or Player]
+    :type data: DocumentFilter
     :return: A dict of file_id and face card in winning hand percent.
     :rtype: dict
-    :example: *None*
+    :example:
+        >>> # This function requires Player Stacks and Wins to be included in the DocumentFilter.
+        >>> from poker.poker_class import Poker
+        >>> from poker.analysis import face_card_in_winning_cards
+        >>> from poker.document_filter_class import DocumentFilter
+        >>> repo = 'location of your previous game'
+        >>> grouped = [['YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS'],
+        >>>             ['48QVRRsiae', 'u8_FUbXpAz']]
+        >>> poker = Poker(repo_location=repo, grouped=grouped)
+        >>> face_card_in_winning_cards(data=DocumentFilter(data=poker, class_lst=['Player Stacks', 'Wins']))
     :note: Percent of all Winning Cards = Total all cards and get percent that include a face card.
         Percent one face in Winning Cards = Percent of all wins hand at least a single face card.
 
     """
-    if type(data) == Player:
-        datan = data.line_dic
-        player = data.player_index
-    elif type(data) == Game:
-        datan = {data.file_name: flatten(data=[i.parsed_hand for i in data.hands_lst], type_used='class objects')}
-        player = [None]
-    else:
-        raise AttributeError('Pass Game or Player Object in for data.')
+    df = data.df.drop_duplicates('Start Time', keep='last').sort_values('Start Time', ascending=True).reset_index(drop=True)
+    card_lst = ['None' if item is None else str('_'.join(item)) for item in df['Cards'].tolist()]
+    card_dic_lst = []
+    for cards in card_lst:
+        if cards != 'None':
+            card_dic_lst.append({card.split(' ')[0]: True for card in cards.split('_')})
+        else:
+            card_dic_lst.append({'None': True})
 
-    final_dic = {}
-    for key, val in datan.items():
-        final_dic[key] = {'Percent of all Winning Cards': 0.0, 'Percent one face in Winning Cards': 0.0}
-        win_tally, win_face_tally, win_face_one_count, win_nonface_tally = 0, 0, 0, 0
-        for line in val:
-            if type(line) == Wins:
-                if type(data) == Player:
-                    for winner in line.winner:
-                        if winner in player:
-                            win_tally += 1
-                            break
+    win_tally, win_face_tally, win_face_one_count, win_nonface_tally = 0, 0, 0, 0
+    for dic in card_dic_lst:
+        if 'None' not in dic:
+            win_tally += 1
+            one_face_card = False
+            for letter in dic.keys():
+                if letter in {'J': True, 'Q': True, 'K': True, 'A': True}:
+                    one_face_card = True
+                    win_face_tally += 1
                 else:
-                    win_tally += 1
+                    win_nonface_tally += 1
+            if one_face_card is True:
+                win_face_one_count += 1
 
-                if line.cards is not None:
-                    for card in line.cards:
-                        if card.split(' ')[0] in ['J', 'Q', 'K', 'A']:
-                            win_face_tally += 1
-                        else:
-                            win_nonface_tally += 1
-                    for card in line.cards:
-                        if card.split(' ')[0] in ['J', 'Q', 'K', 'A']:
-                            win_face_one_count += 1
-                            break
-
-        if win_face_tally != 0:
-            temp_tally = win_nonface_tally + win_face_tally
-            final_dic[key]['Percent of all Winning Cards'] = round_to(data=win_face_tally / temp_tally, val=1000,
-                                                                      remainder=True)
-        if win_tally != 0:
-            final_dic[key]['Percent one face in Winning Cards'] = round_to(data=win_face_one_count / win_tally,
-                                                                           val=1000, remainder=True)
+    final_dic = {'Percent of all Winning Cards': 0.0, 'Percent one face in Winning Cards': 0.0}
+    if win_face_tally != 0:
+        temp_tally = win_nonface_tally + win_face_tally
+        final_dic['Percent of all Winning Cards'] = round_to(data=win_face_tally / temp_tally, val=1000, remainder=True)
+    if win_tally != 0:
+        final_dic['Percent one face in Winning Cards'] = round_to(data=win_face_one_count / win_tally, val=1000,
+                                                                  remainder=True)
     return final_dic
 
 
 # Winning Streak
-def longest_streak(data: Union[Game, Player]) -> dict:
+def longest_streak(data: DocumentFilter) -> pd.DataFrame:
     """
 
     Find the longest winning streak.
 
     :param data: Input data.
-    :type data: Union[Game, Player]
+    :type data: DocumentFilter
     :return: Longest streak.
-    :rtype: dict
-    :example: *None*
-    :note: *None*
+    :rtype: pd.DataFrame
+    :example:
+        >>> # This function requires Wins to be included in the DocumentFilter.
+        >>> from poker.poker_class import Poker
+        >>> from poker.analysis import longest_streak
+        >>> from poker.document_filter_class import DocumentFilter
+        >>> repo = 'location of your previous game'
+        >>> grouped = [['YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS'],
+        >>>            ['48QVRRsiae', 'u8_FUbXpAz']]
+        >>> poker = Poker(repo_location=repo, grouped=grouped)
+        >>> longest_streak(data=DocumentFilter(data=poker, class_lst=['Wins']))
+    :note: DocumentFilter requires class_lst=['Wins']
 
     """
-    if type(data) == Player:
-        datan = {}
-        for key, val in data.moves_dic.items():
-            datan[key] = {}
-            for play in data.player_index:
-                datan[key][play] = val
-        # datan = data.merged_moves['All']
-    elif type(data) == Game:
-        datan = {data.file_name: {}}
-        for ind, player in data.players_data.items():
-            for key, val in player.moves_dic.items():
-                if key == data.file_name:
-                    datan[key][player.player_index[0]] = val
-    else:
-        raise AttributeError('Pass Game or Player Object in for data.')
-
-    final_dic = {}
-    for key, val in datan.items():
-        final_dic[key] = {}
-        for key1, val1 in val.items():
-            temp_df = val1.drop_duplicates('Round', keep='last').reset_index(drop=True)
-            count, temp_count = [], 0
-            for ind, row in temp_df.iterrows():
-                if ind >= 1:
-                    prev = temp_df.iloc[ind - 1]['Winner']
-                    temp_val = False
-                    for winner in row['Winner']:
-                        if winner in prev:
-                            temp_val = True
-                            break
-                    if temp_val is True:
-                        temp_count += 1
-                    else:
-                        count.append(temp_count)
-                        temp_count = 0
-            final_dic[key][key1] = max(count)
-    return final_dic
+    df = data.df.drop_duplicates('Start Time', keep='last').sort_values('Start Time', ascending=True).reset_index(drop=True)
+    winner_lst = [{item: True for item in item_lst} for item_lst in df['Winner'].tolist()]
+    unique_players = unique_values(data=df['Player Index'])
+    final_dic = {player: 0 for player in unique_players}
+    for player in unique_players:
+        count, temp_count = [], 0
+        for ind, winner in enumerate(winner_lst):
+            if ind > 0:
+                prev = winner_lst[ind - 1]
+                if player in winner and player in prev:
+                    temp_count += 1
+                else:
+                    count.append(temp_count)
+                    temp_count = 0
+        final_dic[player] = native_max(data=count)
+    return pd.DataFrame.from_dict(final_dic, orient='index')
 
 
 # Does raising signal winner?
-def raise_signal_winning(data: Union[Game, Player]) -> pd.DataFrame:
+def raise_signal_winning(data: DocumentFilter) -> pd.DataFrame:
     """
 
     When a player raises, does that mean they are going to win(?).
 
     :param data: Input data.
-    :type data: Union[Game, Player]
+    :type data: DocumentFilter
     :return: A pd.DataFrame with the percent related to each position.
     :rtype: pd.DataFrame
-    :example: *None*
+    :example:
+        >>> # This function requires Raises to be included in the DocumentFilter.
+        >>> from poker.poker_class import Poker
+        >>> from poker.analysis import raise_signal_winning
+        >>> from poker.document_filter_class import DocumentFilter
+        >>> repo = 'location of your previous game'
+        >>> grouped = [['YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS'],
+        >>>            ['48QVRRsiae', 'u8_FUbXpAz']]
+        >>> poker = Poker(repo_location=repo, grouped=grouped)
+        >>> raise_signal_winning(data=DocumentFilter(data=poker, class_lst=['Raises']))
     :note: *None*
 
     """
-    if type(data) == Player:
-        # datan = data.merged_moves['All']
-        datan = {}
-        for key, val in data.moves_dic.items():
-            datan[key] = {}
-            for play in data.player_index:
-                datan[key][play] = val
-    elif type(data) == Game:
-        datan = {data.file_name: {}}
-        for ind, player in data.players_data.items():
-            for key, val in player.moves_dic.items():
-                if key == data.file_name:
-                    datan[key][player.player_index[0]] = val
-    else:
-        raise AttributeError('Pass Game or Player Object in for data.')
+    df = data.df
+    winner_lst = [{item: True for item in item_lst} for item_lst in df['Winner'].tolist()]
+    player_lst = df['Player Index'].tolist()
+    position_lst = df['Position'].tolist()
+    ran = range(len(position_lst))
+    temp_lst = [{'Winner': winner_lst[ind], 'Player': player_lst[ind], 'Position': position_lst[ind]} for ind in ran]
+    unique_players = unique_values(data=player_lst)
+    temp_dic = {player: {'Pre Flop': {'Win': 0, 'Count': 0}, 'Post Flop': {'Win': 0, 'Count': 0}, 'Post Turn': {'Win': 0, 'Count': 0}, 'Post River': {'Win': 0, 'Count': 0}} for player in unique_players}
+    for player in unique_players:
+        for item in temp_lst:
+            pos = item['Position']
+            if player == item['Player'] and player in item['Winner']:
+                temp_dic[player][pos]['Count'] += 1
+                temp_dic[player][pos]['Win'] += 1
+                continue
+            elif player == item['Player'] and player not in item['Winner']:
+                temp_dic[player][pos]['Count'] += 1
 
+    final_dic = {player: {'Pre Flop': 0.0, 'Post Flop': 0.0, 'Post Turn': 0.0, 'Post River': 0.0} for player in unique_players}
     pos_lst = ['Pre Flop', 'Post Flop', 'Post Turn', 'Post River']
-    dic = {}
-    for key, val in datan.items():
-        for key1, val1 in val.items():
-            if key1 not in dic.keys():
-                dic[key1] = []
-            dic[key1].append(val1)
-
-    final_dic = {key: pd.concat(val, axis=0).reset_index(drop=True) for key, val in dic.items()}
-    result_dic = {}
-    for key, val in final_dic.items():
-        val['Win Temp'] = ['Win' if i is True else 'Loss' for i in val['Win']]
-        temp_lst = val['Win Temp'] + '_splitpoint_' + val['Position'] + '_splitpoint_' + val['Class']
-        temp_dic = {wl: {pos: [] for pos in pos_lst} for wl in ['Win', 'Loss']}
-        for ind, item in enumerate(temp_lst):
-            for wl in ['Win', 'Loss']:
-                for pos in pos_lst:
-                    if wl in item and pos in item and 'Raises' in item:
-                        temp_dic[wl][pos].append(1)
-
-        person_dic = {}
+    for player in unique_players:
         for pos in pos_lst:
-            if len(temp_dic['Win'][pos]) >= 1:
-                temp_val = sum(temp_dic['Win'][pos]) / (sum(temp_dic['Win'][pos]) + sum(temp_dic['Loss'][pos]))
+            val = temp_dic[player][pos]
+            if val['Win'] != 0:
+                final_dic[player][pos] = round_to(data=val['Win'] / val['Count'], val=1000, remainder=True)
             else:
-                temp_val = 0.0
-            person_dic[pos] = round_to(data=temp_val, val=1000, remainder=True)
-        result_dic[key] = person_dic
-    return pd.DataFrame.from_dict(result_dic)
+                final_dic[player][pos] = 0.0
+    return pd.DataFrame.from_dict(final_dic, orient='index')
 
 
 # Dealer or big blind winning
-def small_or_big_blind_win(data: Union[Game, Player]) -> pd.DataFrame:
+def small_or_big_blind_win(data: DocumentFilter) -> pd.DataFrame:
     """
 
     When a player is small or big blind, does that mean they are going to win(?).
 
     :param data: Input data.
-    :type data: Union[Game, Player]
+    :type data: DocumentFilter
     :return: A pd.DataFrame with the percent related to each blind.
     :rtype: pd.DataFrame
-    :example: *None*
+    :example:
+        >>> # This function requires Small Blind and Big Blind to be included in the DocumentFilter.
+        >>> from poker.poker_class import Poker
+        >>> from poker.analysis import small_or_big_blind_win
+        >>> from poker.document_filter_class import DocumentFilter
+        >>> repo = 'location of your previous game'
+        >>> grouped = [['YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS'],
+        >>>            ['48QVRRsiae', 'u8_FUbXpAz']]
+        >>> poker = Poker(repo_location=repo, grouped=grouped)
+        >>> small_or_big_blind_win(data=DocumentFilter(data=poker, class_lst=['Small Blind', 'Big Blind']))
     :note: *None*
 
     """
-    if type(data) == Player:
-        datan = {}
-        for key, val in data.moves_dic.items():
-            datan[key] = {}
-            for play in data.player_index:
-                datan[key][play] = val
-    elif type(data) == Game:
-        datan = {data.file_name: {}}
-        for ind, player in data.players_data.items():
-            for key, val in player.moves_dic.items():
-                if key == data.file_name:
-                    datan[key][player.player_index[0]] = val
-    else:
-        raise AttributeError('Pass Game or Player Object in for data.')
+    df = data.df
+    winner_lst = [{item: True for item in item_lst} for item_lst in df['Winner'].tolist()]
+    player_lst = df['Player Index'].tolist()
+    class_lst = df['Class'].tolist()
+    ran = range(len(class_lst))
+    temp_lst = [{'Winner': winner_lst[ind], 'Player': player_lst[ind], 'Class': class_lst[ind]} for ind in ran]
+    unique_players = unique_values(data=player_lst)
+    temp_dic = {player: {'Small Blind': {'Win': 0, 'Count': 0}, 'Big Blind': {'Win': 0, 'Count': 0}} for player in unique_players}
+    for player in unique_players:
+        for item in temp_lst:
+            class_item = item['Class']
+            if player == item['Player'] and player in item['Winner']:
+                temp_dic[player][class_item]['Count'] += 1
+                temp_dic[player][class_item]['Win'] += 1
+                continue
+            elif player == item['Player'] and player not in item['Winner']:
+                temp_dic[player][class_item]['Count'] += 1
 
-    mov_lst = ['Small Blind', 'Big Blind']
-    dic = {}
-    for key, val in datan.items():
-        for key1, val1 in val.items():
-            if key1 not in dic.keys():
-                dic[key1] = []
-            dic[key1].append(val1)
-
-    final_dic = {key: pd.concat(val, axis=0).reset_index(drop=True) for key, val in dic.items()}
-    result_dic = {}
-    for key, val in final_dic.items():
-        val['Win Temp'] = ['Win' if i is True else 'Loss' for i in val['Win']]
-        temp_lst = val['Win Temp'] + '_splitpoint_' + val['Class']
-        temp_dic = {wl: {mov: [] for mov in mov_lst} for wl in ['Win', 'Loss']}
-        for ind, item in enumerate(temp_lst):
-            for wl in ['Win', 'Loss']:
-                for mov in mov_lst:
-                    if wl in item and mov in item:
-                        temp_dic[wl][mov].append(1)
-
-        person_dic = {}
-        for mov in mov_lst:
-            if len(temp_dic['Win'][mov]) >= 1:
-                temp_val = sum(temp_dic['Win'][mov]) / (sum(temp_dic['Win'][mov]) + sum(temp_dic['Loss'][mov]))
+    final_dic = {player: {'Small Blind': 0.0, 'Big Blind': 0.0} for player in unique_players}
+    move_lst = ['Small Blind', 'Big Blind']
+    for player in unique_players:
+        for mov in move_lst:
+            val = temp_dic[player][mov]
+            if val['Win'] != 0:
+                final_dic[player][mov] = round_to(data=val['Win'] / val['Count'], val=1000, remainder=True)
             else:
-                temp_val = 0.0
-            person_dic[mov] = round_to(data=temp_val, val=1000, remainder=True)
-        result_dic[key] = person_dic
-    return pd.DataFrame.from_dict(result_dic)
+                final_dic[player][mov] = 0.0
+    return pd.DataFrame.from_dict(final_dic, orient='index')
 
 
-def player_verse_player(data: Union[Game, Player]) -> dict:
+def player_verse_player(data: DocumentFilter) -> dict:
     """
 
     Find how many times and what value a player called or folded related all other players.
 
     :param data: Input data.
-    :type data: Union[Game, Player]
+    :type data: DocumentFilter
     :return: A dict of counts and values for each 'Calls', 'Raises', 'Checks', and 'Folds'.
     :rtype: dict
-    :example: *None*
+    :example:
+        >>> # This function requires 'Calls', 'Raises', 'Checks', and 'Folds' to be included in the DocumentFilter.
+        >>> from poker.poker_class import Poker
+        >>> from poker.analysis import player_verse_player
+        >>> from poker.document_filter_class import DocumentFilter
+        >>> repo = 'location of your previous game'
+        >>> grouped = [['YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS'],
+        >>>            ['48QVRRsiae', 'u8_FUbXpAz']]
+        >>> poker = Poker(repo_location=repo, grouped=grouped)
+        >>> player_verse_player(data=DocumentFilter(data=poker, class_lst=['Calls', 'Raises', 'Checks', 'Folds']))
     :note: *None*
 
     """
-    if type(data) == Player:
-        datan = {}
-        for key, val in data.moves_dic.items():
-            datan[key] = {}
-            for play in data.player_index:
-                datan[key][play] = val
-    elif type(data) == Game:
-        datan = {data.file_name: {}}
-        for ind, player in data.players_data.items():
-            for key, val in player.moves_dic.items():
-                if key == data.file_name:
-                    datan[key][player.player_index[0]] = val
-    else:
-        raise AttributeError('Pass Game or Player Object in for data.')
-
+    df = data.df
+    player_lst = df['Player Index'].tolist()
+    class_lst = df['Class'].tolist()
+    bet_lst = df['Bet Amount'].tolist()
+    from_player_lst = df['From Person'].tolist()
+    unique_players = unique_values(data=player_lst)
+    ran = range(len(class_lst))
+    temp_lst = [{'From Player': from_player_lst[ind], 'Bet Amount': bet_lst[ind], 'Player': player_lst[ind],
+                 'Class': class_lst[ind]} for ind in ran]
     mov_lst = ['Calls', 'Raises', 'Checks', 'Folds']
-    dic = {}
-    for key, val in datan.items():
-        for key1, val1 in val.items():
-            if key1 not in dic.keys():
-                dic[key1] = []
-            dic[key1].append(val1)
+    temp_dic = {}
+    for player1 in unique_players:
+        temp_dic[player1] = {}
+        for player2 in unique_players[::-1]:
+            if player1 != player2:
+                temp_dic[player1][player2] = {mov: {'Count': 0, 'Values': []} for mov in mov_lst}
 
-    final_dic = {key: pd.concat(val, axis=0).reset_index(drop=True) for key, val in dic.items()}
-    result_dic = {}
-    for key, val in final_dic.items():
-        names_lst = unique_values(data=val['From Person'].dropna())
-        val['Temp Bet Amount'] = [str(i) if type(i) == int else '0' for i in val['Bet Amount']]
-        val['Temp From Person'] = [str(i) if i == i else '0' for i in val['From Person'] if i == i]
-        temp_lst = val['Temp From Person'] + '_splitpoint_' + val['Class'] + '_splitpoint_' + val['Temp Bet Amount']
-        temp_dic = {nam: {mov: [] for mov in mov_lst} for nam in names_lst}
-        for ind, item in enumerate(temp_lst):
-            for nam in names_lst:
+    for item in temp_lst:
+        if item['From Player'] != 'None' and item['From Player'] in temp_dic[item['Player']].keys():
+            temp_dic[item['Player']][item['From Player']][item['Class']]['Count'] += 1
+            temp_dic[item['Player']][item['From Player']][item['Class']]['Values'] += [item['Bet Amount']]
+
+    for player1 in unique_players:
+        for player2 in unique_players[::-1]:
+            if player1 != player2:
                 for mov in mov_lst:
-                    if nam in item and mov in item:
-                        temp_dic[nam][mov].append(int(item.split('_splitpoint_')[2]))
-
-        person_dic = {name: {mov: {'Count': 0, 'Values': []} for mov in mov_lst} for name in names_lst}
-        for nam in names_lst:
-            for mov in mov_lst:
-                if len(temp_dic[nam][mov]) >= 1:
-                    person_dic[nam][mov]['Count'] = len(temp_dic[nam][mov])
-                    person_dic[nam][mov]['Values'] = int(round_to(data=native_mean(data=temp_dic[nam][mov]), val=10))
-                else:
-                    person_dic[nam][mov]['Count'] = 0
-                    person_dic[nam][mov]['Values'] = 0
-        col_lst = flatten(data=[[person + ' Count', person + ' Value'] for person in person_dic.keys()],
-                          type_used='str')
-        temp_df = pd.DataFrame(index=mov_lst, columns=col_lst)
-        for key1, val1 in person_dic.items():
-            for key2, val2 in val1.items():
-                temp_df.loc[key2][key1 + ' Count'] = val2['Count']
-                temp_df.loc[key2][key1 + ' Value'] = val2['Values']
-        result_dic[key] = temp_df
-    return result_dic
+                    if native_sum(data=temp_dic[player1][player2][mov]['Values']) != 0:
+                        temp_dic[player1][player2][mov]['Values'] = round_to(data=native_mean(temp_dic[player1][player2][mov]['Values']), val=1)
+                    else:
+                        temp_dic[player1][player2][mov]['Values'] = 0.0
+    return temp_dic
 
 
-def bluff_study(data: Player) -> dict:
+def bluff_study(data: DocumentFilter, position_lst: Union[List[str], str] = None) -> pd.DataFrame:
     """
 
     Compare betting habits when a player is bluffing.
 
     :param data: Input data.
-    :type data: Player
-    :return: A dict of counts and values for each position.
-    :rtype: dict
-    :example: *None*
-    :note: Bluff Count Raises and Calls = Average and std count per position when bluffing.
-        Bluff Stack = Average and std value per position when bluffing.
-        Bluff Stack Raises and Calls = Average and std value for Raises and Calls when bluffing.
-        Both = Average and std when they win and loss.
-        Loss = Average and std when they loss.
-        Win = Average and std when they Win.
+    :type data: DocumentFilter
+    :param position_lst: Position in the hand to analyze, default is None. *Optional
+    :type position_lst: Union[List[str], str]
+    :return: A pd.DataFrame of counts and values for each position.
+    :rtype: pd.DataFrame
+    :example:
+        >>> # This function requires a single player_index to be included in the DocumentFilter.
+        >>> from poker.poker_class import Poker
+        >>> from poker.analysis import bluff_study
+        >>> from poker.document_filter_class import DocumentFilter
+        >>> repo = 'location of your previous game'
+        >>> grouped = [['YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS'],
+        >>>            ['48QVRRsiae', 'u8_FUbXpAz']]
+        >>> poker = Poker(repo_location=repo, grouped=grouped)
+        >>> bluff_study(data=DocumentFilter(data=poker, player_index_lst=['DZy-22KNBS']))
+    :note: This function requires a single player_index to be included in the DocumentFilter.
 
     """
-    data = data.merged_moves
-    pos_lst = ['Pre Flop', 'Post Flop', 'Post Turn', 'Post River']
-    # awin_dic, aloss_dic, aboth_dic = {}, {}, {}
-    # for key, val in data.items():
-    #     for key1, val1 in val[val['Win'] == True].to_dict(orient='list').items():
-    #         if key1 in awin_dic.keys():
-    #             awin_dic[key1] += val1
-    #         else:
-    #             awin_dic[key1] = val1
-    #
-    #     for key1, val1 in val[val['Win'] == False].to_dict(orient='list').items():
-    #         if key1 in aloss_dic.keys():
-    #             aloss_dic[key1] += val1
-    #         else:
-    #             aloss_dic[key1] = val1
-    #
-    #     for key1, val1 in val.to_dict(orient='list').items():
-    #         if key1 in aboth_dic.keys():
-    #             aboth_dic[key1] += val1
-    #         else:
-    #             aboth_dic[key1] = val1
-    awin_dic, aloss_dic, aboth_dic = data['Win'], data['Loss'], data['All']
-    win_loss_dic = {'Win': pd.DataFrame.from_dict(awin_dic),
-                    'Loss': pd.DataFrame.from_dict(aloss_dic),
-                    'Both': pd.DataFrame.from_dict(aboth_dic)}
+    if position_lst is None:
+        position_lst = ['Post Flop', 'Post Turn', 'Post River', 'Wins']
+    elif type(position_lst) == list:
+        position_lst = position_lst
+    else:
+        position_lst = [position_lst]
+    df = data.df
+    col_lst = ['Position', 'Class', 'Player Starting Chips', 'Player Current Chips', 'Bet Amount', 'Pot Size', 'Time',
+               'Previous Time', 'Remaining Players', 'Start Time']
+    col_data = {col: df[col].tolist() for col in col_lst}
+    ran = range(len(col_data['Class']))
 
-    for key, val in win_loss_dic.items():
-        win_loss_dic[key]['Game_Round_ID'] = val['Game Id'] + '_splitpoint_' + [str(i) for i in val['Round']]
+    final_dic = {}
+    for pos in position_lst:
+        if pos != 'Wins':
+            ind_dic = {col_data['Start Time'][ind]: True for ind in ran if col_data['Position'][ind] == pos and col_data['Class'][ind] == 'Folds'}
+            key_value = 'Bluff'
+        else:
+            ind_dic = {col_data['Start Time'][ind]: True for ind in ran if col_data['Class'][ind] == 'Wins'}
+            key_value = 'Win'
 
-    # Win, Loss, and Both
-    result_dic = {}
-    for key in win_loss_dic.keys():
-        middle = win_loss_dic[key]
-        temp_middle = middle[(middle['All In'] == False) & (middle['Class'] == 'Calls') | (middle['Class'] == 'Raises')]
-        middle_result_dic = {j: [] for j in pos_lst}
-        middle_mean_dic = {j: 0 for j in pos_lst}
-        middle_std_dic = {j: 0 for j in pos_lst}
-        for position in pos_lst:
-            temp_df = temp_middle[temp_middle['Position'] == position]
-            temp_lst = temp_df['Game_Round_ID'].unique()
-            for row in temp_lst:
-                t = temp_df[temp_df['Game_Round_ID'] == row]['Bet Amount']
-                middle_result_dic[position].append(np.sum(np.nan_to_num(list(t))))
+        bluff_lst, other_lst = [], []
+        for ind in ran:
+            temp = {col: col_data[col][ind] for col in col_lst}
+            if col_data['Class'][ind] in ['Calls', 'Raises']:
+                if col_data['Start Time'][ind] in ind_dic:
+                    bluff_lst.append(temp)
+                else:
+                    other_lst.append(temp)
 
-        for j in pos_lst:
-            middle_mean_dic[j] = round_to(data=int(np.mean(middle_result_dic[j])), val=25)
-            middle_std_dic[j] = round_to(data=int(np.std(middle_result_dic[j])), val=25)
+        bluff_df = pd.DataFrame(bluff_lst)
+        other_df = pd.DataFrame(other_lst)
 
-        result_dic[key] = {'Mu': middle_mean_dic, 'Std': middle_std_dic, 'Result': middle_result_dic}
-
-    # Cancel Bluff
-    loss = win_loss_dic['Loss']
-    temp_loss = loss[(loss['Position'] == 'Post River') & (loss['Class'] == 'Folds')]
-    both = win_loss_dic['Both']
-    both_temp = both[(both['Class'] == 'Calls') | (both['Class'] == 'Raises')]
-    row_lst = [temp_loss.iloc[i]['Game_Round_ID'] for i, j in enumerate(temp_loss['Bet Amount'])]
-
-    class_lst = ['Raises', 'Calls']
-    pos_lst = ['Pre Flop', 'Post Flop', 'Post Turn', 'Post River']
-    compare_dic = {j: [] for j in pos_lst}
-    compare_dic_mean = {j: 0 for j in pos_lst}
-    compare_dic_std = {j: 0 for j in pos_lst}
-    for position in pos_lst:
-        temp_df = both_temp[both_temp['Position'] == position]
-        for row in row_lst:
-            t = temp_df[temp_df['Game_Round_ID'] == row]['Bet Amount']
-            compare_dic[position].append(np.sum(np.nan_to_num(list(t))))
-
-    for j in pos_lst:
-        compare_dic_mean[j] = round_to(data=int(np.mean(compare_dic[j])), val=25)
-        compare_dic_std[j] = round_to(data=int(np.std(compare_dic[j])), val=25)
-
-    result_dic['Bluff Stack'] = {'Mu': compare_dic_mean, 'Std': compare_dic_std, 'Result': compare_dic}
-
-    compare_dic = {j: {k: [] for k in class_lst} for j in pos_lst}
-    compare_dic_mean = {j: {k: [] for k in class_lst} for j in pos_lst}
-    compare_dic_std = {j: {k: [] for k in class_lst} for j in pos_lst}
-    for pos in pos_lst:
-        temp_df = both_temp[both_temp['Position'] == pos]
-        for cl in class_lst:
-            temp_lst = []
-            temp_df2 = temp_df[temp_df['Class'] == cl]
-            for row in row_lst:
-                temp_lst += list(temp_df2[temp_df2['Game_Round_ID'] == row]['Bet Amount'])
-            compare_dic[pos][cl] = temp_lst
-
-    for j in pos_lst:
-        for k in class_lst:
-            if len(compare_dic[j][k]) > 0.0:
-                compare_dic_mean[j][k] = round_to(data=int(np.mean(np.nan_to_num(compare_dic[j][k]))), val=25)
-                compare_dic_std[j][k] = round_to(data=int(np.std(np.nan_to_num(compare_dic[j][k]))), val=25)
+        temp_dic = {key_value: {}, 'Other': {}}
+        for item in [bluff_df, other_df]:
+            bet_lst = item['Bet Amount'].tolist()
+            pot_lst = item['Pot Size'].tolist()
+            curr_lst = item['Player Current Chips'].tolist()
+            time_lst = item['Time'].tolist()
+            prev_lst = item['Previous Time'].tolist()
+            if len(item) == len(bluff_df):
+                val = key_value
             else:
-                compare_dic_mean[j][k] = 0
-                compare_dic_std[j][k] = 0
+                val = 'Other'
+            temp_dic[val]['Pot Per'] = []
+            for i, j in enumerate(bet_lst):
+                temp_val = pot_lst[i] - j
+                if j > 0 and temp_val > 0:
+                    temp_dic[val]['Pot Per'].append(j / temp_val)
+                else:
+                    temp_dic[val]['Pot Per'].append(0.0)
 
-    result_dic['Bluff Stack Raises and Calls'] = {'Mu': compare_dic_mean, 'Std': compare_dic_std, 'Result': compare_dic}
+            temp_dic[val]['Curr Per'] = []
+            for i, j in enumerate(bet_lst):
+                temp_val = curr_lst[i] + j
+                if j > 0 and temp_val > 0:
+                    temp_dic[val]['Curr Per'].append(j / temp_val)
+                else:
+                    temp_dic[val]['Curr Per'].append(0.0)
 
-    compare_dic = {j: {k: [] for k in class_lst} for j in pos_lst}
-    compare_dic_mean = {j: {k: [] for k in class_lst} for j in pos_lst}
-    compare_dic_std = {j: {k: [] for k in class_lst} for j in pos_lst}
-    for pos in pos_lst:
-        temp_df = both_temp[both_temp['Position'] == pos]
-        for cl in class_lst:
-            temp_lst = []
-            temp_df2 = temp_df[temp_df['Class'] == cl]
-            for row in row_lst:
-                temp_lst.append(len(temp_df2[temp_df2['Game_Round_ID'] == row]))
-            compare_dic[pos][cl] = temp_lst
+            temp_dic[val]['Seconds'] = []
+            for i, j in enumerate(time_lst):
+                temp_dic[val]['Seconds'].append((j - prev_lst[i]).total_seconds())
 
-    for j in pos_lst:
-        for k in class_lst:
-            compare_dic_mean[j][k] = round_to(data=float(np.mean(np.nan_to_num(compare_dic[j][k]))), val=1000,
-                                              remainder=True)
-            compare_dic_std[j][k] = round_to(data=float(np.std(np.nan_to_num(compare_dic[j][k]))), val=1000,
-                                             remainder=True)
+            temp_dic[val]['Pot Per'] = round_to(temp_dic[val]['Pot Per'], 1000, True)
+            temp_dic[val]['Curr Per'] = round_to(temp_dic[val]['Curr Per'], 1000, True)
 
-    result_dic['Bluff Count Raises and Calls'] = {'Mu': compare_dic_mean, 'Std': compare_dic_std, 'Result': compare_dic}
-    return result_dic
-    # import matplotlib.pyplot as plt
-    # import pandas as pd
-    #
-    # for j in pos_lst:
-    #     fig, ax = plt.subplots(figsize=(10, 7))
-    #     m = np.array(middle_result_dic[j])[np.where(np.array(middle_result_dic[j]) > 50)]
-    #     w = np.array(win_result_dic[j])[np.where(np.array(win_result_dic[j]) > 50)]
-    #     l = np.array(loss_result_dic[j])[np.where(np.array(loss_result_dic[j]) > 50)]
-    #     plt.title(j, fontsize='xx-large')
-    #     plt.hist(m, label=j + ' Middle', alpha=.5, color='tab:blue')
-    #     plt.hist(w, label=j + ' Win', alpha=.5, color='tab:orange')
-    #     plt.hist(l, label=j + ' Loss', alpha=.5, color='tab:green')
-    #     plt.vlines(np.mean(m), 0, 175, label='Middle Mu', color='tab:blue')
-    #     plt.vlines(np.mean(w), 0, 175, label='Win Mu', color='tab:orange')
-    #     plt.vlines(np.mean(l), 0, 175, label='loss Mu', color='tab:green')
-    #     plt.vlines(np.median(m), 0, 175, label='Middle Median', color='tab:blue', linestyles=':')
-    #     plt.vlines(np.median(w), 0, 175, label='Win Median', color='tab:orange', linestyles=':')
-    #     plt.vlines(np.median(l), 0, 175, label='loss Median', color='tab:green', linestyles=':')
-    #     plt.vlines(mode(round_to(m, 50)), 0, 175, label='Middle Mode', color='tab:blue', linestyles='--')
-    #     plt.vlines(mode(round_to(w, 50)), 0, 175, label='Win Mode', color='tab:orange', linestyles='--')
-    #     plt.vlines(mode(round_to(l, 50)), 0, 175, label='loss Mode', color='tab:green', linestyles='--')
-    #     plt.legend()
-    #     plt.show()
+        mu_dic = {}
+        std_dic = {}
+        median_dic = {}
+        for key, val in temp_dic.items():
+            mu_dic[key] = {}
+            std_dic[key] = {}
+            median_dic[key] = {}
+            for key1, val1 in temp_dic[key].items():
+                mu_dic[key][key1] = round_to(native_mean(data=val1), 1000, True)
+                std_dic[key][key1] = round_to(native_std(data=val1, ddof=1), 1000, True)
+                median_dic[key][key1] = round_to(native_median(data=val1), 1000, True)
+        final_dic[pos] = {'Mean': mu_dic, 'Std': std_dic, 'Median': median_dic}
+
+    result_dic = {}
+    for key in final_dic.keys():
+        for key1 in final_dic[key].keys():
+            for key2 in final_dic[key][key1].keys():
+                result_dic[key1 + ' ' + key + ' ' + key2] = final_dic[key][key1][key2]
+
+    return pd.DataFrame.from_dict(result_dic, orient='index').sort_index()
 
 
-def staticanalysis(data: Union[Player, dict]) -> pd.DataFrame:
+def static_analysis(data: DocumentFilter) -> dict:
     """
 
     Build a static analysis DataFrame.
 
-    :param data: A Player class object.
-    :type data: Player or Dict
-    :return: A DataFrame of mean and std values.
-    :rtype: pd.DataFrame
-    :example: *None*
-    :note: If a dict is passed it is intended to be Player.move_dic.
+    :param data: Input data.
+    :type data: DocumentFilter
+    :return: A dict of stats.
+    :rtype: dict
+    :example:
+        >>> # This function requires a single player_index to be included in the DocumentFilter.
+        >>> from poker.poker_class import Poker
+        >>> from poker.analysis import static_analysis
+        >>> from poker.document_filter_class import DocumentFilter
+        >>> repo = 'location of your previous game'
+        >>> grouped = [['YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS'],
+        >>>            ['48QVRRsiae', 'u8_FUbXpAz']]
+        >>> poker = Poker(repo_location=repo, grouped=grouped)
+        >>> static_analysis(data=DocumentFilter(data=poker, player_index_lst=['DZy-22KNBS']))
+    :note: This function requires a single player_index to be included in the DocumentFilter.
 
     """
-    if type(data) == Player:
-        data = data.merged_moves
-    elif type(data) == dict:
-        pass
+    df = data.df
+    temp_dic = {'Win': {'Mean': {}, 'Std': {}}, 'Loss': {'Mean': {}, 'Std': {}}}
+    for wl in [True, False]:
+        val = temp_dic['Loss']
+        if wl is True:
+            val = temp_dic['Win']
+
+        temp_df = df[df['Win'] == wl]
+        key_dic = {'Per Hand': 'Start Time', 'Per Position': 'Position', 'Per Class': 'Class'}
+        for key1, val1 in key_dic.items():
+            if key1 == 'Per Hand':
+                aph_bet_lst = temp_df.groupby(val1)['Bet Amount'].mean()
+                aph_sec_lst = temp_df.groupby(val1)['Seconds'].mean()
+                aph_pot_lst = temp_df.groupby(val1)['Pot Size'].mean()
+                aph_chips_lst = temp_df.groupby(val1)['Player Current Chips'].mean()
+                aph_per_pot_lst = (aph_bet_lst / (aph_pot_lst - aph_bet_lst)).fillna(0.0)
+                aph_per_curr_lst = (aph_bet_lst / (aph_bet_lst + aph_chips_lst)).fillna(0.0)
+                times_seconds = [(row['End Time'] - row['Start Time']).total_seconds() for ind, row in temp_df.iterrows()]
+
+                val['Mean'][key1] = {}
+                val['Mean'][key1]['Bet Amount'] = native_mean(data=aph_bet_lst)
+                val['Mean'][key1]['Seconds'] = native_mean(data=aph_sec_lst)
+                val['Mean'][key1]['Bet Percent of Pot'] = native_mean(data=aph_per_pot_lst)
+                val['Mean'][key1]['Bet Percent of Chips'] = native_mean(data=aph_per_curr_lst)
+                val['Mean']['Time'] = native_mean(data=times_seconds)
+
+                val['Std'][key1] = {}
+                val['Std'][key1]['Bet Amount'] = native_std(data=aph_bet_lst)
+                val['Std'][key1]['Seconds'] = native_std(data=aph_sec_lst)
+                val['Std'][key1]['Bet Percent of Pot'] = native_std(data=aph_per_pot_lst)
+                val['Std'][key1]['Bet Percent of Chips'] = native_std(data=aph_per_curr_lst)
+                val['Std']['Time'] = native_std(data=times_seconds)
+            else:
+                app_bet_lst_mu = temp_df.groupby(val1)['Bet Amount'].mean()
+                app_sec_lst_mu = temp_df.groupby(val1)['Seconds'].mean()
+                app_pot_lst_mu = temp_df.groupby(val1)['Pot Size'].mean()
+                app_chips_lst_mu = temp_df.groupby(val1)['Player Current Chips'].mean()
+                app_per_pot_lst_mu = (app_bet_lst_mu / (app_pot_lst_mu - app_bet_lst_mu)).fillna(0.0)
+                app_per_curr_lst_mu = (app_bet_lst_mu / (app_bet_lst_mu + app_chips_lst_mu)).fillna(0.0)
+
+                app_bet_lst_std = temp_df.groupby(val1)['Bet Amount'].std()
+                app_sec_lst_std = temp_df.groupby(val1)['Seconds'].std()
+                app_pot_lst_std = temp_df.groupby(val1)['Pot Size'].std()
+                app_chips_lst_std = temp_df.groupby(val1)['Player Current Chips'].std()
+                app_per_pot_lst_std = (app_bet_lst_std / (app_pot_lst_std - app_bet_lst_std)).fillna(0.0)
+                app_per_curr_lst_std = (app_bet_lst_std / (app_bet_lst_std + app_chips_lst_std)).fillna(0.0)
+
+                val['Mean'][key1] = {}
+                val['Mean'][key1]['Bet Amount'] = app_bet_lst_mu.to_dict()
+                val['Mean'][key1]['Seconds'] = app_sec_lst_mu.to_dict()
+                val['Mean'][key1]['Bet Percent of Pot'] = app_per_pot_lst_mu.to_dict()
+                val['Mean'][key1]['Bet Percent of Chips'] = app_per_curr_lst_mu.to_dict()
+
+                val['Std'][key1] = {}
+                val['Std'][key1]['Bet Amount'] = app_bet_lst_std.to_dict()
+                val['Std'][key1]['Seconds'] = app_sec_lst_std.to_dict()
+                val['Std'][key1]['Bet Percent of Pot'] = app_per_pot_lst_std.to_dict()
+                val['Std'][key1]['Bet Percent of Chips'] = app_per_curr_lst_std.to_dict()
+    return temp_dic
+
+
+def pressure_or_hold(data: DocumentFilter, bet: int, position: Optional[str] = None):
+    """
+
+    Check how a player has responded to a bet in the past.
+
+    :param data: Input data.
+    :type data: DocumentFilter
+    :paran bet: Proposed bet amount.
+    :type bet: int
+    :param position: Location in the hand, default is None. *Optional*
+    :type position: str
+    :return: A dict of Call Counts, Fold Counts, Total Count, and Call Percent.
+    :rtype: dict
+    :example:
+        >>> # This function requires a single player_index to be included in the DocumentFilter.
+        >>> from poker.poker_class import Poker
+        >>> from poker.analysis import pressure_or_hold
+        >>> from poker.document_filter_class import DocumentFilter
+        >>> repo = 'location of your previous game'
+        >>> grouped = [['YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS'],
+        >>>            ['48QVRRsiae', 'u8_FUbXpAz']]
+        >>> poker = Poker(repo_location=repo, grouped=grouped)
+        >>> pressure_or_hold(data=DocumentFilter(data=poker, player_index_lst=['DZy-22KNBS']), bet=500, position='Pre Flop')
+    :note: *None*
+
+    """
+    a = [bet]
+    df = data.df
+    if position is not None:
+        if position not in {'Pre Flop': True, 'Post Flop': True, 'Post Turn': True, 'Post River': True}:
+            raise AttributeError('position must be {Pre Flop, Post Flop, Post Turn, Post River, or None}')
+
+        call_fold = df[(df['Class'] == 'Calls') | (df['Class'] == 'Folds') & (df['Position'] == position)]
+        call = df[(df['Class'] == 'Calls') & (df['Position'] == position)]['Bet Amount'].tolist()
+        fold = df[(df['Class'] == 'Folds') & (df['Position'] == position)]['Bet Amount'].tolist()
     else:
-        raise AttributeError("Input needs to be a Player object or a Player.mov_dic")
+        call_fold = df[(df['Class'] == 'Calls') | (df['Class'] == 'Folds') & (df['Position'] == position)]
+        call = df[df['Class'] == 'Calls']['Bet Amount'].tolist()
+        fold = df[df['Class'] == 'Folds']['Bet Amount'].tolist()
 
-    pos_lst = ['Pre Flop', 'Post Flop', 'Post Turn', 'Post River']
-    mov_lst = ['Raises', 'Calls', 'Folds']
-    group_lst = ['Win', 'Loss', 'Both']
-    # dic = {}
-    # for key, val in data.items():
-    #     for key1, val1 in val.to_dict(orient='list').items():
-    #         if key1 in dic.keys():
-    #             dic[key1] += val1
-    #         else:
-    #             dic[key1] = val1
+    both = call_fold['Bet Amount'].tolist()
+    qu_lst = [native_percentile(data=both, q=i) for i in [.023, .159, .500, .841, .977]]
+    c_lst, f_lst, b_lst, t_lst = [], [], [], []
+    for key1, val1 in {'Call': [c_lst, call], 'Fold': [f_lst, fold], 'Both': [b_lst, both], 'Test': [t_lst, a]}.items():
+        for i in val1[1]:
+            if i > qu_lst[-1]:
+                val = round_to(data=i, val=1000)
+            elif i < qu_lst[0]:
+                val = round_to(data=i, val=25)
+            else:
+                val = round_to(data=i, val=50)
+            val1[0].append(val)
 
-    ss_data = pd.DataFrame.from_dict(data)
-    ind_dic = {wlb: {pos: {mov: [] for mov in mov_lst} for pos in pos_lst} for wlb in group_lst}
-    ss_data['Win String'] = ['Win' if i is True else 'Loss' for i in ss_data['Win']]
-    win_lst = (ss_data['Win String']+'_splitpoint_'+ss_data['Position']+'_splitpoint_'+ss_data['Class']).tolist()
-    for i, j in enumerate(win_lst):
-        for gro in group_lst[:2]:
-            for pos in pos_lst:
-                for mov in mov_lst:
-                    if mov in j and gro in j and pos in j:
-                        ind_dic[j.split('_splitpoint_')[0]][j.split('_splitpoint_')[1]][j.split('_splitpoint_')[2]].append(i)
-                        ind_dic['Both'][j.split('_splitpoint_')[1]][j.split('_splitpoint_')[2]].append(i)
-                        break
+    uv = unique_values(data=b_lst)
+    temp_dic = {}
+    for i in uv:
+        c, f, p = c_lst.count(i), f_lst.count(i), 0.0
+        if c > 0:
+            p = round_to(data=c / (c + f), val=1000, remainder=True)
+        temp_dic[i] = {'Call Count': c, 'Fold Count': f, 'Total Count': c + f, 'Percent': p}
 
-    final_dic = {}
-    for gro in group_lst:
-        temp_dic = {}
-        for pos in pos_lst:
-            temp_dic[pos] = {}
-            for mov in mov_lst:
-                temp_dic[pos][mov] = {'Values': [], 'Seconds': []}
-        final_dic[gro] = temp_dic
-
-    for gro in group_lst:
-        for pos in pos_lst:
-            for mov in mov_lst:
-                temp_df = ss_data.iloc[ind_dic[gro][pos][mov]]
-                new_val = final_dic[gro][pos][mov]
-                if temp_df.empty is False:
-                    for ind, row in temp_df.iterrows():
-                        new_val['Values'].append(row['Bet Amount'])
-                        new_val['Seconds'].append((row['Time'] - row['Previous Time']).total_seconds())
-
-    final_lst = []
-    for key, val in final_dic.items():
-        temp_df = pd.DataFrame(index=[key])
-        for pos in pos_lst:
-            for mov in mov_lst:
-                for item in ['Values', 'Seconds']:
-                    vals = val[pos][mov][item]
-                    if len(vals) > 1:
-                        temp_df[pos + ' ' + mov + ' ' + item + ' mean'] = round_to(data=native_mean(data=vals), val=1)
-                        temp_df[pos + ' ' + mov + ' ' + item + ' std'] = round_to(data=native_std(data=vals), val=1)
-                    else:
-                        temp_df[pos + ' ' + mov + ' ' + item + ' mean'] = 0
-                        temp_df[pos + ' ' + mov + ' ' + item + ' std'] = 0
-        final_lst.append(temp_df)
-    return pd.concat(final_lst).fillna(0)
+    if bet in temp_dic.keys():
+        return temp_dic[bet]
+    else:
+        print('No direct match, one below and above returned')
+        key_lst = list(temp_dic.keys())
+        one_smaller = 0
+        one_larger = native_max(data=key_lst)
+        for item in key_lst:
+            if item < bet:
+                if item - bet > one_smaller - bet:
+                    one_smaller = item
+            else:
+                if bet - item > bet - one_larger:
+                    one_larger = item
+        if one_smaller == native_max(data=key_lst) or one_larger == 0:
+            raise AttributeError('No results found')
+        else:
+            return {one_smaller: temp_dic[one_smaller], one_larger: temp_dic[one_larger]}
 
 
-def tsanalysis(data: Union[Player, dict]) -> pd.DataFrame:
+def ts_analysis(data: DocumentFilter, window: Optional[int] = 5) -> pd.DataFrame:
     """
 
     Build a Time Series DataFrame.
 
     :param data: A Player class object.
-    :type data: Player or Dict
+    :type data: DocumentFilter
+    :param window: Rolling window value, default is 5. *Optional*
+    :type window: int
     :return: A DataFrame of various moves over time.
     :rtype: pd.DataFrame
-    :example: *None*
-    :note: If a dict is passed it is intended to be Player.move_dic.
+    :example:
+        >>> # This function requires a single player_index to be included in the DocumentFilter.
+        >>> from poker.poker_class import Poker
+        >>> from poker.analysis import ts_analysis
+        >>> from poker.document_filter_class import DocumentFilter
+        >>> repo = 'location of your previous game'
+        >>> grouped = [['YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS'],
+        >>>            ['48QVRRsiae', 'u8_FUbXpAz']]
+        >>> poker = Poker(repo_location=repo, grouped=grouped)
+        >>> ts_analysis(data=DocumentFilter(data=poker, player_index_lst=['DZy-22KNBS']))
+        :note: This is a function version of the TSanalysis class.
 
     """
-    if type(data) == Player:
-        data = data.merged_moves
-    elif type(data) == dict:
-        pass
-    else:
-        raise AttributeError("Input needs to be a Player object or a Player.mov_dic")
+    df = data.df
+    pos_dic = {'Pre Flop': 0.25, 'Post Flop': 0.50, 'Post Turn': 0.75, 'Post River': 1.0}
 
+    # Game Id
+    g_i_df = pd.DataFrame(df.groupby('Start Time')['Game Id'].last())
+    g_i_df.columns = ['']
+
+    # Time in Hand
+    t_h_df = pd.DataFrame(df.groupby('Start Time')['Seconds into Hand'].last())
+    t_h_df.columns = ['']
+
+    # Last Position
+    last_position = df.groupby('Start Time')['Position'].last().tolist()
+    l_p_df = pd.DataFrame([pos_dic[item] for item in last_position], index=t_h_df.index, columns=[''])
+
+    # Win
+    r_w_p = df.groupby('Start Time')['Win'].last().tolist()
+    r_w_p = [1 if item is True else 0 for item in r_w_p]
+    r_w_p_df = pd.DataFrame(running_mean(data=r_w_p, num=window), index=t_h_df.index, columns=[''])
+
+    # Bet, Count, and Time Per Position
+    temp_df = df[(df['Class'] == 'Calls') | (df['Class'] == 'Raises') | (df['Class'] == 'Checks')]
+    ind_lst = unique_values(data=temp_df['Start Time'].tolist())
     pos_lst = ['Pre Flop', 'Post Flop', 'Post Turn', 'Post River']
-    mov_lst = ['Checks', 'Raises', 'Calls', 'Folds']
-    # dic = {}
-    # for key, val in data.items():
-    #     for key1, val1 in val.to_dict(orient='list').items():
-    #         if key1 in dic.keys():
-    #             dic[key1] += val1
-    #         else:
-    #             dic[key1] = val1
+    class_lst, short_class_lst = ['Checks', 'Calls', 'Raises'], ['Calls', 'Raises']
 
-    ts_data = pd.DataFrame.from_dict(data)
-    ts_data['Game_Round_ID'] = ts_data['Game Id'] + '_splitpoint_' + [str(i) for i in ts_data['Round']]
+    p_bet = {'Pre Flop': [], 'Post Flop': [], 'Post Turn': [], 'Post River': []}
+    c_count = {item1 + ' ' + item: [] for item in class_lst for item1 in pos_lst}
+    c_seconds = {item1 + ' ' + item: [] for item in class_lst for item1 in pos_lst}
+    c_bet = {item1 + ' ' + item: [] for item in short_class_lst for item1 in pos_lst}
+    c_bet_per_pot = {item1 + ' ' + item: [] for item in short_class_lst for item1 in pos_lst}
+    c_bet_per_chips = {item1 + ' ' + item: [] for item in short_class_lst for item1 in pos_lst}
 
-    final_dic = {}
-    for pos in pos_lst:
-        temp_dic = {}
-        for mov in mov_lst:
-            temp_dic[mov] = {'Times': [], 'Values': [], 'Seconds': [], 'Player Reserve': [], 'Game Id': [],
-                             'Pot Size': [], 'Win': [], 'Position': [], 'Class': [], 'Round': []}
-        final_dic[pos] = temp_dic
+    t_p_bet = {'Pre Flop': 0, 'Post Flop': 0, 'Post Turn': 0, 'Post River': 0}
+    t_c_count = {item1 + ' ' + item: 0 for item in class_lst for item1 in pos_lst}
+    t_c_seconds = {item1 + ' ' + item: None for item in class_lst for item1 in pos_lst}
+    t_c_bet = {item1 + ' ' + item: None for item in short_class_lst for item1 in pos_lst}
+    t_c_bet_per_pot = {item1 + ' ' + item: None for item in short_class_lst for item1 in pos_lst}
+    t_c_bet_per_chips = {item1 + ' ' + item: None for item in short_class_lst for item1 in pos_lst}
 
-    ind_dic = {pos: {mov: [] for mov in mov_lst} for pos in pos_lst}
-    class_lst = (ts_data['Position'] + '_splitpoint_' + ts_data['Class']).tolist()
-    for i, j in enumerate(class_lst):
-        for mov in mov_lst:
-            if mov in j:
-                ind_dic[j.split('_splitpoint_')[0]][j.split('_splitpoint_')[1]].append(i)
-                break
+    prev_ind, len_temp_df = temp_df['Start Time'].iloc[0], len(temp_df)
+    for ind, row in temp_df.iterrows():
+        if row['Start Time'] != prev_ind:
+            prev_ind = row['Start Time']
+            for key, val in t_p_bet.items():
+                p_bet[key].append(val)
 
-    for pos in pos_lst:
-        for mov in mov_lst:
-            temp_df = ts_data.iloc[ind_dic[pos][mov]]
-            new_val = final_dic[pos][mov]
-            if temp_df.empty is False:
-                for ind, row in temp_df.iterrows():
-                    new_val['Values'].append(row['Bet Amount'])
-                    new_val['Times'].append(row['Time'])
-                    new_val['Seconds'].append((row['Time'] - row['Previous Time']).total_seconds())
-                    new_val['Player Reserve'].append(row['Player Reserve'])
-                    new_val['Game Id'].append(row['Game Id'])
-                    new_val['Pot Size'].append(row['Pot Size'])
-                    new_val['Win'].append(row['Win'])
-                    new_val['Position'].append(row['Position'])
-                    new_val['Class'].append(row['Class'])
-                    new_val['Round'].append(row['Round'])
+            for item in class_lst:
+                for item1 in pos_lst:
+                    c_count[item1 + ' ' + item].append(t_c_count[item1 + ' ' + item])
+                    c_seconds[item1 + ' ' + item].append(t_c_seconds[item1 + ' ' + item])
+                    if item != 'Checks':
+                        c_bet[item1 + ' ' + item].append(t_c_bet[item1 + ' ' + item])
+                        c_bet_per_pot[item1 + ' ' + item].append(t_c_bet_per_pot[item1 + ' ' + item])
+                        c_bet_per_chips[item1 + ' ' + item].append(t_c_bet_per_chips[item1 + ' ' + item])
 
-    df_lst = []
-    for pos in pos_lst:
-        for mov in mov_lst:
-            temp_df = pd.DataFrame(final_dic[pos][mov]).set_index('Times').sort_index(ascending=True)
-            if temp_df.empty is False:
-                temp_df_len = len(temp_df)
-                temp_df['Running Mean Values'] = round_to(data=running_mean(data=temp_df['Values'], num=10), val=1,
-                                                          remainder=False)[:temp_df_len]
-                temp_df['Running Std Values'] = round_to(data=running_std(data=temp_df['Values'], num=10), val=1,
-                                                         remainder=False)[:temp_df_len]
-                temp_df['Running Mean Seconds'] = round_to(data=running_mean(data=temp_df['Seconds'], num=10), val=1,
-                                                           remainder=False)[:temp_df_len]
-                temp_df['Running Std Seconds'] = round_to(data=running_std(data=temp_df['Seconds'], num=10), val=1,
-                                                          remainder=False)[:temp_df_len]
-                df_lst.append(temp_df)
+            t_p_bet = {'Pre Flop': 0, 'Post Flop': 0, 'Post Turn': 0, 'Post River': 0}
+            t_c_count = {item1 + ' ' + item: 0 for item in class_lst for item1 in pos_lst}
+            t_c_seconds = {item1 + ' ' + item: None for item in class_lst for item1 in pos_lst}
+            t_c_bet = {item1 + ' ' + item: None for item in short_class_lst for item1 in pos_lst}
+            t_c_bet_per_pot = {item1 + ' ' + item: None for item in short_class_lst for item1 in pos_lst}
+            t_c_bet_per_chips = {item1 + ' ' + item: None for item in short_class_lst for item1 in pos_lst}
 
-    final_df = pd.concat(df_lst, axis=0).sort_index(ascending=True)
+        t_pos, t_bet, t_class, t_second = row['Position'], row['Bet Amount'], row['Class'], row['Seconds']
+        t_key = t_pos + ' ' + t_class
+
+        t_p_bet[t_pos] += t_bet
+        t_c_count[t_key] += 1
+        if t_c_seconds[t_key] is not None:
+            t_c_seconds[t_key] = native_mean(data=[t_c_seconds[t_key]] + [t_second])
+        else:
+            t_c_seconds[t_key] = t_second
+
+        if t_class != 'Checks':
+            if t_c_bet[t_key] is not None:
+                t_c_bet[t_key] = native_mean(data=[t_c_bet[t_key]] + [t_bet])
+            else:
+                t_c_bet[t_key] = t_bet
+
+            bet_pot_per = t_bet / (row['Pot Size'] - t_bet)
+            if t_c_bet_per_pot[t_key] is not None:
+                t_c_bet_per_pot[t_key] = native_mean(data=[t_c_bet_per_pot[t_key]] + [bet_pot_per])
+            else:
+                t_c_bet_per_pot[t_key] = bet_pot_per
+
+            bet_chip_per = t_bet / (row['Player Current Chips'] + t_bet)
+            if t_c_bet_per_chips[t_key] is not None:
+                t_c_bet_per_chips[t_key] = native_mean(data=[t_c_bet_per_chips[t_key]] + [bet_chip_per])
+            else:
+                t_c_bet_per_chips[t_key] = bet_chip_per
+
+        if ind == len_temp_df:
+            for key, val in t_p_bet.items():
+                p_bet[key].append(val)
+
+            for item in class_lst:
+                for item1 in pos_lst:
+                    c_count[item1 + ' ' + item].append(t_c_count[item1 + ' ' + item])
+                    c_seconds[item1 + ' ' + item].append(t_c_seconds[item1 + ' ' + item])
+                    if item != 'Checks':
+                        c_bet[item1 + ' ' + item].append(t_c_bet[item1 + ' ' + item])
+                        c_bet_per_pot[item1 + ' ' + item].append(t_c_bet_per_pot[item1 + ' ' + item])
+                        c_bet_per_chips[item1 + ' ' + item].append(t_c_bet_per_chips[item1 + ' ' + item])
+
+    lst_dic = {'Position Bet': p_bet, 'Class Count': c_count, 'Class Seconds': c_seconds, 'Class Bet': c_bet,
+               'Class Bet Percent of Pot': c_bet_per_pot, 'Class Bet Percent of Chips': c_bet_per_chips,
+               'Seconds per Hand': t_h_df, 'Last Position in Hand': l_p_df, 'Rolling Win Percent': r_w_p_df,
+               'Game Id': g_i_df}
+    lst_df = []
+    for key, val in lst_dic.items():
+        if type(val) != pd.DataFrame:
+            val = pd.DataFrame(val, index=ind_lst)
+            val.columns = [key + ' ' + col for col in val.columns]
+        else:
+            val.columns = [key]
+        lst_df.append(val)
+    final_df = pd.concat(lst_df, axis=1).reset_index()
     return final_df
+
     # Plot Specific
     # t = pd.DataFrame(final_dic['Post Flop']['Calls']).set_index('Times').sort_index(ascending=True)
     # t['Temp Index'] = range(len(t))
