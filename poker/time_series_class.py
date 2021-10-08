@@ -228,72 +228,90 @@ class TSanalysis:
 
     @property
     def ts_hand(self) -> pd.DataFrame:
+        """Hand Related base data"""
         return self._hand
 
     @property
     def ts_hand_mean(self) -> pd.DataFrame:
+        """Hand Related mean data"""
         return self._hand_mean
 
     @property
     def ts_hand_std(self) -> pd.DataFrame:
+        """Hand Related std data"""
         return self._hand_std
 
     @property
     def ts_hand_median(self) -> pd.DataFrame:
+        """Hand Related median data"""
         return self._hand_median
 
     @property
     def ts_hand_upper_quantile(self) -> pd.DataFrame:
+        """Hand Related upper quantile data"""
         return self._hand_upper_q
 
     @property
     def ts_hand_lower_quantile(self) -> pd.DataFrame:
+        """Hand Related lower quantile data"""
         return self._hand_lower_q
 
     @property
     def ts_position(self) -> pd.DataFrame:
+        """Position Related base data"""
         return self._position
 
     @property
     def ts_position_mean(self) -> pd.DataFrame:
+        """Position Related mean data"""
         return self._position_mean
 
     @property
     def ts_position_std(self) -> pd.DataFrame:
+        """Position Related std data"""
         return self._position_std
 
     @property
     def ts_position_median(self) -> pd.DataFrame:
+        """Position Related median data"""
         return self._position_median
 
     @property
     def ts_position_upper_quantile(self) -> pd.DataFrame:
+        """Position Related upper quantile data"""
         return self._position_upper_q
 
     @property
     def ts_position_lower_quantile(self) -> pd.DataFrame:
+        """Position Related lower quantile data"""
         return self._position_lower_q
 
     @property
     def ts_class(self) -> pd.DataFrame:
+        """Class Related base data"""
         return self._class
 
     @property
     def ts_class_mean(self) -> pd.DataFrame:
+        """Class Related mean data"""
         return self._class_mean
 
     @property
     def ts_class_std(self) -> pd.DataFrame:
+        """Class Related std data"""
         return self._class_std
 
     @property
     def ts_class_median(self) -> pd.DataFrame:
+        """Class Related median data"""
         return self._class_median
 
     @property
     def ts_class_upper_quantile(self) -> pd.DataFrame:
+        """Class Related upper quantile data"""
         return self._class_upper_q
 
     @property
     def ts_class_lower_quantile(self) -> pd.DataFrame:
+        """Class Related lower quantile data"""
         return self._class_lower_q

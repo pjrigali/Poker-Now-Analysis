@@ -483,7 +483,7 @@ The following child classes use this framework:
       - :lbi:`Union[str, None]`
       - :attribute_table_description:`Winning hand`
     * - :bb:`LineAttributes.cards`
-      - :lbi:`Union[str, tuple, None]`
+      - :lbi:`Union[str, list, None]`
       - :attribute_table_description:`Card or cards`
     * - :bb:`LineAttributes.current_round`
       - :lbi:`Union[int, None]`
@@ -530,6 +530,98 @@ The following child classes use this framework:
     * - :bb:`LineAttributes.end_time`
       - :lbi:`TimeStamp`
       - :attribute_table_description:`Timestamp of the end of the hand`
+
+.. _TSanalysis:
+
+==========
+TSanalysis
+==========
+Class for Time Series Analysis.
+The ts_analysis function in Analysis does not compute running values.
+
+.. :currentmodule:: time_series_class
+
+.. class:: TSanalysis:
+
+    Calculate Time Series stats for a player.
+
+    :param data: Input DocumentFilter.
+    :type data: DocumentFilter
+    :param upper_q: Upper Quantile percent, default is 0.841. *Optional*
+    :type upper_q: float
+    :param lower_q: Lower Quantile percent, default is 0.159. *Optional*
+    :type lower_q: float
+    :param window: Rolling window, default is 5. *Optional*
+    :type window: int
+    :example:
+        >>> from poker.time_series_class import TSanalysis
+        >>> docu_filter = DocumentFilter(data=poker, player_index_lst=['DZy-22KNBS'])
+        >>> TSanalysis(data=docu_filter)
+    :note: This class expects a DocumentFilter with only one player_index used.
+
+:grey:`TSanalysis Attributes:`
+
+.. list-table::
+    :widths: 100 50 200
+    :header-rows: 1
+
+    * - :attribute_table_header:`Name`
+      - :attribute_table_header:`Type`
+      - :attribute_table_header:`Description`
+    * - :bb:`TSanalysis.ts_hand`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Hand Related base data`
+    * - :bb:`TSanalysis.ts_hand_mean`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Hand Related mean data`
+    * - :bb:`TSanalysis.ts_hand_std`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Hand Related std data`
+    * - :bb:`TSanalysis.ts_hand_median`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Hand Related median data`
+    * - :bb:`TSanalysis.ts_hand_upper_quantile`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Hand Related upper quantile data`
+    * - :bb:`TSanalysis.ts_hand_lower_quantile`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Hand Related lower quantile data`
+    * - :bb:`TSanalysis.ts_position`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Position Related base data`
+    * - :bb:`TSanalysis.ts_position_mean`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Position Related mean data`
+    * - :bb:`TSanalysis.ts_position_std`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Position Related std data`
+    * - :bb:`TSanalysis.ts_position_median`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Position Related median data`
+    * - :bb:`TSanalysis.ts_position_upper_quantile`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Position Related upper quantile data`
+    * - :bb:`TSanalysis.ts_position_lower_quantile`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Position Related lower quantile data`
+    * - :bb:`TSanalysis.ts_class`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Class Related base data`
+    * - :bb:`TSanalysis.ts_class_mean`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Class Related mean data`
+    * - :bb:`TSanalysis.ts_class_std`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Class Related std data`
+    * - :bb:`TSanalysis.ts_class_median`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Class Related median data`
+    * - :bb:`TSanalysis.ts_class_upper_quantile`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Class Related upper quantile data`
+    * - :bb:`TSanalysis.ts_class_lower_quantile`
+      - :lbi:`pd.DataFrame`
+      - :attribute_table_description:`Class Related lower quantile data`
 
 .. _Plot:
 
