@@ -6,6 +6,7 @@ from poker.processor import StandsUp, SitsIn, PlayerStacks
 from poker.base import flatten, unique_values, round_to, native_sum, native_mean
 from poker.hand_class import Hand
 from poker.player_class import Player
+pd.set_option('use_inf_as_na', True)
 
 
 def _game_calc_money(lst: list, ind: str) -> pd.DataFrame:
@@ -41,14 +42,14 @@ def _game_line_to_df(line_lst: list) -> pd.DataFrame:
         if line.player_index in line.winner:
             temp_win = True
         if type(line) in [Raises, PlayerStacks, SmallBlind, BigBlind, Wins]:
-            lst.append({'Player Index': line.player_index, 'Player Name': line.player_name, 'Bet Amount': line.stack,
+            lst.append({'Player Index': line.player_index, 'Player Name': line.player_name, 'Bet Amount': line.stack, 'Cards': line.cards,
                         'Position': line.position, 'Round': line.current_round, 'Player Starting Chips': line.starting_chips, 'Player Current Chips': line.current_chips,
                         'Class': repr(line), 'Winner': line.winner, 'Win': temp_win, 'Win Stack': line.win_stack,
                         'Win Hand': line.winning_hand, 'All In': line.all_in, 'Pot Size': line.pot_size,
                         'Remaining Players': line.remaining_players, 'From Person': line.action_from_player,
                         'Game Id': line.game_id, 'Time': line.time, 'Previous Time': line.previous_time, 'Start Time': line.start_time, 'End Time': line.end_time})
         else:
-            lst.append({'Player Index': line.player_index, 'Player Name': line.player_name,
+            lst.append({'Player Index': line.player_index, 'Player Name': line.player_name, 'Cards': line.cards,
                         'Bet Amount': line.action_amount, 'Position': line.position, 'Round': line.current_round, 'Player Starting Chips': line.starting_chips,
                         'Player Current Chips': line.current_chips, 'Class': repr(line), 'Winner': line.winner, 'Win': temp_win,
                         'Win Stack': line.win_stack, 'Win Hand': line.winning_hand, 'All In': line.all_in,

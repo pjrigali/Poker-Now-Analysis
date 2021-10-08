@@ -114,6 +114,7 @@ class Hand:
             elif line_type == Wins:
                 _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
                 if line.cards is not None:
+                    line.cards = list(line.cards)
                     _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards',
                                      player_index=line.player_index)
                     _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='Win')
@@ -133,14 +134,20 @@ class Hand:
             elif line_type == Flop:
                 self._flop = line
                 _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='Flop')
+                for player in self._starting_players.keys():
+                    _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=player)
                 continue
             elif line_type == Turn:
                 self._turn = line
                 _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='Turn')
+                for player in self._starting_players.keys():
+                    _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=player)
                 continue
             elif line_type == River:
                 self._river = line
                 _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='River')
+                for player in self._starting_players.keys():
+                    _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=player)
                 continue
             elif line_type == MyCards:
                 self._my_cards = line
