@@ -8,10 +8,14 @@ from poker.player_class import Player
 from poker.hand_class import Hand
 from poker.plot import Line, Scatter, Histogram
 from poker.analysis import face_card_in_winning_cards, longest_streak, raise_signal_winning, small_or_big_blind_win
-from poker.analysis import player_verse_player, bluff_study, tsanalysis, staticanalysis
-from poker.base import normalize, running_mean, cumulative_mean, round_to, native_mean, native_mode, unique_values, running_std, calc_gini, search_dic_values, flatten, native_median
+from poker.analysis import player_verse_player, bluff_study, ts_analysis, static_analysis, pressure_or_hold
+from poker.base import normalize, running_mean, cumulative_mean, round_to, native_mean, native_mode, unique_values
+from poker.base import running_std, calc_gini, search_dic_values, flatten, native_median, standardize
 from poker.base import native_variance, native_std, native_sum, native_max
+from poker.document_filter_class import DocumentFilter
+from poker.time_series_class import TSanalysis
 import time
+pd.set_option('use_inf_as_na', True)
 
 
 if __name__ == '__main__':
@@ -31,239 +35,184 @@ if __name__ == '__main__':
     start_timen = "--- %s seconds ---" % round((time.time() - start_timen), 2)
     print(start_timen)
 
-    # full_dic = {}
-    # for key, val in poker.players_history.items():
-    #     full_dic[key] = pd.DataFrame(val.merged_moves['All'])
-    #     full_dic[key]['Game_Id_Round'] = full_dic[key]['Game Id'] + '_splitpoint_' + [str(i) for i in full_dic[key]['Round']]
-    #     old_df = full_dic[key].drop_duplicates('Game_Id_Round', keep='first').reset_index()
-    #     new_df = full_dic[key].drop_duplicates('Game_Id_Round', keep='last').reset_index()
-    #     unique_lst = unique_values(data=full_dic[key]['Game_Id_Round'])
-    #
-    #     second_dic = {}
-    #     for id_rnd in unique_lst:
-    #         t = (new_df[new_df['Game_Id_Round'] == id_rnd]['Time'] - old_df[old_df['Game_Id_Round'] == id_rnd][
-    #             'Time']).tolist()[0].total_seconds()
-    #         second_dic[id_rnd] = t
-    #
-    #     second_lst = []
-    #     for i in full_dic[key]['Game_Id_Round']:
-    #         second_lst.append(second_dic[i])
-    #     full_dic[key]['Round Seconds'] = second_lst
-    #     full_dic[key]['Move Seconds'] = [(row['Time'] - row['Previous Time']).total_seconds() for ind, row in full_dic[key].iterrows()]
-    #     full_dic[key]['Win Number'] = [1.0 if i is True else 0.0 for i in full_dic[key]['Win']]
-    #
-    # for key, val in full_dic.items():
-    #     Scatter(data=val,
-    #             compare_two=['Round Seconds', 'Player Reserve'],
-    #             normalize_x=['Round Seconds', 'Player Reserve'],
-    #             color_lst=['tab:orange'],
-    #             regression_line=['Player Reserve'],
-    #             regression_line_color='tab:blue',
-    #             title='Time per Hand vs Player Reserve (Player: ' + key + ')',
-    #             ylabel='Player Chip Count',
-    #             xlabel='Total Round Seconds')
-    #     plt.show()
-    #     Histogram(data=val,
-    #               label_lst=['Move Seconds'],
-    #               include_norm='Move Seconds',
-    #               title='Move Second Histogram (Player: ' + key + ')')
-    #     plt.show()
-    #     Line(data=val[['Pot Size', 'Win Stack']],
-    #          normalize_x=['Pot Size', 'Win Stack'],
-    #          color_lst=['tab:orange', 'tab:blue'],
-    #          title='Pot Size and Winning Stack Amount (Player: ' + key + ')',
-    #          ylabel='Value',
-    #          xlabel='Date',
-    #          corr=['Pot Size', 'Win Stack'])
-    #     plt.show()
+    # doc_filter = DocumentFilter(data=poker, player_index_lst=['DZy-22KNBS', 'mQWfGaGPXE'])
+    # fcw = face_card_in_winning_cards(data=DocumentFilter(data=poker, class_lst=['Player Stacks', 'Wins']))
+    # ls = longest_streak(data=DocumentFilter(data=poker, class_lst=['Wins']))
+    # rsw = raise_signal_winning(data=DocumentFilter(data=poker, class_lst=['Raises']))
+    # sbw = small_or_big_blind_win(data=DocumentFilter(data=poker, class_lst=['Small Blind', 'Big Blind']))
+    # pvp = player_verse_player(data=DocumentFilter(data=poker, class_lst=['Calls', 'Raises', 'Checks', 'Folds']))
+    # bs = bluff_study(data=DocumentFilter(data=poker, player_index_lst=['DZy-22KNBS']), position_lst=['Post Turn', 'Post River'])
+    # sa = static_analysis(data=DocumentFilter(data=poker, player_index_lst=['DZy-22KNBS']))
+    # ph = pressure_or_hold(data=DocumentFilter(data=poker, player_index_lst=['DZy-22KNBS']), bet=500, position='Pre Flop')
+    # ts = ts_analysis(data=DocumentFilter(data=poker, player_index_lst=['DZy-22KNBS']))
+    # ts = TSanalysis(data=DocumentFilter(data=poker, player_index_lst=['DZy-22KNBS']))
 
+    # player_index_lst = [['YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS'], ['mQWfGaGPXE'], ['HiZcYKvbcw']]
+    # temp = NNClassifier(poker=poker, player_index_lst=player_index_lst, y_variable='win', random_selection=False)
 
-    # ts_dic = {}
-    # for person, val in poker.players_history.items():
-    #     try:
-    #         ts_dic[person] = tsanalysis(data=val.moves_dic)
-    #     except:
-    #         pass
-    # temp_df = ts_dic['3fuMmmzEQ-'].reset_index()
-    # t = pd.DataFrame()
-    # for col in ['Running Std Values', 'Player Reserve']:
-    #     t[col] = normalize(data=temp_df[col], keep_nan=True)
-    # t.plot()
-    # plt.show()
-
-    # data_peter = poker.players_history['mQWfGaGPXE'].moves_dic
-    # data_peter
-    # data_flynn = poker.players_history['DZy-22KNBS'].moves_dic
-    # data_henry = poker.players_history['HiZcYKvbcw'].moves_dic
-    # data_mike = poker.players_history['yUaYOqMtWh'].moves_dic
-    # a = player_habits_compared(data=data_peter)
-    # b = player_habits_compared(data=data_flynn)
-    # c = player_habits_compared(data=data_henry)
-    # d = player_habits_compared(data=data_mike)
-    # e = bluff_study(data=poker.players_history['mQWfGaGPXE'])
-    # f = bluff_study(data=data_flynn)
-    # g = bluff_study(data=data_henry)
-    # h = bluff_study(data=data_mike)
-
-    # ts = tsanalysis(data=data_peter)
-    # ss = staticanalysis(data=data_peter)
-    # fcwc1 = face_card_in_winning_cards(data=poker.players_history['mQWfGaGPXE'])
-    # fcwc2 = face_card_in_winning_cards(data=poker.matches[0])
-    # ls1 = longest_streak(data=poker.players_history['mQWfGaGPXE'])
-    # ls2 = longest_streak(data=poker.matches[1])
-    # rsw1 = raise_signal_winning(data=poker.players_history['mQWfGaGPXE'])
-    # rsw2 = raise_signal_winning(data=poker.matches[1])
-    # sb1 = small_or_big_blind_win(data=poker.players_history['mQWfGaGPXE'])
-    # sb2 = small_or_big_blind_win(data=poker.matches[1])
-    # pvp1 = player_verse_player(data=poker.players_history['mQWfGaGPXE'])
-    # pvp2 = player_verse_player(data=poker.matches[1])
     poker
 
-    # print(''), print('Poker Built'), print("--- %s seconds ---" % round((time.time() - start_timen), 2))
-
-    # temp = poker.matches[9].players['YEtsj6CMK4'].reaction
-    # calls = temp[temp['class'] == 'Calls']['stack']
-    # folds = temp[temp['class'] == 'Folds']['stack']
-    # data = pd.DataFrame(list(folds), columns=['folds'])
-    # data['calls'] = list(calls) + [None] * (len(data) - len(calls))
-    # Histogram(data=data,
-    #           label_lst=['calls', 'folds'],
-    #           include_norm='folds',
-    #           title='Calls and Folds')
-    # plt.show()
-
-    # def calc_slope(x):
-    #     slope = np.polyfit(range(len(x)), x, 1)[0]
-    #     return slope
+    # flynn_data = DocumentFilter(data=poker, player_index_lst=['YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS'])
+    # peter_data = DocumentFilter(data=poker, player_index_lst=['mQWfGaGPXE'])
+    # henry_data = DocumentFilter(data=poker, player_index_lst=['HiZcYKvbcw'])
     #
+    # ts_flynn = TSanalysis(data=flynn_data)
+    # ts_peter = TSanalysis(data=peter_data)
+    # ts_henry = TSanalysis(data=henry_data)
     #
-    # for key in poker.matches[9].players.keys():
-    #     df = poker.matches[9].players[key].reaction
-    #     # temp = poker.matches[9].players['YEtsj6CMK4'].reaction
-    #     calls = df[df['class'] == 'Calls']['stack']
-    #     folds = df[df['class'] == 'Folds']['stack']
-    #     res = df['player reserve'].rolling(2).mean()
-    #     a = calls.rolling(5).std()
-    #     b = folds.rolling(5).std()
-    #     try:
-    #         c = int(np.median(a.dropna()))
-    #         d = int(np.median(b.dropna()))
-    #         e = df['player reserve'].rolling(25, min_periods=2).apply(calc_slope).dropna()
-    #         a.plot(label='calls ' + str(int(c)))
-    #         b.plot(label='folds ' + str(int(d)))
-    #         res.plot(label='chips')
-    #         # plt.title(str(e))
-    #         plt.legend()
-    #         plt.show()
-    #     except:
-    #         pass
-
-    # temp = poker.matches[9].players['YEtsj6CMK4'].reaction.drop_duplicates(keep="first")
-
-    # calls = temp[temp['class'] == 'Calls'].set_index('round')
-    # folds = temp[temp['class'] == 'Folds'].set_index('round')
-    # raises = temp[temp['class'] == 'Raises'].set_index('round')
-    # res = temp['player reserve']
-    # res_n1 = normalize(data=np.array(res))
-    # r = raises.corr()
-    # c = calls.corr()
-    # f = folds.corr()
-    # rr = raises.rolling(5).std().dropna().corr()
-    # cc = calls.rolling(5).std().dropna().corr()
-    # ff = folds.rolling(5).std().dropna().corr()
-
-    # cr = (calls['stack'] / res)
-    # fr = (folds['stack'] / res).bfill()
-    # cr.plot(label='call / res')
-    # fr.plot(label='fold / res')
-    # res_n.plot(label='chips')
-    # plt.xlim(0,200)
-    # plt.legend()
-    # plt.show()
-
-    # fn = round_to(data=np.array(folds['stack']), val=50)
-    # fn = round_to(data=list(cr), val=4, remainder=True)
-    # t = round_to(data=[4.3, 5.6], val=4, remainder=False)
-
-    # cw = calls[calls['win'] == True]
-    # cl = calls[calls['win'] == False]
+    # flynn_lst = [ts_flynn.ts_class_median, ts_flynn.ts_class_lower_quantile, ts_flynn.ts_class_upper_quantile,
+    #              ts_flynn.ts_position_median, ts_flynn.ts_position_lower_quantile, ts_flynn.ts_position_upper_quantile]
+    # flynn_df = pd.DataFrame()
+    # for item in flynn_lst:
+    #     for col in item.columns:
+    #         if col not in ['Game Id', 'index', 'Start Time', 'Win', 'Fold Next']:
+    #             flynn_df[col] = standardize(data=item[col])
     #
-    # cws = (cw['stack'] / res).dropna()
-    # cls = (cl['stack'] / res).dropna()
+    # peter_lst = [ts_peter.ts_class_median, ts_peter.ts_class_lower_quantile, ts_peter.ts_class_upper_quantile,
+    #              ts_peter.ts_position_median, ts_peter.ts_position_lower_quantile, ts_peter.ts_position_upper_quantile]
+    # peter_df = pd.DataFrame()
+    # for item in peter_lst:
+    #     for col in item.columns:
+    #         if col not in ['Game Id', 'index', 'Start Time', 'Win', 'Fold Next']:
+    #             peter_df[col] = standardize(data=item[col])
     #
-    # cws_mu = np.mean(cws[cws < 1])
-    # cls_mu = np.mean(cls[cls < 1])
-    # cws_std = np.std(cws[cws < 1])
-    # cls_std = np.std(cls[cls < 1])
-    # Histogram(data=pd.DataFrame(list(cws[cws < 1]), columns=['percent']),
-    #           label_lst=['percent'],
-    #           include_norm='percent',
-    #           title='wins')
-    # Histogram(data=pd.DataFrame(list(cls[cls < 1]), columns=['percent']),
-    #           label_lst=['percent'],
-    #           include_norm='percent',
-    #           title='losses')
-    # plt.show()
+    # henry_lst = [ts_henry.ts_class_median, ts_henry.ts_class_lower_quantile, ts_henry.ts_class_upper_quantile,
+    #              ts_henry.ts_position_median, ts_henry.ts_position_lower_quantile, ts_henry.ts_position_upper_quantile]
+    # henry_df = pd.DataFrame()
+    # for item in henry_lst:
+    #     for col in item.columns:
+    #         if col not in ['Game Id', 'index', 'Start Time', 'Win', 'Fold Next']:
+    #             henry_df[col] = standardize(data=item[col])
 
-    # t = temp[temp['class'] == "Calls"]
-    # tt = round_to(data=t['stack'], val=50, remainder=False)
-    # Histogram(data=pd.DataFrame(list(tt[tt < 2000]), columns=['call amount']),
-    #           label_lst=['call amount'],
-    #           include_norm='call amount',
-    #           title='Call Counts')
-    # plt.show()
+    # Randomly select
+    # import secrets
+    #
+    # p_len = len(peter_df)
+    # f_len = len(flynn_df)
+    # h_len = len(henry_df)
+    # min_len = min([p_len, f_len, h_len])
+    #
+    # if f_len != min_len:
+    #     choice_dic = {}
+    #     count = 0
+    #     while count < min_len:
+    #         val = secrets.choice(range(f_len))
+    #         if val not in choice_dic:
+    #             choice_dic[val] = True
+    #             count += 1
+    # uv_ind = unique_values(data=list(choice_dic.keys()), count=True)
 
-    # t = best_cards(data=poker.matches[9], player_index=['mQWfGaGPXE', '9fNOKzXJkb'])
-    # tt = player_verse_player_reaction(data=poker.matches[9])
+    # p_len = len(peter_df)
+    # f_len = len(flynn_df)
+    # h_len = len(henry_df)
+    # min_len = min([p_len, f_len, h_len])
+    # whole_df = pd.concat([flynn_df[:min_len], peter_df[:min_len], henry_df[:min_len]])
+    # whole_df = pd.concat([flynn_df, peter_df, henry_df]).reset_index(drop=True)
+    # y_lst = ts_flynn.ts_class_median['Win'].tolist()[:min_len] + ts_peter.ts_class_median['Win'].tolist()[:min_len] + ts_henry.ts_class_median['Win'].tolist()[:min_len]
+    # y_lst = ts_flynn.ts_class_median['Win'].tolist() + ts_peter.ts_class_median['Win'].tolist() + ts_henry.ts_class_median['Win'].tolist()
+    # y_lst = ts_flynn.ts_class_median['Fold Next'].tolist() + ts_peter.ts_class_median['Fold Next'].tolist() + ts_henry.ts_class_median['Fold Next'].tolist()
+    # y_lst = [0.0] * min_len + [1.0] * min_len + [2.0] * min_len
 
-    # t = player_response(data=poker.players_history['mQWfGaGPXE'], player_reserve_chips=3000, percent_or_stack=False)
+    # from sklearn.neural_network import MLPClassifier
+    # from sklearn.model_selection import train_test_split
+    #
+    # x_train, x_test, y_train, y_test = train_test_split(whole_df, y_lst, test_size=0.20, random_state=1)
+    # clf = MLPClassifier(solver='adam', alpha=0.01, hidden_layer_sizes=(52,), random_state=1, activation='logistic',
+    #                     learning_rate='adaptive', max_iter=1000, batch_size=50, learning_rate_init=.001)
+    #
+    # clf.fit(x_train, y_train)
+    # pred_act = clf.predict(x_test)
+    # pred_prob = clf.predict_proba(x_test)
+    # acc_df = pd.DataFrame(pred_act, columns=['Predicted'])
+    # acc_df['Actual'] = y_test
+    # acc_df['Predicted Loss Prob'] = pred_prob[:, 0]
+    # acc_df['Predicted Win Prob'] = pred_prob[:, 1]
+    # acc = clf.score(x_test, y_test)
+    # t = [whole_df.columns[22]] + [whole_df.columns[27]] + [whole_df.columns[28]] + [whole_df.columns[29]] + [
+    #     whole_df.columns[35]] + [whole_df.columns[41]] + [whole_df.columns[42]]
 
-# data = poker.players_history['mQWfGaGPXE'].moves_dic
-# awin_df = pd.DataFrame()
-# aloss_df = pd.DataFrame()
-# for key, val in data.items():
-#     awin_df = pd.concat([awin_df, val[val['Win'] == True]])
-#     aloss_df = pd.concat([aloss_df, val[val['Win'] == False]])
-# awin_df = awin_df.reset_index(drop=True)
-# aloss_df = aloss_df.reset_index(drop=True)
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    from torch.utils.data import Dataset, DataLoader
+    from sklearn.metrics import accuracy_score, classification_report
+    torch.manual_seed(1)
+    np.random.seed(1)
+    peter_data = DocumentFilter(data=poker, player_index_lst=['mQWfGaGPXE'])
+    ts_peter = TSanalysis(data=peter_data)
+    peter_lst = [ts_peter.ts_class_median, ts_peter.ts_class_lower_quantile, ts_peter.ts_class_upper_quantile,
+                 ts_peter.ts_position_median, ts_peter.ts_position_lower_quantile, ts_peter.ts_position_upper_quantile]
+    peter_df = pd.DataFrame()
+    for item in peter_lst:
+        for col in item.columns:
+            if col not in ['Game Id', 'index', 'Start Time', 'Win', 'Fold Next']:
+                # peter_df[col] = standardize(data=item[col], keep_nan=0.0)
+                peter_df[col] = item[col]
 
-# compare_dic = {'Win': {'Pre Flop': {}, 'Post Flop': {}, 'Post Turn': {}, 'Post River': {}},
-#                'Loss': {'Pre Flop': {}, 'Post Flop': {}, 'Post Turn': {}, 'Post River': {}}}
-#
-# for pos in ['Pre Flop', 'Post Flop', 'Post Turn', 'Post River']:
-#     temp_df = awin_df[awin_df['Position'] == pos]
-#     temp_dfn = aloss_df[aloss_df['Position'] == pos]
-#     for cl in ['Checks', 'Raises', 'Calls']:
-#         temp_lst = []
-#         for row in temp_df['Round'].unique():
-#             temp_lst.append(len(temp_df[(temp_df['Round'] == row) & (temp_df['Class'] == cl)]))
-#         compare_dic['Win'][pos][cl] = temp_lst
-#
-#     for cl in ['Checks', 'Raises', 'Calls']:
-#         temp_lst = []
-#         for row in temp_dfn['Round'].unique():
-#             temp_lst.append(len(temp_dfn[(temp_dfn['Round'] == row) & (temp_dfn['Class'] == cl)]))
-#         compare_dic['Loss'][pos][cl] = temp_lst
-#
-# compare_dic_mean = {'Win': {'Pre Flop': {'Checks': 0, 'Raises': 0, 'Calls': 0},
-#                             'Post Flop': {'Checks': 0, 'Raises': 0, 'Calls': 0},
-#                             'Post Turn': {'Checks': 0, 'Raises': 0, 'Calls': 0},
-#                             'Post River': {'Checks': 0, 'Raises': 0, 'Calls': 0}},
-#                     'Loss': {'Pre Flop': {'Checks': 0, 'Raises': 0, 'Calls': 0},
-#                              'Post Flop': {'Checks': 0, 'Raises': 0, 'Calls': 0},
-#                              'Post Turn': {'Checks': 0, 'Raises': 0, 'Calls': 0},
-#                              'Post River': {'Checks': 0, 'Raises': 0, 'Calls': 0}}}
-# compare_dic_std = {'Win': {'Pre Flop': {'Checks': 0, 'Raises': 0, 'Calls': 0},
-#                             'Post Flop': {'Checks': 0, 'Raises': 0, 'Calls': 0},
-#                             'Post Turn': {'Checks': 0, 'Raises': 0, 'Calls': 0},
-#                             'Post River': {'Checks': 0, 'Raises': 0, 'Calls': 0}},
-#                     'Loss': {'Pre Flop': {'Checks': 0, 'Raises': 0, 'Calls': 0},
-#                              'Post Flop': {'Checks': 0, 'Raises': 0, 'Calls': 0},
-#                              'Post Turn': {'Checks': 0, 'Raises': 0, 'Calls': 0},
-#                              'Post River': {'Checks': 0, 'Raises': 0, 'Calls': 0}}}
-#
-# for i in ['Win', 'Loss']:
-#     for j in ['Pre Flop', 'Post Flop', 'Post Turn', 'Post River']:
-#         for k in ['Checks', 'Raises', 'Calls']:
-#             compare_dic_mean[i][j][k] = round(np.mean(compare_dic[i][j][k]), 2)
-#             compare_dic_std[i][j][k] = round(np.std(compare_dic[i][j][k]), 2)
+    from sklearn.model_selection import train_test_split
+    y_lst = ts_peter.ts_class_median['Win'].tolist()
+    x_train, x_test, y_train, y_test = train_test_split(np.array(peter_df), np.array(y_lst), test_size=0.20, random_state=1)
+
+    X_train = torch.from_numpy(x_train.to_numpy()).float()
+    y_train = torch.squeeze(torch.from_numpy(y_train.to_numpy()).float())
+    X_test = torch.from_numpy(x_test.to_numpy()).float()
+    y_test = torch.squeeze(torch.from_numpy(y_test.to_numpy()).float())
+    # x_train = x_train.reshape(-1, x_train.shape[1]).astype('float32')
+    # x_test = x_test.reshape(-1, x_test.shape[1]).astype('float32')
+    # x_train.shape, y_train.shape, x_test.shape, y_test.shape
+    # x_test = torch.from_numpy(x_test)
+    # y_test = torch.from_numpy(y_test)
+
+    class Data(Dataset):
+        def __init__(self, x_data, y_data):
+            self.x = torch.tensor(x_data, dtype=torch.float32)
+            self.y = torch.tensor(y_data, dtype=torch.float32)
+            self.len = self.x.shape[0]
+
+        def __getitem__(self, index):
+            return self.x[index], self.y[index]
+
+        def __len__(self):
+            return self.len
+
+    train_set = Data(x_data=x_train, y_data=y_train)
+    test_set = Data(x_data=x_test, y_data=y_test)
+    trainloader = DataLoader(dataset=train_set, batch_size=50, shuffle=False)
+    testloader = DataLoader(dataset=test_set, batch_size=50)
+
+    input_dim = x_train.shape[1]  # how many Variables are in the dataset
+    hidden_dim = 3  # hidden layers
+    output_dim = 2
+
+    class Net(torch.nn.Module):
+        def __init__(self, input_shape):
+            super().__init__()
+            self.hid1 = torch.nn.Linear(input_shape, input_shape * 2)
+            self.hid2 = torch.nn.Linear(input_shape * 2, input_shape * 2)
+            self.oupt = torch.nn.Linear(input_shape * 2, 1)
+
+            torch.nn.init.xavier_uniform_(self.hid1.weight)
+            torch.nn.init.zeros_(self.hid1.bias)
+            torch.nn.init.xavier_uniform_(self.hid2.weight)
+            torch.nn.init.zeros_(self.hid2.bias)
+            torch.nn.init.xavier_uniform_(self.oupt.weight)
+            torch.nn.init.zeros_(self.oupt.bias)
+
+        def forward(self, x):
+            z = torch.relu(self.hid1(x))
+            z = torch.relu(self.hid2(z))
+            z = torch.sigmoid(self.oupt(z))
+            return z
+
+    # torch.cuda.get_device_name(0)
+    # device = torch.device("cuda")
+    # net = Net().to(device)
+    net = Net(input_shape=input_dim)
+    # criterion = nn.CrossEntropyLoss()
+    n_epochs = 100
+    learning_rate = 0.01
+    criterion = nn.BCELoss()
+    # optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
+    optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate)
+
+

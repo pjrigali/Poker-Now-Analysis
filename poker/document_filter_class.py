@@ -142,14 +142,14 @@ class DocumentFilter:
             for key, val in dic.items():
                 dic[key] = [val[ind] for ind in final_ind]
 
-        temp_class_bool = False
+        temp_class_bool_player = False
         if self._class_lst is not None and 'Player Stacks' not in self._class_lst:
-            temp_class_bool = True
+            temp_class_bool_player = True
         elif self._class_lst is None:
-            temp_class_bool = True
+            temp_class_bool_player = True
 
         final_df = pd.DataFrame(dic).drop_duplicates('Time', keep='first').sort_values('Time', ascending=True).reset_index(drop=True)
-        if 'Player Index' in final_df.columns and temp_class_bool is True:
+        if 'Player Index' in final_df.columns and temp_class_bool_player is True:
             psc, pcc = [], []
             for ind, row in final_df.iterrows():
                 if ind == 0:
@@ -170,8 +170,25 @@ class DocumentFilter:
             final_df['Player Starting Chips'], final_df['Player Current Chips'] = psc, pcc
         final_df['Seconds'] = [(row['Time'] - row['Previous Time']).total_seconds() for ind, row in final_df.iterrows()]
         final_df['Seconds into Hand'] = [(row['Time'] - row['Start Time']).total_seconds() for ind, row in final_df.iterrows()]
+
+        if 'Class' in final_df.columns and 'Start Time' in final_df.columns:
+            pos_dic = {'Pre Flop': 1, 'Post Flop': 2, 'Post Turn': 3, 'Post River': 4, 'None': 5}
+            start_lst = final_df['Start Time'].tolist()
+            pos_lst = final_df['Position'].tolist()
+            f_dic = dict(zip(final_df[final_df['Class'] == 'Folds']['Start Time'].tolist(),
+                             final_df[final_df['Class'] == 'Folds']['Position'].tolist()))
+            st_f_dic = {i: True for i in f_dic.keys()}
+            f_p_lst = [f_dic[item] if item in st_f_dic else 'None' for ind, item in enumerate(start_lst)]
+            fold_next_lst = []
+            for ind, item in enumerate(pos_lst):
+                if pos_dic[item] + 1 == pos_dic[f_p_lst[ind]] and start_lst[ind] in st_f_dic:
+                    fold_next_lst.append(1)
+                else:
+                    fold_next_lst.append(0)
+            final_df['Fold Next Position'] = fold_next_lst
+            final_df['Fold Position'] = f_p_lst
+
         self._df = final_df
-        # self._df = pd.DataFrame(dic).drop_duplicates('Time', keep='first').sort_values('Time', ascending=True).reset_index(drop=True)
 
     def __repr__(self):
         return "DocumentFilter"
