@@ -601,7 +601,7 @@ def native_percentile(data: Union[list, np.ndarray, pd.Series], q: float) -> Uni
     ind = round_to(data=len(data) * q, val=1)
     data.sort()
     for item in data:
-        if item >= ind:
+        if item >= data[ind]:
             break
     if data_type:
         return item / 1000
