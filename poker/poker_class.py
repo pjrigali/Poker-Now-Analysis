@@ -261,53 +261,27 @@ class Poker:
         The grouped stats are only taken into account within this class
 
     """
-    def __init__(self, repo_location: str, grouped: Optional[list] = None, money_multi: Optional[int] = 100):
-        self._repo_location = repo_location
 
-        self._grouped = None
-        if grouped:
-            self._grouped = grouped
+    __slots__ = ('repo_location', 'grouped', 'files', 'matches', 'player_money_df', 'card_distribution',
+                 'winning_hand_dist', 'players')
+
+    def __init__(self, repo_location: str, grouped: Optional[list] = None, money_multi: Optional[int] = 100):
+        self.repo_location = repo_location
+
+        self.grouped = None
+        if grouped is not None:
+            self.grouped = grouped
 
         x = _poker_collect_data(repo_location=repo_location)
-        self._files = list(x.keys())
+        self.files = tuple(x.keys())
         players_data = {}
-        self._matches = {file: Game(hand_lst=x[file], file_id=file, players_data=players_data) for file in self._files}
-        player_dic = _poker_build_player_dic(data=players_data, matches=list(self._matches.values()))
-        self._player_money_df = _poker_group_money(data=player_dic, grouped=self._grouped, multi=money_multi)
-        self._card_distribution, self._winning_hand_dist = _poker_get_dist(matches=list(self._matches.values()))
-        _poker_build_players(data=players_data, money_df=self._player_money_df)
-        self._players = _poker_combine_dic(data=players_data, grouped=self._grouped)
-        _poker_add_merged_moves(player_dic=self._players)
+        self.matches = {file: Game(hand_lst=x[file], file_id=file, players_data=players_data) for file in self.files}
+        player_dic = _poker_build_player_dic(data=players_data, matches=list(self.matches.values()))
+        self.player_money_df = _poker_group_money(data=player_dic, grouped=self.grouped, multi=money_multi)
+        self.card_distribution, self.winning_hand_dist = _poker_get_dist(matches=list(self.matches.values()))
+        _poker_build_players(data=players_data, money_df=self.player_money_df)
+        self.players = _poker_combine_dic(data=players_data, grouped=self.grouped)
+        _poker_add_merged_moves(player_dic=self.players)
 
     def __repr__(self):
         return "Poker"
-
-    @property
-    def files(self) -> List[str]:
-        """Returns list of data files"""
-        return self._files
-
-    @property
-    def matches(self) -> dict:
-        """Returns list of games"""
-        return self._matches
-
-    @property
-    def players_money_overview(self) -> pd.DataFrame:
-        """Returns summary info for each player across games"""
-        return self._player_money_df
-
-    @property
-    def card_distribution(self) -> pd.DataFrame:
-        """Returns count and percent for each card that showed up across games"""
-        return self._card_distribution
-
-    @property
-    def winning_hand_distribution(self) -> pd.DataFrame:
-        """Returns count and percent of each type of winning hand across games"""
-        return self._winning_hand_dist
-
-    @property
-    def players_history(self) -> dict:
-        """Collects player stats for all matches and groups based on grouper input"""
-        return self._players

@@ -42,20 +42,23 @@ def _game_line_to_df(line_lst: list) -> pd.DataFrame:
         if line.player_index in line.winner:
             temp_win = True
         if type(line) in [Raises, PlayerStacks, SmallBlind, BigBlind, Wins]:
-            lst.append({'Player Index': line.player_index, 'Player Name': line.player_name, 'Bet Amount': line.stack, 'Cards': line.cards,
-                        'Position': line.position, 'Round': line.current_round, 'Player Starting Chips': line.starting_chips, 'Player Current Chips': line.current_chips,
+            lst.append({'Player Index': line.player_index, 'Player Name': line.player_name, 'Bet Amount': line.stack,
+                        'Cards': line.cards, 'Position': line.position, 'Round': line.current_round,
+                        'Player Starting Chips': line.starting_chips, 'Player Current Chips': line.current_chips,
                         'Class': repr(line), 'Winner': line.winner, 'Win': temp_win, 'Win Stack': line.win_stack,
                         'Win Hand': line.winning_hand, 'All In': line.all_in, 'Pot Size': line.pot_size,
                         'Remaining Players': line.remaining_players, 'From Person': line.action_from_player,
-                        'Game Id': line.game_id, 'Time': line.time, 'Previous Time': line.previous_time, 'Start Time': line.start_time, 'End Time': line.end_time})
+                        'Game Id': line.game_id, 'Time': line.time, 'Previous Time': line.previous_time,
+                        'Start Time': line.start_time, 'End Time': line.end_time})
         else:
             lst.append({'Player Index': line.player_index, 'Player Name': line.player_name, 'Cards': line.cards,
-                        'Bet Amount': line.action_amount, 'Position': line.position, 'Round': line.current_round, 'Player Starting Chips': line.starting_chips,
-                        'Player Current Chips': line.current_chips, 'Class': repr(line), 'Winner': line.winner, 'Win': temp_win,
-                        'Win Stack': line.win_stack, 'Win Hand': line.winning_hand, 'All In': line.all_in,
-                        'Pot Size': line.pot_size, 'Remaining Players': line.remaining_players,
-                        'From Person': line.action_from_player, 'Game Id': line.game_id, 'Time': line.time,
-                        'Previous Time': line.previous_time, 'Start Time': line.start_time, 'End Time': line.end_time})
+                        'Bet Amount': line.action_amount, 'Position': line.position, 'Round': line.current_round,
+                        'Player Starting Chips': line.starting_chips, 'Player Current Chips': line.current_chips,
+                        'Class': repr(line), 'Winner': line.winner, 'Win': temp_win, 'Win Stack': line.win_stack,
+                        'Win Hand': line.winning_hand, 'All In': line.all_in, 'Pot Size': line.pot_size,
+                        'Remaining Players': line.remaining_players, 'From Person': line.action_from_player,
+                        'Game Id': line.game_id, 'Time': line.time, 'Previous Time': line.previous_time,
+                        'Start Time': line.start_time, 'End Time': line.end_time})
     return pd.DataFrame(lst)
 
 
@@ -133,44 +136,18 @@ class Game:
     :note: This class is intended to be used internally.
 
     """
+
+    __slots__ = ('file_name', 'hand_lst', 'card_distribution', 'winning_hand_distribution', 'players_data',
+                 'game_stats')
+
     def __init__(self, hand_lst: List[dict], file_id: str, players_data: dict):
-        self._file_id = file_id
+        self.file_name = file_id
         player_dic = {}
-        self._parsed_hands = [Hand(lst_hand_objects=hand, file_id=file_id, player_dic=player_dic) for hand in hand_lst]
-        self._players_data = _game_build_players_data(player_dic=player_dic, players_data=players_data, file_id=file_id)
-        self._card_dist = _game_count_cards(dic=player_dic)
-        self._winning_hand_dist = unique_values(data=player_dic['Win']['Hands'], count=True)
-        self._game_stats = _game_game_stats(hand_lst=self._parsed_hands)
+        self.hand_lst = [Hand(lst_hand_objects=h, file_id=file_id, player_dic=player_dic) for h in hand_lst]
+        self.players_data = _game_build_players_data(player_dic=player_dic, players_data=players_data, file_id=file_id)
+        self.card_distribution = _game_count_cards(dic=player_dic)
+        self.winning_hand_distribution = unique_values(data=player_dic['Win']['Hands'], count=True)
+        self.game_stats = _game_game_stats(hand_lst=self.hand_lst)
 
     def __repr__(self):
-        return self._file_id
-
-    @property
-    def file_name(self) -> str:
-        """Returns name of data file"""
-        return self._file_id
-
-    @property
-    def hands_lst(self) -> List[Hand]:
-        """Returns list of hands in the game"""
-        return self._parsed_hands
-
-    @property
-    def card_distribution(self) -> dict:
-        """Returns count of each card that showed up"""
-        return self._card_dist
-
-    @property
-    def winning_hand_distribution(self) -> dict:
-        """Returns count of winning hands"""
-        return self._winning_hand_dist
-
-    @property
-    def players_data(self) -> dict:
-        """Returns Player stats for players across hands"""
-        return self._players_data
-
-    @property
-    def game_stats(self) -> dict:
-        """Returns Mean stats for Game across hands"""
-        return self._game_stats
+        return self.file_name
