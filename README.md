@@ -25,14 +25,18 @@ repo = '\\location of past Data folder'
 
 # Manual grouping. When same players, play from different devices, they will get a different unique ID.
 # This will group the players. 
-grouped = [['YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS'],
-           ['1_FRcDzJU-', 'ofZ3AjBJdl', 'yUaYOqMtWh', 'EIxKLHzvif'],
-           ['3fuMmmzEQ-', 'LRdO6bTCRh', '9fNOKzXJkb'],
-           ['FZayb4wOU1', '66rXA9g5yF', 'rM6qlbc77h', 'fy6-0HLhb_'],
-           ['48QVRRsiae', 'u8_FUbXpAz'],
-           ['Aeydg8fuEg', 'yoohsUunIZ'],
-           ['mUwL4cyOAC', 'zGv-6DI_aJ'],
-           ]
+grouped = {'Flynn': ('YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS', 'AAVEC4azwk'),
+           'Mike': ('1_FRcDzJU-', 'ofZ3AjBJdl', 'yUaYOqMtWh', 'EIxKLHzvif'),
+           'Johnny': ('3fuMmmzEQ-', 'LRdO6bTCRh', '9fNOKzXJkb', '88zR6gcIvD'),
+           'Robby': ('FZayb4wOU1', '66rXA9g5yF', 'rM6qlbc77h', 'fy6-0HLhb_'),
+           'Carter': ('48QVRRsiae', 'u8_FUbXpAz'),
+           'Pfanz': ['Aeydg8fuEg', 'yoohsUunIZ'],
+           'Yuri': ('mUwL4cyOAC', 'zGv-6DI_aJ'),
+           'Brian': ('FgmbZrCA9u', 'K7wE-uWJaj', 'kNiVoJP5Ym', 'welPeANz41'),
+           'Henry': ('HiZcYKvbcw', 'GXxPFeJI6u'),
+           'Peter': ('mQWfGaGPXE', 'ijDyevyKYD', 'Jf-Q4OmfIt'),
+           'Kaz': ('e_guu9eD6Q', '4pYZ-YdlJa'),
+           }
 
 poker = Poker(repo_location=repo, grouped=grouped)
 ```
