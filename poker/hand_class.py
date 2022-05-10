@@ -91,7 +91,7 @@ class Hand:
         winner_hand = None
         winner_stack = 0
         for line in self.parsed_hand:
-            if type(line) == Wins:
+            if isinstance(line, Wins):
                 winner_lst.append(line.player_index)
                 if line.winning_hand is not None:
                     winner_hand = line.winning_hand
@@ -101,64 +101,30 @@ class Hand:
             self.win_stack = winner_stack
 
         for line in self.parsed_hand:
-            line.start_time = self.start_time
-            line.end_time = self.end_time
-            line_type = type(line)
+            # line.start_time = self.start_time
+            # line.end_time = self.end_time
             self.pot_size_lst.append(line.pot_size)
             line.winner = winner_lst
             line.winning_hand = winner_hand
             line.win_stack = winner_stack
-            if line_type == SmallBlind:
-                self.small_blind = line
-                _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
-                continue
-            elif line_type == BigBlind:
-                self.big_blind = line
-                _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
-                continue
-            elif line_type == Wins:
-                _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
-                if line.cards is not None:
-                    line.cards = list(line.cards)
-                    _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards',
-                                     player_index=line.player_index)
-                    _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='Win')
-                _hand_add_to_dic(item=line.winning_hand, player_dic=player_dic, location='Hands',
-                                 player_index=line.player_index)
-                _hand_add_to_dic(item=line.winning_hand, player_dic=player_dic, location='Hands', player_index='Win')
-                winner_line_lst.append(line)
-                continue
-            elif line_type == PlayerStacks:
-                self.starting_players = dict(zip(line.player_index, line.player_name))
-                self.starting_player_chips = dict(zip(line.player_index, line.starting_chips))
-                self.chips_on_board = sum(line.starting_chips)
-                self.gini_coef = calc_gini(data=line.starting_chips)
+            if isinstance(line, (Flop, Turn, River, MyCards)):
+                if isinstance(line, Flop):
+                    self.flop_cards = line
+                    _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='Flop')
+                elif isinstance(line, Turn):
+                    self.turn_card = line
+                    _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='Turn')
+                elif isinstance(line, River):
+                    self.river_card = line
+                    _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='River')
+                elif isinstance(line, MyCards):
+                    self.my_cards = line
+                    _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='My Cards')
+                    continue
                 for player in self.starting_players.keys():
                     _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=player)
                 continue
-            elif line_type == Flop:
-                self.flop_cards = line
-                _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='Flop')
-                for player in self.starting_players.keys():
-                    _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=player)
-                continue
-            elif line_type == Turn:
-                self.turn_card = line
-                _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='Turn')
-                for player in self.starting_players.keys():
-                    _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=player)
-                continue
-            elif line_type == River:
-                self.river_card = line
-                _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='River')
-                for player in self.starting_players.keys():
-                    _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=player)
-                continue
-            elif line_type == MyCards:
-                self.my_cards = line
-                _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='My Cards')
-                continue
-            elif line_type == Undealt:
+            elif isinstance(line, Undealt):
                 if len(line.cards) == 1:
                     river_val = line.cards[0]
                     if self.river_card is None:
@@ -205,35 +171,40 @@ class Hand:
                         self.river_card.cards = river_val
                         self.parsed_hand.append(self.river_card)
                 continue
-            elif line_type == Raises:
-                self.bet_lst.append(line.stack)
-                _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
-                continue
-            elif line_type == Calls:
-                _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
-                continue
-            elif line_type == Folds:
-                _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
-                continue
-            elif line_type == StandsUp:
-                _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
-                continue
-            elif line_type == Quits:
-                _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
-                continue
-            elif line_type in [SitsIn, Shows, Approved, Checks]:
-                _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
+            elif isinstance(line, (SitsIn, Shows, Approved, Checks, Calls, Folds, StandsUp, Quits, Raises, SmallBlind, BigBlind, PlayerStacks, Wins)):
+                if isinstance(line, Raises):
+                    self.bet_lst.append(line.stack)
+                elif isinstance(line, SmallBlind):
+                    self.small_blind = line
+                elif isinstance(line, BigBlind):
+                    self.big_blind = line
+                elif isinstance(line, Wins):
+                    if line.cards is not None:
+                        line.cards = list(line.cards)
+                        _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index=line.player_index)
+                        _hand_add_to_dic(item=line.cards, player_dic=player_dic, location='Cards', player_index='Win')
+                    _hand_add_to_dic(item=line.winning_hand, player_dic=player_dic, location='Hands', player_index=line.player_index)
+                    _hand_add_to_dic(item=line.winning_hand, player_dic=player_dic, location='Hands', player_index='Win')
+                    winner_line_lst.append(line)
+                    continue
+                if isinstance(line, PlayerStacks):
+                    self.starting_players = dict(zip(line.player_index, line.player_name))
+                    self.starting_player_chips = dict(zip(line.player_index, line.starting_chips))
+                    self.chips_on_board = sum(line.starting_chips)
+                    self.gini_coef = calc_gini(data=line.starting_chips)
+                    for player in self.starting_players.keys():
+                        _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=player)
+                else:
+                    _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=line.player_index)
                 continue
 
         for winner in winner_line_lst:
             if winner.cards is None:
-                for temp_line in self.parsed_hand:
-                    if type(temp_line) == Shows and temp_line.player_index == winner.player_index:
-                        winner.cards = temp_line.cards
-                        _hand_add_to_dic(item=temp_line.cards, player_dic=player_dic, location='Cards',
-                                         player_index='Win')
-                        _hand_add_to_dic(item=temp_line.cards, player_dic=player_dic, location='Cards',
-                                         player_index=temp_line.player_index)
+                for t_line in self.parsed_hand:
+                    if isinstance(t_line, Shows) and t_line.player_index == winner.player_index:
+                        winner.cards = t_line.cards
+                        _hand_add_to_dic(item=t_line.cards, player_dic=player_dic, location='Cards', player_index='Win')
+                        _hand_add_to_dic(item=t_line.cards, player_dic=player_dic, location='Cards', player_index=t_line.player_index)
                         break
         self.winner = winner_lst
         self.players = player_dic

@@ -3,46 +3,56 @@ from dataclasses import dataclass
 import pandas as pd
 import datetime
 from os import walk
+import csv
 from poker.base import flatten, unique_values, round_to, native_max
 from poker.game_class import Game
 
 
-def _poker_convert_shape(data: List[str]) -> list:
-    """Converts card icons into shapes"""
-    return [row.replace("â£", " Clubs").replace("â¦", " Diamonds").replace("â¥", " Hearts").replace("â", " Spades") for row in data]
+# def _poker_convert_shape(data: List[str]) -> list:
+#     """Converts card icons into shapes"""
+#     return [row.replace("â£", " Clubs").replace("â¦", " Diamonds").replace("â¥", " Hearts").replace("â", " Spades") for row in data]
+#
+#
+# def _poker_convert_timestamp(data: List[str]) -> list:
+#     """Converts strs to timestamps"""
+#     return [datetime.datetime.strptime(i.replace('T', ' ').split('.')[0], '%Y-%m-%d %H:%M:%S') for i in data]
 
 
-def _poker_convert_timestamp(data: List[str]) -> list:
-    """Converts strs to timestamps"""
-    return [datetime.datetime.strptime(i.replace('T', ' ').split('.')[0], '%Y-%m-%d %H:%M:%S') for i in data]
+def _convert(data: List[str], dic: dict):
+    dic['Event'].append(data[0].replace("â£", " Clubs").replace("â¦", " Diamonds").replace("â¥", " Hearts").replace("â", " Spades"))
+    dic['Time'].append(datetime.datetime.strptime(data[1].replace('T', ' ').split('.')[0], '%Y-%m-%d %H:%M:%S'))
+
+
+def rev(lst: list) -> list:
+    lst.reverse()
+    return lst
+
+
+def _get_rows(file: str) -> dict:
+    dic = {'Event': [], 'Time': []}
+    with open(file, 'r', encoding='latin1') as file:
+        my_reader = csv.reader(file, delimiter=',')
+        for ind, row in enumerate(my_reader):
+            if ind > 0:
+                _convert(data=row, dic=dic)
+    dic['Event'], dic['Time'] = rev(dic['Event']), rev(dic['Time'])
+    return dic
 
 
 def _poker_collect_data(repo_location: str) -> dict:
     """Open file, clean data and return a dict"""
-    files = next(walk(repo_location))[2]
-    file_dic = {}
+    files, file_dic = next(walk(repo_location))[2], {}
     for file in files:
-        df = pd.read_csv(repo_location + file, encoding='latin1')
-        time_lst = _poker_convert_timestamp(data=df['at'].tolist())
-        entry_lst = _poker_convert_shape(data=df['entry'].tolist())
-        time_lst.reverse()
-        entry_lst.reverse()
-        hands, hand_lst = [], []
-        for ind, item in enumerate(entry_lst):
-            if ' starting hand ' in item:
-                if ' hand #1 ' in item:
-                    hands.append(hand_lst)
-                hand_lst = [ind]
-                hands.append(hand_lst)
+        temp, v, t, d = [], [], [], _get_rows(file=repo_location + file)
+        for ind, val in enumerate(d['Event']):
+            if ' starting hand ' in val:
+                if ' hand #1 ' in val:
+                    temp.append({'lines': v, 'times': t})
+                v, t = [val], [d['Time'][ind]]
+                temp.append({'lines': v, 'times': t})
             else:
-                hand_lst.append(ind)
-        hand_dic = []
-        for hand in hands:
-            temp_entry_lst, temp_time_lst = [], []
-            for ind in hand:
-                temp_entry_lst.append(entry_lst[ind]), temp_time_lst.append(time_lst[ind])
-            hand_dic.append({'lines': temp_entry_lst, 'times': temp_time_lst})
-        file_dic[file.split(".")[0]] = hand_dic
+                v.append(val), t.append(d['Time'][ind])
+        file_dic[file.split(".")[0]] = temp
     return file_dic
 
 
@@ -74,41 +84,43 @@ def _poker_build_player_dic(data: dict, matches: list) -> dict:
     return player_dic
 
 
-def _poker_group_money(data: dict, grouped: Union[list, None], multi: Union[int, None]) -> pd.DataFrame:
+def _poker_group_money(data: dict, grouped: Optional[Union[list, dict]] = None, multi: int = None) -> pd.DataFrame:
     """Groups players by id and tally's earnings"""
-    data = pd.DataFrame.from_dict(data, orient='index')
+    data, g = pd.DataFrame.from_dict(data, orient='index'), tuple(grouped.values())
+    g_unique, all_ids = {k: True for i in g for k in i}, tuple(unique_values(data=list(data.index)))
     if grouped is not None:
         final_lst = []
-        for ind_group in grouped:
-            temp_df = data.loc[ind_group]
-            temp_dic = {}
-            for col in temp_df.columns:
+        for player_id in all_ids:
+            if player_id in g_unique:
+                for key, val in grouped.items():
+                    if player_id in {i: True for i in val}:
+                        ind_group = list(grouped[key])
+                        break
+
+            else:
+                ind_group = player_id
+
+        # for ind_group in g:
+            temp_df, temp_dic = data.loc[ind_group], {}
+            if isinstance(temp_df, pd.DataFrame):
+                col_lst = tuple(temp_df.columns)
+            else:
+                col_lst = tuple(temp_df.index)
+            for col in col_lst:
                 if col in ['Player Names', 'Player Ids', 'Games']:
                     vals = []
-                    for item in list(temp_df[col]):
-                        if type(item) == list:
-                            vals.append(item)
-                        elif type(item) == str:
-                            vals.append([item])
+                    for i in tuple(temp_df[col]):
+                        if isinstance(i, list):
+                            vals.append(i)
+                        elif isinstance(i, str):
+                            vals.append([i])
                     temp_dic[col] = unique_values(data=flatten(data=vals))
                 else:
-                    temp_dic[col] = sum(temp_df[col].tolist())
-            final_lst.append(temp_dic)
-
-        grouped_lst = flatten(data=grouped)
-        for ind in list(data.index):
-            if ind not in grouped_lst:
-                temp_dic = {}
-                for col in data.columns:
-                    val = data.loc[ind][col]
-                    if col in ['Player Names', 'Player Ids', 'Games']:
-                        if type(val) == list:
-                            temp_dic[col] = val
-                        elif type(val) == str:
-                            temp_dic[col] = [val]
+                    if isinstance(temp_df, pd.DataFrame):
+                        temp_dic[col] = sum(temp_df[col])
                     else:
-                        temp_dic[col] = int(val)
-                final_lst.append(temp_dic)
+                        temp_dic[col] = temp_df[col]
+            final_lst.append(temp_dic)
         final_df = pd.DataFrame(final_lst).set_index('Player Ids', drop=False)
     else:
         final_df = data
@@ -118,14 +130,19 @@ def _poker_group_money(data: dict, grouped: Union[list, None], multi: Union[int,
         final_df['Buy in Total'] = (final_df['Buy in Total'] / 100).astype(int)
         final_df['Leave Table Amount'] = (final_df['Leave Table Amount'] / 100).astype(int)
         final_df['Profit'] = (final_df['Profit'] / 100).astype(int)
-    return final_df.sort_values('Profit', ascending=False).reset_index(drop=True)
+    final_df['str'] = [str(i) for i in final_df['Player Names']]
+    final_df = final_df.sort_values('Profit', ascending=False).drop_duplicates('str')[['Player Names', 'Player Ids',
+                                                                                       'Buy in Total', 'Loss Count',
+                                                                                       'Leave Table Amount', 'Profit',
+                                                                                       'Game Count',  'Games']]
+    return final_df.reset_index(drop=True)
 
 
 def _poker_get_dist(matches: list) -> List[pd.DataFrame]:
     """Calculate distributions"""
     hand_ind = unique_values(data=flatten(data=[list(match.winning_hand_distribution.keys()) for match in matches]))
     hand_dic = {item: 0 for item in hand_ind}
-    card_dic = {item: {} for item in ['Flop Count', 'Turn Count', 'River Count', 'Win Count', 'My Cards Count']}
+    card_dic = {item: {} for item in ('Flop Count', 'Turn Count', 'River Count', 'Win Count', 'My Cards Count')}
     for match in matches:
         for key, val in match.winning_hand_distribution.items():
             hand_dic[key] += val
@@ -137,17 +154,14 @@ def _poker_get_dist(matches: list) -> List[pd.DataFrame]:
                     else:
                         card_dic[item][key] = val
 
-    card_distribution = pd.DataFrame.from_dict(card_dic).dropna()
-    for col in card_distribution.columns:
-        s = sum(card_distribution[col].tolist())
-        arr = round_to(data=[val / s if val != 0 else 0 for val in card_distribution[col]], val=1000, remainder=True)
-        card_distribution[col.replace("Count", "Percent")] = arr
+    c_dist = pd.DataFrame.from_dict(card_dic).dropna()
+    for col in c_dist.columns:
+        s = sum(c_dist[col].tolist())
+        c_dist[col.replace("Count", "Percent")] = round_to(data=[val / s if val != 0 else 0 for val in c_dist[col]], val=1000, remainder=True)
 
-    winning_hand_dist = pd.DataFrame.from_dict(hand_dic,
-                                               orient='index',
-                                               columns=['Count']).sort_values('Count', ascending=False)
-    winning_hand_dist['Percent'] = (winning_hand_dist / winning_hand_dist.sum()).round(3)
-    return [card_distribution, winning_hand_dist]
+    w_dist = pd.DataFrame.from_dict(hand_dic, orient='index', columns=['Count']).sort_values('Count', ascending=False)
+    w_dist['Percent'] = (w_dist / w_dist.sum()).round(3)
+    return [c_dist, w_dist]
 
 
 def _poker_build_players(data: dict, money_df: pd.DataFrame) -> None:
@@ -182,32 +196,33 @@ def _poker_build_players(data: dict, money_df: pd.DataFrame) -> None:
             val1.all_in = [key2, list(val2[val2['All In'] == True]['Bet Amount'])]
 
 
-def _poker_combine_dic(data: dict, grouped: list) -> dict:
+def _poker_combine_dic(data: dict, grouped: Union[list, dict]) -> dict:
     """Setter function"""
-    completed_lst = []
-    completed_dic = {}
-    for key1, val in data.items():
-        for gr in grouped:
-            if key1 in gr and key1 not in completed_lst:
-                completed_lst += gr
-                for key2 in gr:
-                    if key2 != key1:
-                        for key3 in data[key2].win_percent.keys():
-                            data[key1].win_percent = [key3, data[key2].win_percent[key3]]
-                            data[key1].win_count = [key3, data[key2].win_count[key3]]
-                            data[key1].largest_win = [key3, data[key2].largest_win[key3]]
-                            data[key1].largest_loss = [key3, data[key2].largest_loss[key3]]
-                            data[key1].hand_count = [key3, data[key2].hand_count[key3]]
-                            data[key1].all_in = [key3, data[key2].all_in[key3]]
-                            data[key1].player_money_info = [key3, data[key2].player_money_info[key3]]
-                            data[key1].hand_dic = [key3, data[key2].hand_dic[key3]]
-                            data[key1].card_dic = [key3, data[key2].card_dic[key3]]
-                            data[key1].line_dic = [key3, data[key2].line_dic[key3]]
-                            data[key1].moves_dic = [key3, data[key2].moves_dic[key3]]
-                    completed_dic[key1] = data[key1]
-        if key1 not in flatten(data=grouped):
-            completed_dic[key1] = data[key1]
-    return completed_dic
+    c_dic, dic, n_dic = {}, {}, {}
+    for key, val in grouped.items():
+        val = {i: True for i in val}
+        for key1, val1 in data.items():
+            if key1 in val and key1 not in c_dic:
+                c_dic[key1] = True
+                if key not in n_dic:
+                    n_dic[key], dic[key] = True, data[key1]
+                else:
+                    for match in data[key1].win_percent.keys():
+                        dic[key].win_percent = [match, data[key1].win_percent[match]]
+                        dic[key].win_count = [match, data[key1].win_count[match]]
+                        dic[key].largest_win = [match, data[key1].largest_win[match]]
+                        dic[key].largest_loss = [match, data[key1].largest_loss[match]]
+                        dic[key].hand_count = [match, data[key1].hand_count[match]]
+                        dic[key].all_in = [match, data[key1].all_in[match]]
+                        dic[key].player_money_info = [match, data[key1].player_money_info[match]]
+                        dic[key].hand_dic = [match, data[key1].hand_dic[match]]
+                        dic[key].card_dic = [match, data[key1].card_dic[match]]
+                        dic[key].line_dic = [match, data[key1].line_dic[match]]
+                        dic[key].moves_dic = [match, data[key1].moves_dic[match]]
+    for key, val in data.items():
+        if key not in c_dic:
+            c_dic[key], dic[key] = True, data[key]
+    return dic
 
 
 def _poker_add_merged_moves(player_dic: dict):
@@ -248,7 +263,7 @@ class Poker:
     :param repo_location: Location of data folder.
     :type repo_location: str
     :param grouped: List of lists, filled with unique player Ids that are related to the same person. *Optional*
-    :type grouped: str
+    :type grouped: Union[list, dict]
     :param money_multi: Multiple to divide the money amounts to translate them to dollars *Optional*
     :type money_multi: int
     :example:
@@ -262,25 +277,20 @@ class Poker:
 
     """
 
-    __slots__ = ('repo_location', 'grouped', 'files', 'matches', 'player_money_df', 'card_distribution',
-                 'winning_hand_dist', 'players')
+    __slots__ = ('repo_location', 'files', 'matches', 'player_money_df', 'card_distribution', 'winning_hand_dist',
+                 'players')
 
-    def __init__(self, repo_location: str, grouped: Optional[list] = None, money_multi: Optional[int] = 100):
+    def __init__(self, repo_location: str, grouped: Optional[Union[list, dict]] = None, money_multi: int = 100):
         self.repo_location = repo_location
-
-        self.grouped = None
-        if grouped is not None:
-            self.grouped = grouped
-
         x = _poker_collect_data(repo_location=repo_location)
         self.files = tuple(x.keys())
         players_data = {}
         self.matches = {file: Game(hand_lst=x[file], file_id=file, players_data=players_data) for file in self.files}
         player_dic = _poker_build_player_dic(data=players_data, matches=list(self.matches.values()))
-        self.player_money_df = _poker_group_money(data=player_dic, grouped=self.grouped, multi=money_multi)
+        self.player_money_df = _poker_group_money(data=player_dic, grouped=grouped, multi=money_multi)
         self.card_distribution, self.winning_hand_dist = _poker_get_dist(matches=list(self.matches.values()))
         _poker_build_players(data=players_data, money_df=self.player_money_df)
-        self.players = _poker_combine_dic(data=players_data, grouped=self.grouped)
+        self.players = _poker_combine_dic(data=players_data, grouped=grouped)
         _poker_add_merged_moves(player_dic=self.players)
 
     def __repr__(self):

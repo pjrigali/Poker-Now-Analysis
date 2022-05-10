@@ -11,25 +11,24 @@ pd.set_option('use_inf_as_na', True)
 
 def _game_calc_money(lst: list, ind: str) -> pd.DataFrame:
     """Returns a dataframe recording player action related to money on the table for a game."""
-    player_money_dic = {'Player Names': [], 'Player Stack': [], 'Player Quits': [], 'Player Stands Up': [],
-                        'Player Sits In': []}
+    dic = {'Player Names': [], 'Player Stack': [], 'Player Quits': [], 'Player Stands Up': [], 'Player Sits In': []}
     for line in lst:
-        if type(line) == Approved:
-            player_money_dic['Player Names'].append(line.player_name)
-            player_money_dic['Player Stack'].append(line.stack)
-        elif type(line) == Quits:
-            player_money_dic['Player Quits'].append(line.stack)
-        elif type(line) == StandsUp:
-            player_money_dic['Player Stands Up'].append(line.stack)
-        elif type(line) == SitsIn:
-            player_money_dic['Player Sits In'].append(line.stack)
+        if isinstance(line, Approved):
+            dic['Player Names'].append(line.player_name)
+            dic['Player Stack'].append(line.stack)
+        elif isinstance(line, Quits):
+            dic['Player Quits'].append(line.stack)
+        elif isinstance(line, StandsUp):
+            dic['Player Stands Up'].append(line.stack)
+        elif isinstance(line, SitsIn):
+            dic['Player Sits In'].append(line.stack)
 
     temp_df = pd.DataFrame(index=[ind])
-    temp_df['Player Names'] = [list(set(player_money_dic['Player Names']))]
-    temp_df['Buy in Total'] = native_sum(data=player_money_dic['Player Stack'])
-    temp_df['Loss Count'] = len(player_money_dic['Player Quits'])
-    temp_df['player stands up sum'] = native_sum(data=player_money_dic['Player Stands Up'])
-    temp_df['player sits in sum'] = native_sum(data=player_money_dic['Player Sits In'])
+    temp_df['Player Names'] = [list(set(dic['Player Names']))]
+    temp_df['Buy in Total'] = native_sum(data=dic['Player Stack'])
+    temp_df['Loss Count'] = len(dic['Player Quits'])
+    temp_df['player stands up sum'] = native_sum(data=dic['Player Stands Up'])
+    temp_df['player sits in sum'] = native_sum(data=dic['Player Sits In'])
     temp_df['Leave Table Amount'] = temp_df['player stands up sum'] - temp_df['player sits in sum']
     return temp_df[['Player Names', 'Buy in Total', 'Loss Count', 'Leave Table Amount']]
 
@@ -41,83 +40,69 @@ def _game_line_to_df(line_lst: list) -> pd.DataFrame:
         temp_win = False
         if line.player_index in line.winner:
             temp_win = True
-        if type(line) in [Raises, PlayerStacks, SmallBlind, BigBlind, Wins]:
-            lst.append({'Player Index': line.player_index, 'Player Name': line.player_name, 'Bet Amount': line.stack,
-                        'Cards': line.cards, 'Position': line.position, 'Round': line.current_round,
-                        'Player Starting Chips': line.starting_chips, 'Player Current Chips': line.current_chips,
-                        'Class': repr(line), 'Winner': line.winner, 'Win': temp_win, 'Win Stack': line.win_stack,
-                        'Win Hand': line.winning_hand, 'All In': line.all_in, 'Pot Size': line.pot_size,
-                        'Remaining Players': line.remaining_players, 'From Person': line.action_from_player,
-                        'Game Id': line.game_id, 'Time': line.time, 'Previous Time': line.previous_time,
-                        'Start Time': line.start_time, 'End Time': line.end_time})
+        dic = {'Player Index': line.player_index, 'Player Name': line.player_name, 'Cards': line.cards,
+               'Position': line.position, 'Round': line.current_round, 'Player Starting Chips': line.starting_chips,
+               'Player Current Chips': line.current_chips, 'Class': repr(line), 'Winner': line.winner, 'Win': temp_win,
+               'Win Stack': line.win_stack, 'Win Hand': line.winning_hand, 'All In': line.all_in,
+               'Pot Size': line.pot_size, 'Remaining Players': line.remaining_players,
+               'From Person': line.action_from_player, 'Game Id': line.game_id, 'Time': line.time,
+               'Previous Time': line.previous_time, 'Start Time': line.start_time, 'End Time': line.end_time}
+        if isinstance(line, (Raises, PlayerStacks, SmallBlind, BigBlind, Wins)):
+            dic['Bet Amount'] = line.stack
         else:
-            lst.append({'Player Index': line.player_index, 'Player Name': line.player_name, 'Cards': line.cards,
-                        'Bet Amount': line.action_amount, 'Position': line.position, 'Round': line.current_round,
-                        'Player Starting Chips': line.starting_chips, 'Player Current Chips': line.current_chips,
-                        'Class': repr(line), 'Winner': line.winner, 'Win': temp_win, 'Win Stack': line.win_stack,
-                        'Win Hand': line.winning_hand, 'All In': line.all_in, 'Pot Size': line.pot_size,
-                        'Remaining Players': line.remaining_players, 'From Person': line.action_from_player,
-                        'Game Id': line.game_id, 'Time': line.time, 'Previous Time': line.previous_time,
-                        'Start Time': line.start_time, 'End Time': line.end_time})
+            dic['Bet Amount'] = line.action_amount
+        lst.append(dic)
     return pd.DataFrame(lst)
 
 
 def _game_build_players_data(player_dic: dict, players_data: dict, file_id: str) -> dict:
     """Updates Player Class"""
-    player_info_dic = {}
+    dic = {}
     for key, val in player_dic.items():
-        if key not in ['Flop', 'Turn', 'River', 'Win', 'My Cards']:
-            player_info_dic[key] = val
-
-    for player_index in player_info_dic.keys():
-        val = _game_calc_money(lst=player_info_dic[player_index]['Lines'], ind=file_id)
-        card_dic = unique_values(data=[item for sublist in player_info_dic[player_index]['Cards'] for item in sublist],
-                                 count=True)
-        card_df = pd.DataFrame.from_dict(card_dic, orient='index', columns=['Count']).fillna(0.0).astype(int)
-        hand_df = pd.DataFrame.from_dict(unique_values(data=player_info_dic[player_index]['Hands'], count=True),
-                                         orient='index',
-                                         columns=['Count']).sort_values('Count', ascending=False)
-        line_dic = player_info_dic[player_index]['Lines']
-        if player_index not in players_data.keys():
-            players_data[player_index] = Player(player_index=player_index)
-        players_data[player_index].line_dic = [file_id, line_dic]
-        players_data[player_index].player_money_info = [file_id, val]
-        players_data[player_index].hand_dic = [file_id, hand_df]
-        players_data[player_index].card_dic = [file_id, card_df]
-        players_data[player_index].moves_dic = [file_id, _game_line_to_df(line_lst=line_dic)]
+        if key not in {'Flop': True, 'Turn': True, 'River': True, 'Win': True, 'My Cards': True}:
+            dic[key] = val
+    t_dic = dict(zip(list(players_data.keys()), [True] * len(list(players_data.keys()))))
+    for p_ind in dic.keys():
+        if p_ind not in t_dic:
+            players_data[p_ind] = Player(player_index=p_ind)
+        players_data[p_ind].line_dic = [file_id, dic[p_ind]['Lines']]
+        players_data[p_ind].player_money_info = [file_id, _game_calc_money(lst=dic[p_ind]['Lines'], ind=file_id)]
+        players_data[p_ind].hand_dic = [file_id, pd.DataFrame.from_dict(unique_values(data=dic[p_ind]['Hands'], count=True), orient='index', columns=['Count']).sort_values('Count', ascending=False)]
+        players_data[p_ind].card_dic = [file_id, pd.DataFrame.from_dict(unique_values(data=[item for sublist in dic[p_ind]['Cards'] for item in sublist], count=True), orient='index', columns=['Count']).fillna(0.0).astype(int)]
+        players_data[p_ind].moves_dic = [file_id, _game_line_to_df(line_lst=dic[p_ind]['Lines'])]
     return players_data
 
 
 def _game_count_cards(dic: dict) -> dict:
     """Counts cards"""
-    card_count_dic = {}
+    n_dic = {}
     for key in dic.keys():
-        if key in ['Flop', 'Turn', 'River', 'Win', 'My Cards']:
-            if key in ['Flop', 'Win', 'My Cards']:
+        if key in {'Flop': True, 'Turn': True, 'River': True, 'Win': True, 'My Cards': True}:
+            if key in {'Flop': True, 'Win': True, 'My Cards': True}:
                 lst = flatten(data=dic[key]['Cards'])
             else:
                 lst = dic[key]['Cards']
-            card_count_dic[key + ' Count'] = unique_values(data=flatten(data=lst), count=True)
-    return card_count_dic
+            n_dic[key + ' Count'] = unique_values(data=flatten(data=lst), count=True)
+    return n_dic
 
 
 def _game_game_stats(hand_lst: list) -> dict:
-    temp_dic = {'Average Hand Time': [], 'Average Win Amount': [], 'Average Bet Size': [], 'Average Pot Size': [],
-                'Average Gini Coef': []}
+    dic = {'Average Hand Time': [], 'Average Win Amount': [], 'Average Bet Size': [], 'Average Pot Size': [],
+           'Average Gini Coef': []}
     for hand in hand_lst:
-        temp_dic['Average Hand Time'].append((hand.end_time - hand.start_time).total_seconds())
-        temp_dic['Average Win Amount'].append(hand.win_stack)
-        temp_dic['Average Bet Size'].append(hand.bet_lst)
-        temp_dic['Average Pot Size'].append(hand.pot_size_lst[-1])
-        temp_dic['Average Gini Coef'].append(hand.gini_coef)
-    for key, val in temp_dic.items():
+        dic['Average Hand Time'].append((hand.end_time - hand.start_time).total_seconds())
+        dic['Average Win Amount'].append(hand.win_stack)
+        dic['Average Bet Size'].append(hand.bet_lst)
+        dic['Average Pot Size'].append(hand.pot_size_lst[-1])
+        dic['Average Gini Coef'].append(hand.gini_coef)
+    for key, val in dic.items():
         if key == 'Average Bet Size':
             val = flatten(data=val, type_used='int')
         if key == 'Average Gini Coef':
-            temp_dic[key] = round_to(data=native_mean(data=val), val=100, remainder=True)
+            dic[key] = round_to(data=native_mean(data=val), val=100, remainder=True)
         else:
-            temp_dic[key] = round_to(data=native_mean(data=val), val=1)
-    return temp_dic
+            dic[key] = round_to(data=native_mean(data=val), val=1)
+    return dic
 
 
 @dataclass
