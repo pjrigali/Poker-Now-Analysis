@@ -31,7 +31,8 @@ def face_card_in_winning_cards(data: DocumentFilter) -> dict:
         Percent one face in Winning Cards = Percent of all wins hand at least a single face card.
 
     """
-    df = data.df.drop_duplicates('Start Time', keep='last').sort_values('Start Time', ascending=True).reset_index(drop=True)
+    df = data.df.drop_duplicates('Start Time', keep='last').sort_values('Start Time',
+                                                                        ascending=True).reset_index(drop=True)
     card_lst = ['None' if item is None else str('_'.join(item)) for item in df['Cards'].tolist()]
     card_dic_lst = []
     for cards in card_lst:
@@ -87,7 +88,8 @@ def longest_streak(data: DocumentFilter) -> pd.DataFrame:
     :note: DocumentFilter requires class_lst=['Wins']
 
     """
-    df = data.df.drop_duplicates('Start Time', keep='last').sort_values('Start Time', ascending=True).reset_index(drop=True)
+    df = data.df.drop_duplicates('Start Time', keep='last').sort_values('Start Time',
+                                                                        ascending=True).reset_index(drop=True)
     winner_lst = [{item: True for item in item_lst} for item_lst in df['Winner'].tolist()]
     unique_players = unique_values(data=df['Player Index'])
     final_dic = {player: 0 for player in unique_players}
@@ -135,7 +137,7 @@ def raise_signal_winning(data: DocumentFilter) -> pd.DataFrame:
     ran = range(len(position_lst))
     temp_lst = [{'Winner': winner_lst[ind], 'Player': player_lst[ind], 'Position': position_lst[ind]} for ind in ran]
     unique_players = unique_values(data=player_lst)
-    temp_dic = {player: {'Pre Flop': {'Win': 0, 'Count': 0}, 'Post Flop': {'Win': 0, 'Count': 0}, 'Post Turn': {'Win': 0, 'Count': 0}, 'Post River': {'Win': 0, 'Count': 0}} for player in unique_players}
+    temp_dic = {p: {'Pre Flop': {'Win': 0, 'Count': 0}, 'Post Flop': {'Win': 0, 'Count': 0}, 'Post Turn': {'Win': 0, 'Count': 0}, 'Post River': {'Win': 0, 'Count': 0}} for p in unique_players}
     for player in unique_players:
         for item in temp_lst:
             pos = item['Position']
@@ -146,7 +148,7 @@ def raise_signal_winning(data: DocumentFilter) -> pd.DataFrame:
             elif player == item['Player'] and player not in item['Winner']:
                 temp_dic[player][pos]['Count'] += 1
 
-    final_dic = {player: {'Pre Flop': 0.0, 'Post Flop': 0.0, 'Post Turn': 0.0, 'Post River': 0.0} for player in unique_players}
+    final_dic = {p: {'Pre Flop': 0.0, 'Post Flop': 0.0, 'Post Turn': 0.0, 'Post River': 0.0} for p in unique_players}
     pos_lst = ['Pre Flop', 'Post Flop', 'Post Turn', 'Post River']
     for player in unique_players:
         for pos in pos_lst:
@@ -188,7 +190,7 @@ def small_or_big_blind_win(data: DocumentFilter) -> pd.DataFrame:
     ran = range(len(class_lst))
     temp_lst = [{'Winner': winner_lst[ind], 'Player': player_lst[ind], 'Class': class_lst[ind]} for ind in ran]
     unique_players = unique_values(data=player_lst)
-    temp_dic = {player: {'Small Blind': {'Win': 0, 'Count': 0}, 'Big Blind': {'Win': 0, 'Count': 0}} for player in unique_players}
+    temp_dic = {p: {'Small Blind': {'Win': 0, 'Count': 0}, 'Big Blind': {'Win': 0, 'Count': 0}} for p in unique_players}
     for player in unique_players:
         for item in temp_lst:
             class_item = item['Class']
@@ -418,7 +420,7 @@ def static_analysis(data: DocumentFilter) -> dict:
                 aph_chips_lst = temp_df.groupby(val1)['Player Current Chips'].mean()
                 aph_per_pot_lst = (aph_bet_lst / (aph_pot_lst - aph_bet_lst)).fillna(0.0)
                 aph_per_curr_lst = (aph_bet_lst / (aph_bet_lst + aph_chips_lst)).fillna(0.0)
-                times_seconds = [(row['End Time'] - row['Start Time']).total_seconds() for ind, row in temp_df.iterrows()]
+                times_seconds = [(row['End Time'] - row['Start Time']).total_seconds() for i, row in temp_df.iterrows()]
 
                 val['Mean'][key1] = {}
                 val['Mean'][key1]['Bet Amount'] = native_mean(data=aph_bet_lst)
@@ -484,7 +486,8 @@ def pressure_or_hold(data: DocumentFilter, bet: int, position: Optional[str] = N
         >>> grouped = [['YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS'],
         >>>            ['48QVRRsiae', 'u8_FUbXpAz']]
         >>> poker = Poker(repo_location=repo, grouped=grouped)
-        >>> pressure_or_hold(data=DocumentFilter(data=poker, player_index_lst=['DZy-22KNBS']), bet=500, position='Pre Flop')
+        >>> pressure_or_hold(data=DocumentFilter(data=poker, player_index_lst=['DZy-22KNBS']),
+        >>>                  bet=500, position='Pre Flop')
     :note: *None*
 
     """
@@ -589,7 +592,8 @@ def ts_analysis(data: DocumentFilter, window: Optional[int] = 5) -> pd.DataFrame
 
     # Bet, Count, and Time Per Position
     temp_df = df[(df['Class'] == 'Calls') | (df['Class'] == 'Raises') | (df['Class'] == 'Checks')]
-    ind_lst = unique_values(data=temp_df['Start Time'].tolist())
+    temp_df = temp_df.sort_values('Time', ascending=True).reset_index(drop=True)
+    ind_lst = unique_values(data=temp_df['Start Time'].tolist(), order=True)
     pos_lst = ['Pre Flop', 'Post Flop', 'Post Turn', 'Post River']
     class_lst, short_class_lst = ['Checks', 'Calls', 'Raises'], ['Calls', 'Raises']
 

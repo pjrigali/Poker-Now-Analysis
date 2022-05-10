@@ -97,13 +97,21 @@ def standardize(data: Union[list, np.ndarray, pd.Series], keep_nan: Optional[Uni
     """
     temp_data = _remove_nan(data=_to_list(data=data))
     mu, std = native_mean(data=temp_data), native_std(data=temp_data, ddof=1)
-    if keep_nan is False:
-        return [(item - mu) / std for item in temp_data]
-    elif type(keep_nan) in [float, int]:
-        data = _remove_nan(data=data, replace_val=keep_nan)
-        return [(item - mu) / std for item in data]
+    if std != 0:
+        if keep_nan is False:
+            return [(item - mu) / std for item in temp_data]
+        elif type(keep_nan) in [float, int]:
+            data = _remove_nan(data=data, replace_val=keep_nan)
+            return [(item - mu) / std for item in data]
+        else:
+            return [(item - mu) / std if item == item and item is not None else np.nan for item in data]
     else:
-        return [(item - mu) / std if item == item and item is not None else np.nan for item in data]
+        if keep_nan is False:
+            return [0] * len(temp_data)
+        elif type(keep_nan) in [float, int]:
+            return [0] * len(data)
+        else:
+            return [0] * len(temp_data)
 
 
 def running_mean(data: Union[list, np.ndarray, pd.Series], num: int) -> List[float]:
@@ -387,7 +395,10 @@ def native_mean(data: Union[list, np.ndarray, pd.Series]) -> float:
 
     """
     data = _remove_nan(data=_to_list(data=data))
-    return sum(data) / len(data)
+    if len(data) != 0:
+        return sum(data) / len(data)
+    else:
+        return 0.0
 
 
 def native_variance(data: Union[list, np.ndarray, pd.Series], ddof: int = 1) -> float:
@@ -590,7 +601,7 @@ def native_percentile(data: Union[list, np.ndarray, pd.Series], q: float) -> Uni
     ind = round_to(data=len(data) * q, val=1)
     data.sort()
     for item in data:
-        if item >= ind:
+        if item >= data[ind]:
             break
     if data_type:
         return item / 1000

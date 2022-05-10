@@ -14,6 +14,9 @@ class Player:
     :note: This class is intended to be used internally.
 
     """
+
+    # __slots__ = ('win_percent')
+
     def __init__(self, player_index: Union[str, List[str]]):
         if type(player_index) == str:
             self._player_index = [player_index]
@@ -33,9 +36,13 @@ class Player:
         self._all_in = {}
         self._player_name = []
         self._player_merged_moves = None
+        self.cust_name = None
 
     def __repr__(self):
-        return str(self._player_name)
+        if self.cust_name is None:
+            return str(self._player_name)
+        else:
+            return self.cust_name
 
     @property
     def win_percent(self) -> dict:
