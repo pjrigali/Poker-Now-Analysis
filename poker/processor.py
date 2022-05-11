@@ -418,14 +418,9 @@ def parser(lines: List[str], times: list, game_id: str) -> list:
                 new_cards = line.split(': ')[1].split(')')[0].split(',')
                 n.cards = tuple([i.strip() for i in new_cards])
             if winners is None:
-                winners, win_stacks, winning_hands = [n.player_index], [n.stack], [n.winning_hand]
-            else:
-                winners.append(n.player_index), win_stacks.append(n.stack), winning_hands.append(n.winning_hand)
+                winners, win_stacks, winning_hands = n.player_index, n.stack, n.winning_hand
             for i in lst:
-                if isinstance(winners, list):
-                    i.winner, i.win_stack, i.winning_hand = tuple(winners), tuple(win_stacks), tuple(winning_hands)
-                else:
-                    i.winner, i.win_stack, i.winning_hand = (winners,), (win_stacks,), (winning_hands,)
+                i.winner, i.win_stack, i.winning_hand = winners, win_stacks, winning_hands
             current_chips[n.player_index] += n.stack
             n.current_chips = current_chips
             lst.append(n)

@@ -41,12 +41,12 @@ def _to_type(data: Union[list, np.float64, np.float32, np.float16, np.float_, np
                          np.int_, float, int], new_type: str) -> Union[List[int], List[float], int, float]:
     """Converts objects to a set item"""
     if new_type == 'int':
-        if type(data) == list:
+        if isinstance(data, (tuple, list)):
             return [int(i) for i in data]
         else:
             return int(data)
     elif new_type == 'float':
-        if type(data) == list:
+        if isinstance(data, (tuple, list)):
             return [float(i) for i in data]
         else:
             return float(data)
