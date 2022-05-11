@@ -1,4 +1,5 @@
 from typing import List, Optional, Union
+from collections.abc import KeysView, ValuesView
 import numpy as np
 import pandas as pd
 from poker.processor import class_object_lst
@@ -7,12 +8,14 @@ pd.set_option('use_inf_as_na', True)
 
 def _to_list(data: Union[list, np.ndarray, pd.Series, int, float]) -> Union[List[int], List[float], float, int]:
     """Converts list adjacent objects to a list and passes int/float objects"""
-    if type(data) == list:
+    if isinstance(data, list):
         return data
-    elif type(data) in [np.ndarray, pd.Series]:
+    elif isinstance(data, (np.ndarray, pd.Series)):
         return data.tolist()
-    elif type(data) in [int, float]:
+    elif isinstance(data, (int, float)):
         return data
+    elif isinstance(data, (KeysView, ValuesView, tuple)):
+        return list(data)
     else:
         raise AttributeError('data needs to have a type of {np.ndarray, pd.Series, list}')
 
@@ -23,7 +26,7 @@ def _remove_nan(data: list, replace_val: Optional[Union[int, float, str]] = None
     if replace_val:
         if replace_val == 'mean':
             replace_val = native_mean(data=_remove_nan(data=data))
-        elif type(replace_val) in [int, float]:
+        elif isinstance(replace_val, (int, float)):
             pass
         else:
             raise AttributeError('replace_val needs to be an int or float. If "mean" is passed, will use mean.')
@@ -301,7 +304,7 @@ def search_dic_values(dic: dict, item: Union[str, int, float]) -> Union[str, flo
     return list(dic.keys())[list(dic.values()).index(item)]
 
 
-def flatten(data: list, type_used: str = 'str') -> list:
+def flatten(data: Union[list, tuple], type_used: str = 'str') -> list:
     """
 
     Flattens a list and checks the list.
@@ -318,6 +321,13 @@ def flatten(data: list, type_used: str = 'str') -> list:
     :note: Will work when lists are mixed with non-list items.
 
     """
+    if isinstance(data, tuple):
+        data = list(data)
+
+    for ind, val in enumerate(data):
+        if isinstance(val, tuple):
+            data[ind] = list(val)
+
     new_type = {'str': [str], 'int': [int], 'float': [float], 'class objects': class_object_lst}[type_used]
     lst = [item1 for item1 in data if type(item1) in new_type or item1 is None]
     missed = [item1 for item1 in data if type(item1) not in new_type and item1 is not None]

@@ -186,9 +186,11 @@ def _poker_build_players(data: dict, money_df: pd.DataFrame) -> None:
                         index_lst.append(i.index(key1))
             temp = 0
             for i, j in enumerate(temp_player_stack_lst):
-                val = j[index_lst[i]]
+                val = list(j.values())[index_lst[i]]
+                # val = j[index_lst[i]]
                 if val > 1:
-                    previous = temp_player_stack_lst[i - 1][index_lst[i - 1]]
+                    previous = list(temp_player_stack_lst[i - 1].values())[index_lst[i - 1]]
+                    # previous = temp_player_stack_lst[i - 1][index_lst[i - 1]]
                     if val - previous < temp:
                         temp = val - previous
             val1.largest_loss = [key2, temp]

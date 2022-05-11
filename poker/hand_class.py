@@ -189,9 +189,9 @@ class Hand:
                     continue
                 if isinstance(line, PlayerStacks):
                     self.starting_players = dict(zip(line.player_index, line.player_name))
-                    self.starting_player_chips = dict(zip(line.player_index, line.starting_chips))
-                    self.chips_on_board = sum(line.starting_chips)
-                    self.gini_coef = calc_gini(data=line.starting_chips)
+                    self.starting_player_chips = dict(zip(line.player_index, line.starting_chips.values()))
+                    self.chips_on_board = sum(line.starting_chips.values())
+                    self.gini_coef = calc_gini(data=line.starting_chips.values())
                     for player in self.starting_players.keys():
                         _hand_add_to_dic(item=line, player_dic=player_dic, location='Lines', player_index=player)
                 else:
