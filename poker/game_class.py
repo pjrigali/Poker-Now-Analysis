@@ -38,7 +38,7 @@ def _game_line_to_df(line_lst: list) -> pd.DataFrame:
     lst = []
     for line in line_lst:
         temp_win = False
-        if line.player_index in line.winner:
+        if line.player_index == line.winner:
             temp_win = True
         dic = {'Player Index': line.player_index, 'Player Name': line.player_name, 'Cards': line.cards,
                'Position': line.position, 'Round': line.current_round, 'Player Starting Chips': line.starting_chips,
@@ -65,11 +65,11 @@ def _game_build_players_data(player_dic: dict, players_data: dict, file_id: str)
     for p_ind in dic.keys():
         if p_ind not in t_dic:
             players_data[p_ind] = Player(player_index=p_ind)
-        players_data[p_ind].line_dic = [file_id, dic[p_ind]['Lines']]
-        players_data[p_ind].player_money_info = [file_id, _game_calc_money(lst=dic[p_ind]['Lines'], ind=file_id)]
-        players_data[p_ind].hand_dic = [file_id, pd.DataFrame.from_dict(unique_values(data=dic[p_ind]['Hands'], count=True), orient='index', columns=['Count']).sort_values('Count', ascending=False)]
-        players_data[p_ind].card_dic = [file_id, pd.DataFrame.from_dict(unique_values(data=[item for sublist in dic[p_ind]['Cards'] for item in sublist], count=True), orient='index', columns=['Count']).fillna(0.0).astype(int)]
-        players_data[p_ind].moves_dic = [file_id, _game_line_to_df(line_lst=dic[p_ind]['Lines'])]
+        players_data[p_ind].line_dic[file_id] = dic[p_ind]['Lines']
+        players_data[p_ind].player_money_info[file_id] = _game_calc_money(lst=dic[p_ind]['Lines'], ind=file_id)
+        players_data[p_ind].hand_dic[file_id] = pd.DataFrame.from_dict(unique_values(data=dic[p_ind]['Hands'], count=True), orient='index', columns=['Count']).sort_values('Count', ascending=False)
+        players_data[p_ind].card_dic[file_id] = pd.DataFrame.from_dict(unique_values(data=[item for sublist in dic[p_ind]['Cards'] for item in sublist], count=True), orient='index', columns=['Count']).fillna(0.0).astype(int)
+        players_data[p_ind].moves_dic[file_id] = _game_line_to_df(line_lst=dic[p_ind]['Lines'])
     return players_data
 
 

@@ -173,9 +173,14 @@ def _poker_build_players(data: dict, money_df: pd.DataFrame) -> None:
                 val1.player_name = list(money_df['Player Names'])[i]
 
         for key2, val2 in val1.moves_dic.items():
-            val1.win_percent = [key2, round(len((val2[val2['Win'] == True])) / len(val2), 3)]
-            val1.win_count = [key2, len(val2[val2['Win'] == True])]
-            val1.largest_win = [key2, native_max(data=val2[val2['Win'] == True]['Win Stack'])]
+            win_count = len(val2[val2['Win'] == True]['Round'].unique())
+            if win_count > 0:
+                val1.win_percent[key2] = round(win_count / native_max(val2['Round']), 3)
+                val1.win_count[key2] = win_count
+            else:
+                val1.win_percent[key2] = 0.0
+                val1.win_count[key2] = 0.0
+            val1.largest_win[key2] = native_max(data=val2[val2['Win'] == True]['Win Stack'])
             temp_df = val2[val2['Class'] == 'Player Stacks']
             temp_player_index_lst = temp_df['Player Index'].tolist()
             temp_player_stack_lst = temp_df['Player Current Chips'].tolist()
@@ -193,9 +198,9 @@ def _poker_build_players(data: dict, money_df: pd.DataFrame) -> None:
                     # previous = temp_player_stack_lst[i - 1][index_lst[i - 1]]
                     if val - previous < temp:
                         temp = val - previous
-            val1.largest_loss = [key2, temp]
-            val1.hand_count = [key2, max(val2['Round'].tolist())]
-            val1.all_in = [key2, list(val2[val2['All In'] == True]['Bet Amount'])]
+            val1.largest_loss[key2] = temp
+            val1.hand_count[key2] = max(val2['Round'].tolist())
+            val1.all_in[key2] = list(val2[val2['All In'] == True]['Bet Amount'])
 
 
 def _poker_combine_dic(data: dict, grouped: Union[list, dict]) -> dict:
@@ -210,17 +215,29 @@ def _poker_combine_dic(data: dict, grouped: Union[list, dict]) -> dict:
                     n_dic[key], dic[key] = True, data[key1]
                 else:
                     for match in data[key1].win_percent.keys():
-                        dic[key].win_percent = [match, data[key1].win_percent[match]]
-                        dic[key].win_count = [match, data[key1].win_count[match]]
-                        dic[key].largest_win = [match, data[key1].largest_win[match]]
-                        dic[key].largest_loss = [match, data[key1].largest_loss[match]]
-                        dic[key].hand_count = [match, data[key1].hand_count[match]]
-                        dic[key].all_in = [match, data[key1].all_in[match]]
-                        dic[key].player_money_info = [match, data[key1].player_money_info[match]]
-                        dic[key].hand_dic = [match, data[key1].hand_dic[match]]
-                        dic[key].card_dic = [match, data[key1].card_dic[match]]
-                        dic[key].line_dic = [match, data[key1].line_dic[match]]
-                        dic[key].moves_dic = [match, data[key1].moves_dic[match]]
+                        dic[key].win_percent[match] = data[key1].win_percent[match]
+                        dic[key].win_count[match] = data[key1].win_count[match]
+                        dic[key].largest_win[match] = data[key1].largest_win[match]
+                        dic[key].largest_loss[match] = data[key1].largest_loss[match]
+                        dic[key].hand_count[match] = data[key1].hand_count[match]
+                        dic[key].all_in[match] = data[key1].all_in[match]
+                        dic[key].player_money_info[match] = data[key1].player_money_info[match]
+                        dic[key].hand_dic[match] = data[key1].hand_dic[match]
+                        dic[key].card_dic[match] = data[key1].card_dic[match]
+                        dic[key].line_dic[match] = data[key1].line_dic[match]
+                        dic[key].moves_dic[match] = data[key1].moves_dic[match]
+                        # dic[key].win_percent = [match, data[key1].win_percent[match]]
+                        # dic[key].win_count = [match, data[key1].win_count[match]]
+                        # dic[key].largest_win = [match, data[key1].largest_win[match]]
+                        # dic[key].largest_loss = [match, data[key1].largest_loss[match]]
+                        # dic[key].hand_count = [match, data[key1].hand_count[match]]
+                        # dic[key].all_in = [match, data[key1].all_in[match]]
+                        # dic[key].player_money_info = [match, data[key1].player_money_info[match]]
+                        # dic[key].hand_dic = [match, data[key1].hand_dic[match]]
+                        # dic[key].card_dic = [match, data[key1].card_dic[match]]
+                        # dic[key].line_dic = [match, data[key1].line_dic[match]]
+                        # dic[key].moves_dic = [match, data[key1].moves_dic[match]]
+                    dic[key].custom_name = key
     for key, val in data.items():
         if key not in c_dic:
             c_dic[key], dic[key] = True, data[key]

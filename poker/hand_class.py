@@ -42,6 +42,7 @@ def _hand_copy_line_to_line(original_object, new_object):
     new_object.winning_hand = original_object.winning_hand
     new_object.start_time = original_object.start_time
     new_object.end_time = original_object.end_time
+    new_object.starting_players = original_object.starting_players
     return new_object
 
 
@@ -104,9 +105,9 @@ class Hand:
             # line.start_time = self.start_time
             # line.end_time = self.end_time
             self.pot_size_lst.append(line.pot_size)
-            line.winner = winner_lst
-            line.winning_hand = winner_hand
-            line.win_stack = winner_stack
+            # line.winner = winner_lst
+            # line.winning_hand = winner_hand
+            # line.win_stack = winner_stack
             if isinstance(line, (Flop, Turn, River, MyCards)):
                 if isinstance(line, Flop):
                     self.flop_cards = line
