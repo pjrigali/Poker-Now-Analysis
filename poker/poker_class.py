@@ -99,8 +99,6 @@ def _poker_group_money(data: dict, grouped: Optional[Union[list, dict]] = None, 
 
             else:
                 ind_group = player_id
-
-        # for ind_group in g:
             temp_df, temp_dic = data.loc[ind_group], {}
             if isinstance(temp_df, pd.DataFrame):
                 col_lst = tuple(temp_df.columns)
@@ -153,7 +151,6 @@ def _poker_get_dist(matches: list) -> List[pd.DataFrame]:
                         card_dic[item][key] += val
                     else:
                         card_dic[item][key] = val
-
     c_dist = pd.DataFrame.from_dict(card_dic).dropna()
     for col in c_dist.columns:
         s = sum(c_dist[col].tolist())
@@ -226,17 +223,6 @@ def _poker_combine_dic(data: dict, grouped: Union[list, dict]) -> dict:
                         dic[key].card_dic[match] = data[key1].card_dic[match]
                         dic[key].line_dic[match] = data[key1].line_dic[match]
                         dic[key].moves_dic[match] = data[key1].moves_dic[match]
-                        # dic[key].win_percent = [match, data[key1].win_percent[match]]
-                        # dic[key].win_count = [match, data[key1].win_count[match]]
-                        # dic[key].largest_win = [match, data[key1].largest_win[match]]
-                        # dic[key].largest_loss = [match, data[key1].largest_loss[match]]
-                        # dic[key].hand_count = [match, data[key1].hand_count[match]]
-                        # dic[key].all_in = [match, data[key1].all_in[match]]
-                        # dic[key].player_money_info = [match, data[key1].player_money_info[match]]
-                        # dic[key].hand_dic = [match, data[key1].hand_dic[match]]
-                        # dic[key].card_dic = [match, data[key1].card_dic[match]]
-                        # dic[key].line_dic = [match, data[key1].line_dic[match]]
-                        # dic[key].moves_dic = [match, data[key1].moves_dic[match]]
                     dic[key].custom_name = key
     for key, val in data.items():
         if key not in c_dic:

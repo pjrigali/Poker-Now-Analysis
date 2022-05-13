@@ -1,14 +1,14 @@
 from dataclasses import dataclass
-from poker.utils.load import collect_data
-from poker.utils.parse import parser
+from poker.utils.collect import collect_data
+from poker.utils.assign import parser
 
 
-def _players_events(repo: str, group: dict):
+def _players_events(repo: str, grouped: dict):
     """loads data, parses data and splits based on player"""
     files = collect_data(repo_location=repo)
     players, p_dic = {}, {}
-    if group is not None:
-        for k, v in group.items():
+    if grouped is not None:
+        for k, v in grouped.items():
             for i in v:
                 players[i], p_dic[i] = ([], []), True
 
@@ -33,12 +33,12 @@ class Poker:
     Builds the Poker Class
     """
 
-    __slots__ = ('repo', 'group', 'players', 'events')
+    __slots__ = ('repo', 'grouped', 'players', 'events')
 
-    def __init__(self, repo: str, group: dict, multi: int = 100):
+    def __init__(self, repo: str, grouped: dict, multi: int = 100):
         self.repo = repo
-        self.group = group
-        self.players, self.events = _players_events(repo=repo, group=group)
+        self.grouped = grouped
+        self.players, self.events = _players_events(repo=repo, grouped=grouped)
 
     def __repr__(self):
         return 'Poker Class'
