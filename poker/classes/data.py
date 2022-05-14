@@ -1,9 +1,11 @@
-from typing import List, Optional, Union
+from typing import List
 from dataclasses import dataclass
 import datetime
 from os import walk
 import csv
 from poker.classes.event import Event
+from poker.utils.class_functions import _str_nan
+from poker.utils.base import calculate_hand
 
 
 def _convert(data: List[str], dic: dict):
@@ -75,191 +77,172 @@ def parser(lines: List[str], times: list, game_id: str) -> tuple:
 
     def _fill(c):
         """applies values to the blank event class"""
-        c = Event(line, c)
-        c.position, c.game_id, c.time, c.previous_time = pos, game_id, times[ind], p_time
-        c.start_time, c.end_time, c.current_round, c.pot_size = s_time, e_time, c_round, pot
-        c.starting_players, c.starting_chips, c.remaining_players = start_players, start_chips, players_left
-        c.action_from_player, c.action_amount, c.current_chips = p_person, p_amount, current_chips
-        c.win_stack, c.winner, c.winning_hand = win_stacks, winners, winning_hands
-        return c
+        return Event(text=line, event=c, position=pos, winning_hand=winning_hands, current_round=c_round,
+                     pot_size=pot, starting_players=start_players, remaining_players=players_left,
+                     action_from_player=p_person, action_amount=p_amount, game_id=game_id,
+                     starting_chips=start_chips, current_chips=current_chips, winner=winners, win_stack=win_stacks,
+                     time=times[ind], previous_time=times[ind - 1], start_time=times[0], end_time=times[-1])
 
     lst = []
-    s_time, e_time, p_time = times[0], times[-1], times[0]
     pot, players_left, pos = 0, i_lst, 'Pre Flop'
     p_person, p_amount = None, None
     start_chips, start_players, current_chips = dict(zip(i_lst, v_lst)), dict(zip(i_lst, n_lst)), dict(zip(i_lst, v_lst))
-    winners, win_stacks, winning_hands = None, None, None
+    winners, win_stacks, winning_hands, cards, all_cards, shows = None, None, None, [], [], []
     for ind, line in enumerate(lines):
-        if 'Flop:' in line or 'flop:' in line:
-            pos = 'Post Flop'
-        if 'Turn:' in line or 'turn:' in line:
-            pos = 'Post Turn'
-        if 'River:' in line or 'river:' in line:
-            pos = 'Post River'
-
-        if ind >= 1:
-            p_time = times[ind - 1]
-
-        if 'requested a seat' in line:
-            lst.append(_fill('Requests'))
-            continue
-        elif 'The admin approved' in line:
-            lst.append(_fill('Approved'))
-            continue
-        elif 'joined the game' in line:
-            lst.append(_fill('Joined'))
-            continue
-        elif ' stand up with ' in line:
-            n = _fill('StandsUp')
-            players_left = tuple([p for p in players_left if p != n.player_index])
-            n.remaining_players = players_left
+        if ' calls ' in line:
+            n = _fill('Calls')._add_stack(line.split(' calls ')[1])
+            if ' and ' in n.stack:
+                n._add_stack(int(n.stack.split(' and ')[0]))._add_all_in()
+            else:
+                n._add_stack(int(n.stack))
+            pot, current_chips = n._update_pot_curr(current_chips, '-')
             lst.append(n)
             continue
-        elif ' sit back with ' in line:
-            lst.append(_fill('SitsIn'))
-            continue
-        elif 'Your hand' in line:
-            n = _fill('MyCards')
-            new_cards = line.split(' hand is ')[1].split(',')
-            n.cards = tuple([i.strip() for i in new_cards])
-            lst.append(n)
-            continue
-        elif 'posts a small blind' in line:
-            n = _fill('SmallBlind')
-            n.stack = int(line.split('of ')[1])
-            pot += n.stack
-            n.pot_size = pot
-            current_chips[n.player_index] -= n.stack
-            n.current_chips = current_chips
-            p_person, p_amount = n.player_index, n.stack
-            lst.append(n)
-            continue
-        elif 'posts a big blind' in line:
-            n = _fill('SmallBlind')
-            n.stack = int(line.split('of ')[1])
-            pot += n.stack
-            n.pot_size = pot
-            current_chips[n.player_index] -= n.stack
-            n.current_chips = current_chips
-            p_person, p_amount = n.player_index, n.stack
-            lst.append(n)
+        elif ' checks' in line:
+            lst.append(_fill('Checks'))
             continue
         elif ' folds' in line:
-            n = _fill('Folds')
-            players_left = tuple([p for p in players_left if p != n.player_index])
-            n.remaining_players = players_left
-            lst.append(n)
-            continue
-        elif ' calls ' in line:
-            n = _fill('Calls')
-            new_stack = line.split(' calls ')[1]
-            if ' and ' in new_stack:
-                new_stack = int(new_stack.split(' and ')[0])
-            else:
-                new_stack = int(new_stack)
-            n.stack = new_stack
-            pot += n.stack
-            n.pot_size = pot
-            current_chips[n.player_index] -= n.stack
-            n.current_chips = current_chips
+            n, players_left = _fill('Folds')._add_remaining(players_left, True)
             lst.append(n)
             continue
         elif ' bets ' in line or ' raises ' in line:
-            n = _fill('Raises')
-            new_stack = 0
+            n, new_stack = _fill('Raises'), 0
             if ' bets ' in line:
                 new_stack = line.split(' bets ')[1]
             if ' raises to ' in line:
                 new_stack = line.split(' raises to ')[1]
             if ' and ' in line:
                 new_stack = new_stack.split(' and ')[0]
-                n.all_in = True
-            n.stack = int(new_stack)
-            pot += n.stack
-            n.pot_size = pot
+                n._add_all_in()
+            pot, current_chips = n._add_stack(int(new_stack))._update_pot_curr(current_chips, '-')
             p_person, p_amount = n.player_index, n.stack
-            current_chips[n.player_index] -= n.stack
-            n.current_chips = current_chips
             lst.append(n)
             continue
-        elif ' checks' in line:
-            lst.append(_fill('Checks'))
+        elif ' shows a ' in line:
+            n = _fill('Shows')._add_cards([i.strip() for i in line.split(' shows a ')[1].split('.')[0].split(',')])
+            all_cards = n._get_cards_allcards(cards=None, all_cards=all_cards)
+            lst.append(n), shows.append(n)
             continue
         elif ' collected ' in line:
-            n = _fill('Wins')
-            n.stack = int(line.split(' collected ')[1].split(' from ')[0])
+            n = _fill('Wins')._add_stack(int(line.split(' collected ')[1].split(' from ')[0]))
             if ' from pot with ' in line:
                 if ', ' in line.split(' from pot with ')[1].split(' (')[0]:
                     n.winning_hand = line.split(' from pot with ')[1].split(', ')[0]
                 else:
                     n.winning_hand = line.split(' from pot with ')[1].split(' (')[0]
             if 'combination' in line:
-                new_cards = line.split(': ')[1].split(')')[0].split(',')
-                n.cards = tuple([i.strip() for i in new_cards])
+                n._add_cards([i.strip() for i in line.split(': ')[1].split(')')[0].split(',')], True)
             if winners is None:
                 winners, win_stacks, winning_hands = n.player_index, n.stack, n.winning_hand
-            for i in lst:
-                i.winner, i.win_stack, i.winning_hand = winners, win_stacks, winning_hands
-            current_chips[n.player_index] += n.stack
-            n.current_chips = current_chips
+            elif isinstance(winners, str):
+                winners = [winners, n.player_index]
+            else:
+                winners.append(n.player_index)
+            current_chips = n._add_chips(current_chips, '+')
+            all_cards = n._get_cards_allcards(cards=None, all_cards=all_cards)
             lst.append(n)
             continue
-        elif ' shows a ' in line:
-            n = _fill('Shows')
-            new_cards = line.split(' shows a ')[1].split('.')[0].split(',')
-            n.cards = [i.strip() for i in new_cards]
+        elif 'Player stacks:' in line:
+            n = _fill('PlayerStacks')._add_stack(0)
+            n.player_name, n.player_index, n.current_chips, n.starting_chips = n_lst, i_lst, current_chips, start_chips
+            all_cards = n._get_cards_allcards(cards=None, all_cards=all_cards)
             lst.append(n)
             continue
-        elif ' quits the game ' in line:
-            n = _fill('Quits')
-            players_left = tuple([p for p in players_left if p != n.player_index])
-            n.remaining_players = players_left
+        elif 'posts a big blind' in line:
+            n, pot, current_chips = _fill('BigBlind')._add_stack(int(line.split('of ')[1]))._update_pot_curr(current_chips, '-', True)
+            p_person, p_amount = n.player_index, n.stack
+            lst.append(n)
+            continue
+        elif 'posts a small blind' in line:
+            n, pot, current_chips = _fill('SmallBlind')._add_stack(int(line.split('of ')[1]))._update_pot_curr(current_chips, '-', True)
+            p_person, p_amount = n.player_index, n.stack
             lst.append(n)
             continue
         elif 'Flop: ' in line or 'flop' in line:
             p_person, p_amount = None, None
-            n = _fill('Flop')
-            n.position = 'Flop'
-            new_cards = line.split(' [')[1].split(']')[0].split(',')
-            n.cards = [i.strip() for i in new_cards]
+            n = _fill('Flop')._add_cards([i.strip() for i in line.split(' [')[1].split(']')[0].split(',')])
+            n.position, pos = 'Flop', 'Post Flop'
+            cards, all_cards = n._get_cards_allcards(cards=n.cards, all_cards=all_cards)
             lst.append(n)
             continue
         elif 'Turn: ' in line or 'turn: ' in line:
             p_person, p_amount = None, None
-            n = _fill('Turn')
-            n.position = 'Turn'
-            n.cards = line.split(' [')[1].split(']')[0].strip()
+            n = _fill('Turn')._add_cards([line.split(' [')[1].split(']')[0].strip()])
+            cards, all_cards = n._get_cards_allcards(cards=n.cards, all_cards=all_cards)
+            n.position, pos = 'Turn', 'Post Turn'
             lst.append(n)
             continue
         elif 'River: ' in line or 'river: ' in line:
             p_person, p_amount = None, None
-            n = _fill('River')
-            n.position = 'River'
-            n.cards = line.split(' [')[1].split(']')[0].strip()
+            n = _fill('River')._add_cards([line.split(' [')[1].split(']')[0].strip()])
+            n.position, pos = 'River', 'Post River'
+            cards, all_cards = n._get_cards_allcards(cards=n.cards, all_cards=all_cards)
+            lst.append(n)
+            continue
+        elif 'Your hand' in line:
+            n = _fill('MyCards')._add_cards([i.strip() for i in line.split(' hand is ')[1].split(',')])
+            all_cards = n._get_cards_allcards(cards=None, all_cards=all_cards)
+            lst.append(n)
+            continue
+        elif 'joined the game' in line:
+            lst.append(_fill('Joined'))
+            continue
+        elif 'requested a seat' in line:
+            lst.append(_fill('Requests'))
+            continue
+        elif 'The admin approved' in line:
+            lst.append(_fill('Approved'))
+            continue
+        elif ' quits the game ' in line:
+            n, players_left = _fill('Quits')._add_remaining(players_left, True)
             lst.append(n)
             continue
         elif 'Undealt cards: ' in line:
             p_person, p_amount = None, None
-            n = _fill('Undealt')
-            new_cards = line.split(' [')[1].split(']')[0].split(',')
-            n.cards = [i.strip() for i in new_cards]
+            n = _fill('Undealt')._add_cards([i.strip() for i in line.split(' [')[1].split(']')[0].split(',')])
             if len(n.cards) == 1:
                 n.position = 'Post Turn'
             elif len(n.cards) == 2:
                 n.position = 'Post Flop'
+            cards, all_cards = n._get_cards_allcards(cards=cards, all_cards=all_cards)
             lst.append(n)
             continue
-        elif 'Player stacks:' in line:
-            n = _fill('PlayerStacks')
-            n.player_name, n.player_index = n_lst, i_lst
-            n.stack = 0
-            n.current_chips, n.starting_chips = current_chips, start_chips
+        elif ' stand up with ' in line:
+            n, players_left = _fill('StandsUp')._add_remaining(players_left, True)
             lst.append(n)
             continue
+        elif ' sit back with ' in line:
+            lst.append(_fill('SitsIn'))
+            continue
+
+    if isinstance(winners, str):
+        winners = [winners]
+
+    for i in lst:
+        if i.event == 'PlayerStacks':
+            i.cards = tuple(set(all_cards))
+        elif i.event == 'Wins' and len(shows) > 0:
+            for k in shows:
+                if k.player_index == i.player_index and i.cards is None:
+                    i._add_cards(cards + list(k.cards), True)
+                    if winning_hands is None and len(i.cards) >= 5:
+                        winning_hands = calculate_hand(cards=i.cards)
+                        i.winning_hand = winning_hands
+        if winners is not None:
+            i.winner, i.win_stack, i.winning_hand = tuple(winners), win_stacks, winning_hands
+            if _str_nan(i.player_index) and i.player_index in winners:
+                i.wins = True
+        if i.cards is None:
+            continue
+        else:
+            if isinstance(i.cards, str):
+                i.cards = (i.cards,)
+            elif isinstance(i.cards, list):
+                i.cards = tuple(i.cards)
     return tuple(lst)
 
 
-def _get_data(repo_location: str) -> tuple:
+def _get_events_matches(repo_location: str) -> tuple:
     files = _poker_collect_data(repo_location=repo_location)
     event_lst, matches, players, p_check = [], {}, {}, {}
     for k, v in files.items():
@@ -268,34 +251,18 @@ def _get_data(repo_location: str) -> tuple:
             hand_lst = parser(lines=i['lines'], times=i['times'], game_id=k)
             for event in hand_lst:
                 event_lst.append((event.start_time, event)), matches[k].append(event)
-                # if event.player_index is not None and event.player_index in p_check and isinstance(event.player_index, str):
-                #     players[event.player_index].append((event.start_time, event))
-                # elif event.player_index is not None and event.player_index not in p_check and isinstance(event.player_index, str):
-                #     players[event.player_index], p_check[event.player_index] = [(event.start_time, event)], True
-                # else:
-                #     for p in event.starting_players.keys():
-                #         players[p].append((event.start_time, event))
     event_lst = sorted(event_lst, key=lambda x: x[0])
-    # players = {k: sorted(v, key=lambda x: x[0]) for k, v in players.items()}
     event_lst = tuple(i[1] for i in event_lst)
-    # players = {k: tuple(i[1] for i in v) for k, v in players.items()}
-    return event_lst, {k: tuple(v) for k, v in matches.items()} #, players
-
-
-def _name_check(_id) -> bool:
-    if isinstance(_id, str) and _id is not None:
-        return True
-    else:
-        return False
+    return event_lst, {k: tuple(v) for k, v in matches.items()}
 
 
 @dataclass
 class Data:
 
-    __slots__ = ('events', 'matches', 'players')
+    __slots__ = ('events', 'matches')
 
     def __init__(self, repo_location: str):
-        self.events, self.matches = _get_data(repo_location=repo_location)
+        self.events, self.matches = _get_events_matches(repo_location=repo_location)
 
     def __repr__(self):
         return 'PokerData'
@@ -303,15 +270,15 @@ class Data:
     def grouped_names(self) -> dict:
         id_d, id_c = {}, {}
         for i in self.events:
-            if _name_check(_id=i.player_index) and i.player_index in id_c:
+            if _str_nan(i.player_index) and i.player_index in id_c:
                 if i.player_name not in id_d[i.player_index]:
                     id_d[i.player_index].append(i.player_name)
-            elif _name_check(_id=i.player_index) and i.player_index not in id_c:
+            elif _str_nan(i.player_index) and i.player_index not in id_c:
                 id_d[i.player_index], id_c[i.player_index] = [i.player_name], True
         return {k: tuple(v) for k, v in id_d.items()}
 
     def unique_ids(self) -> tuple:
-        return tuple(set([i.player_index for i in self.events if _name_check(_id=i.player_index)]))
+        return tuple(set([i.player_index for i in self.events if _str_nan(i.player_index)]))
 
     def unique_names(self) -> tuple:
-        return tuple(set([i.player_name for i in self.events if _name_check(_id=i.player_name)]))
+        return tuple(set([i.player_name for i in self.events if _str_nan(i.player_name)]))
