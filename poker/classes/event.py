@@ -1,7 +1,7 @@
 """
 Event Class
 
-This Class is smallest unit used in this package. Denotes a single occurrence that happened on the table.
+This Class is the smallest unit used in this package. Denotes a single occurrence that happened on the table.
 """
 from dataclasses import dataclass
 

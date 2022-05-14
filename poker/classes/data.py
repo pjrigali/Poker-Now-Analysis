@@ -259,20 +259,59 @@ def parser(lines: List[str], times: list, game_id: str) -> tuple:
     return tuple(lst)
 
 
+def _get_data(repo_location: str) -> tuple:
+    files = _poker_collect_data(repo_location=repo_location)
+    event_lst, matches, players, p_check = [], {}, {}, {}
+    for k, v in files.items():
+        matches[k] = []
+        for i in v:
+            hand_lst = parser(lines=i['lines'], times=i['times'], game_id=k)
+            for event in hand_lst:
+                event_lst.append((event.start_time, event)), matches[k].append(event)
+                # if event.player_index is not None and event.player_index in p_check and isinstance(event.player_index, str):
+                #     players[event.player_index].append((event.start_time, event))
+                # elif event.player_index is not None and event.player_index not in p_check and isinstance(event.player_index, str):
+                #     players[event.player_index], p_check[event.player_index] = [(event.start_time, event)], True
+                # else:
+                #     for p in event.starting_players.keys():
+                #         players[p].append((event.start_time, event))
+    event_lst = sorted(event_lst, key=lambda x: x[0])
+    # players = {k: sorted(v, key=lambda x: x[0]) for k, v in players.items()}
+    event_lst = tuple(i[1] for i in event_lst)
+    # players = {k: tuple(i[1] for i in v) for k, v in players.items()}
+    return event_lst, {k: tuple(v) for k, v in matches.items()} #, players
+
+
+def _name_check(_id) -> bool:
+    if isinstance(_id, str) and _id is not None:
+        return True
+    else:
+        return False
+
+
 @dataclass
 class Data:
 
-    __slots__ = ('data', 'nothing')
+    __slots__ = ('events', 'matches', 'players')
 
-    def __int__(self, repo_location: str):
-        files = _poker_collect_data(repo_location=repo_location)
-        event_lst = []
-        for k, v in files.items():
-            for i in v:
-                hand_lst = parser(lines=i['lines'], times=i['times'], game_id=k)
-                for event in hand_lst:
-                    event_lst.append(event)
-        self.data = tuple(event_lst)
+    def __init__(self, repo_location: str):
+        self.events, self.matches = _get_data(repo_location=repo_location)
 
     def __repr__(self):
         return 'PokerData'
+
+    def grouped_names(self) -> dict:
+        id_d, id_c = {}, {}
+        for i in self.events:
+            if _name_check(_id=i.player_index) and i.player_index in id_c:
+                if i.player_name not in id_d[i.player_index]:
+                    id_d[i.player_index].append(i.player_name)
+            elif _name_check(_id=i.player_index) and i.player_index not in id_c:
+                id_d[i.player_index], id_c[i.player_index] = [i.player_name], True
+        return {k: tuple(v) for k, v in id_d.items()}
+
+    def unique_ids(self) -> tuple:
+        return tuple(set([i.player_index for i in self.events if _name_check(_id=i.player_index)]))
+
+    def unique_names(self) -> tuple:
+        return tuple(set([i.player_name for i in self.events if _name_check(_id=i.player_name)]))
