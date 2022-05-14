@@ -1,8 +1,8 @@
 from typing import Optional
 from dataclasses import dataclass
 import pandas as pd
-from poker.base import native_mean, running_mean, running_std, running_median, running_percentile, normalize, standardize
-from poker.document_filter_class import DocumentFilter
+from poker.utils.base import native_mean, running_mean, running_std, running_median, running_percentile
+from poker.classes.document_filter_class import DocumentFilter
 pd.set_option('use_inf_as_na', True)
 
 
