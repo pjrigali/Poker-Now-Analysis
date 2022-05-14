@@ -1,8 +1,8 @@
-# from typing import List, Optional, Union
+from typing import List, Optional, Union
 from dataclasses import dataclass
-from poker.processor import Approved, MyCards, SmallBlind, BigBlind, Folds, Calls, Raises, Checks, Wins, Shows, Quits
-from poker.processor import Flop, Turn, River, Undealt, StandsUp, SitsIn, PlayerStacks, parser
-from poker.base import calc_gini
+from poker.utils.processor import Approved, MyCards, SmallBlind, BigBlind, Folds, Calls, Raises, Checks, Wins, Shows, Quits
+from poker.utils.processor import Flop, Turn, River, Undealt, StandsUp, SitsIn, PlayerStacks, parser
+from poker.utils.base import calc_gini
 
 
 def _hand_add_to_dic(item, player_dic: dict, location: str, player_index: str):
@@ -94,8 +94,8 @@ class Hand:
         for line in self.parsed_hand:
             if isinstance(line, Wins):
                 winner_lst.append(line.player_index)
-                if line.winning_hand is not None:
-                    winner_hand = line.winning_hand
+                # if line.winning_hand is not None:
+                #     winner_hand = line.winning_hand
                 if line.stack is not None:
                     winner_stack += line.stack
         if winner_stack != 0:

@@ -2,7 +2,7 @@ from typing import List, Optional, Union
 from collections.abc import KeysView, ValuesView
 import numpy as np
 import pandas as pd
-from poker.processor import class_object_lst
+# from poker.utils.processor import class_object_lst
 pd.set_option('use_inf_as_na', True)
 
 
@@ -531,7 +531,8 @@ def unique_values(data: Union[list, np.ndarray, pd.Series], count: Optional[bool
         return temp_lst
     if count:
         temp_data = list(set(data))
-        return {i: data.count(i) for i in temp_data}
+        temp_data = sorted([(data.count(i), i) for i in temp_data], reverse=True)
+        return {i[1]: i[0] for i in temp_data}
     if indexes:
         temp_dic, ind_dic = {}, {}
         for ind, item in enumerate(data):
@@ -619,72 +620,108 @@ def native_percentile(data: Union[list, np.ndarray, pd.Series], q: float) -> Uni
         return item
 
 
-# def calculate_hand(cards: Union[tuple, list]) -> str:
-#
-#     card_lst = []
-#     for card in cards:
-#         if 'J' in card:
-#             card_lst.append(card.replace('J', '11'))
-#         elif 'Q' in card:
-#             card_lst.append(card.replace('Q', '12'))
-#         elif 'K' in card:
-#             card_lst.append(card.replace('K', '13'))
-#         elif 'A' in card:
-#             card_lst.append(card.replace('A' '14'))
-#         else:
-#             card_lst.append(card)
-#
-#     card_lst_num = [int(card.split(' ')[0]) for card in card_lst]
-#     card_lst_suit = [card.split(' ')[1] for card in card_lst]
-#
-#     def find_pair(cards: List[int]) -> bool:
-#         for card in cards:
-#             if cards.count(card) == 2:
-#                 return True
-#         return False
-#
-#     def find_two_pair(cards: List[int]) -> bool:
-#         pair = 0
-#         for card in cards:
-#             if cards.count(card) == 2:
-#                 pair += 1
-#         if pair == 2:
-#             return True
-#         return False
-#
-#     def find_three_of_a_kind(cards: List[int]) -> bool:
-#         for card in cards:
-#             if cards.count(card) == 3:
-#                 return True
-#         return False
-#
-#     def find_full_house(cards: List[int]) -> bool:
-#         three, two = False, False
-#         for card in cards:
-#             if cards.count(card) == 3:
-#                 three = True
-#             elif cards.count(card) == 2:
-#                 two = True
-#
-#         if three is True and two is True:
-#             return True
-#         else:
-#             return False
-#
-#     def find_four_of_a_kind(cards: List[int]) -> bool:
-#         for card in cards:
-#             if cards.count(card) == 4:
-#                 return True
-#         return False
-#
-#     def find_flush(cards: List[str]) -> bool:
-#         for card in cards:
-#             if cards.count(card) == 5:
-#                 return True
-#         return False
-#
-#     def find_straight(cards: List[int]) -> bool:
-#         values = sorted(cards, reverse=True)
-#         return values == list(range(values[0], values[0] - 5, -1))
-#
-#     return
+def calculate_hand(cards: Union[tuple, list]) -> str:
+
+    for ind, card in enumerate(cards):
+        if 'J' in card:
+            cards[ind] = card.replace('J', '11')
+        elif 'Q' in card:
+            cards[ind] = card.replace('Q', '12')
+        elif 'K' in card:
+            cards[ind] = card.replace('K', '13')
+        elif 'A' in card:
+            cards[ind] = card.replace('A', '14')
+    c_num, c_suit = [int(card.split(' ')[0]) for card in cards], [card.split(' ')[1] for card in cards]
+
+    def find_pair(cards: List[int]) -> bool:
+        for card in cards:
+            if cards.count(card) == 2:
+                return True
+        return False
+
+    def find_two_pair(cards: List[int]) -> bool:
+        pair = 0
+        for card in cards:
+            if cards.count(card) == 2:
+                pair += 1
+        if pair == 2:
+            return True
+        return False
+
+    def find_three_of_a_kind(cards: List[int]) -> bool:
+        for card in cards:
+            if cards.count(card) == 3:
+                return True
+        return False
+
+    def find_full_house(cards: List[int]) -> bool:
+        three, two = False, False
+        for card in cards:
+            if cards.count(card) == 3:
+                three = True
+            elif cards.count(card) == 2:
+                two = True
+
+        if three is True and two is True:
+            return True
+        else:
+            return False
+
+    def find_flush(cards: List[str]) -> bool:
+        for card in cards:
+            if cards.count(card) == 5:
+                return True
+        return False
+
+    def find_straight(cards: List[int]) -> bool:
+        values = sorted(cards, reverse=True)
+        return values == list(range(values[0], values[0] - 5, -1))
+
+    def find_four_of_a_kind(cards: List[int]) -> bool:
+        for card in cards:
+            if cards.count(card) == 4:
+                return True
+        return False
+
+    def find_straight_flush(nums, suits):
+        if find_flush(cards=suits):
+            cards = []
+            for ind, card in enumerate(suits):
+                if suits.count(card) == 5:
+                    cards.append(nums[ind])
+            if find_straight(cards=cards):
+                return True
+        return False
+
+    def find_royal_flush(nums, suits):
+        if find_flush(cards=suits) and find_straight(cards=nums):
+            cards = sorted(tuple(zip(c_num, c_suit)), key=lambda x: x[0], reverse=True)[:5]
+            lst, suit = (14, 13, 12, 11, 10), cards[0][1]
+            for ind, card in enumerate(cards):
+                if card[0][0] != lst[0]:
+                    return False
+        else:
+            return False
+        return True
+
+    if find_royal_flush(nums=c_num, suits=c_suit):
+        return 'Royal Flush'
+    elif find_straight_flush(nums=c_num, suits=c_suit):
+        return 'Straight Flush'
+    elif find_four_of_a_kind(cards=c_num):
+        return 'Four of a Kind'
+    elif find_full_house(cards=c_num):
+        return 'Full House'
+    elif find_flush(cards=c_suit):
+        return 'Flush'
+    elif find_straight(cards=c_num):
+        return 'Straight'
+    elif find_three_of_a_kind(cards=c_num):
+        return 'Three of a Kind'
+    elif find_two_pair(cards=c_num):
+        return 'Two Pair'
+    elif find_pair(cards=c_num):
+        return 'Pair'
+    else:
+        return {14: 'A High', 13: 'K High', 12: 'Q High', 11: 'J High', 10: '10 High', 9: '9 High', 8: '8 High',
+                7: '7 High', 6: '6 High', 5: '5 High', 4: '4 High', 3: '3 High', 2: '2 High'}[max(c_num)]

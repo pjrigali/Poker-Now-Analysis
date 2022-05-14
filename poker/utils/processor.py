@@ -76,6 +76,52 @@ class LineAttributes:
 
 
 @dataclass
+class Event:
+    """
+    Applies attributes to a respective Class object.
+
+    :param text: A line of text from the data.
+    :type text: str
+    :example: *None*
+    :note: This class is intended to be used internally.
+    """
+
+    __slots__ = ('text', 'player_name', 'player_index', 'stack', 'position', 'winning_hand', 'cards', 'current_round',
+                 'pot_size', 'remaining_players', 'action_from_player', 'action_amount', 'all_in', 'game_id',
+                 'starting_chips', 'current_chips', 'winner', 'win_stack', 'time', 'previous_time', 'start_time',
+                 'end_time', 'starting_players', 'event')
+
+    def __init__(self, text: str, event: str):
+        self.text = text
+        self.player_name = _player_name(self.text)
+        self.player_index = _player_index(self.text)
+        self.stack = _stack(self.text)
+        self.position = None
+        self.winning_hand = None
+        self.cards = None
+        self.current_round = None
+        self.pot_size = 0
+        self.starting_players = None
+        self.remaining_players = None
+        self.action_from_player = None
+        self.action_amount = 0
+        self.all_in = None
+        self.game_id = None
+        self.starting_chips = 0
+        self.current_chips = 0
+        self.winner = None
+        self.win_stack = None
+        self.time = None
+        self.previous_time = None
+        self.start_time = None
+        self.end_time = None
+        self.event = event
+
+    def __repr__(self):
+        return self.event
+
+
+@dataclass
 class Requests(LineAttributes):
     """Class for players Requesting a seat."""
     def __init__(self, text: str):
@@ -295,8 +341,8 @@ def parser(lines: List[str], times: list, game_id: str) -> list:
                 v_lst.append(0)
     n_lst, i_lst, v_lst = tuple(n_lst), tuple(i_lst), tuple(v_lst)
 
-    def first_pass(c):
-        c = c(line)
+    def _fill_event(c):
+        c = Event(line, c)
         c.position, c.game_id, c.time, c.previous_time = pos, game_id, times[ind], p_time
         c.start_time, c.end_time, c.current_round, c.pot_size = s_time, e_time, c_round, pot
         c.starting_players, c.starting_chips, c.remaining_players = start_players, start_chips, players_left
@@ -322,31 +368,31 @@ def parser(lines: List[str], times: list, game_id: str) -> list:
             p_time = times[ind - 1]
 
         if 'requested a seat' in line:
-            lst.append(first_pass(Requests))
+            lst.append(_fill_event(Requests))
             continue
         elif 'The admin approved' in line:
-            lst.append(first_pass(Approved))
+            lst.append(_fill_event(Approved))
             continue
         elif 'joined the game' in line:
-            lst.append(first_pass(Joined))
+            lst.append(_fill_event(Joined))
             continue
         elif ' stand up with ' in line:
-            n = first_pass(StandsUp)
+            n = _fill_event(StandsUp)
             players_left = tuple([p for p in players_left if p != n.player_index])
             n.remaining_players = players_left
             lst.append(n)
             continue
         elif ' sit back with ' in line:
-            lst.append(first_pass(SitsIn))
+            lst.append(_fill_event('SitsIn'))
             continue
         elif 'Your hand' in line:
-            n = first_pass(MyCards)
+            n = _fill_event(MyCards)
             new_cards = line.split(' hand is ')[1].split(',')
             n.cards = tuple([i.strip() for i in new_cards])
             lst.append(n)
             continue
         elif 'posts a small blind' in line:
-            n = first_pass(SmallBlind)
+            n = _fill_event(SmallBlind)
             n.stack = int(line.split('of ')[1])
             pot += n.stack
             n.pot_size = pot
@@ -356,7 +402,7 @@ def parser(lines: List[str], times: list, game_id: str) -> list:
             lst.append(n)
             continue
         elif 'posts a big blind' in line:
-            n = first_pass(SmallBlind)
+            n = _fill_event(SmallBlind)
             n.stack = int(line.split('of ')[1])
             pot += n.stack
             n.pot_size = pot
@@ -366,13 +412,13 @@ def parser(lines: List[str], times: list, game_id: str) -> list:
             lst.append(n)
             continue
         elif ' folds' in line:
-            n = first_pass(Folds)
+            n = _fill_event(Folds)
             players_left = tuple([p for p in players_left if p != n.player_index])
             n.remaining_players = players_left
             lst.append(n)
             continue
         elif ' calls ' in line:
-            n = first_pass(Calls)
+            n = _fill_event(Calls)
             new_stack = line.split(' calls ')[1]
             if ' and ' in new_stack:
                 new_stack = int(new_stack.split(' and ')[0])
@@ -386,7 +432,7 @@ def parser(lines: List[str], times: list, game_id: str) -> list:
             lst.append(n)
             continue
         elif ' bets ' in line or ' raises ' in line:
-            n = first_pass(Raises)
+            n = _fill_event(Raises)
             new_stack = 0
             if ' bets ' in line:
                 new_stack = line.split(' bets ')[1]
@@ -404,10 +450,10 @@ def parser(lines: List[str], times: list, game_id: str) -> list:
             lst.append(n)
             continue
         elif ' checks' in line:
-            lst.append(first_pass(Checks))
+            lst.append(_fill_event(Checks))
             continue
         elif ' collected ' in line:
-            n = first_pass(Wins)
+            n = _fill_event(Wins)
             n.stack = int(line.split(' collected ')[1].split(' from ')[0])
             if ' from pot with ' in line:
                 if ', ' in line.split(' from pot with ')[1].split(' (')[0]:
@@ -426,20 +472,20 @@ def parser(lines: List[str], times: list, game_id: str) -> list:
             lst.append(n)
             continue
         elif ' shows a ' in line:
-            n = first_pass(Shows)
+            n = _fill_event(Shows)
             new_cards = line.split(' shows a ')[1].split('.')[0].split(',')
             n.cards = [i.strip() for i in new_cards]
             lst.append(n)
             continue
         elif ' quits the game ' in line:
-            n = first_pass(Quits)
+            n = _fill_event(Quits)
             players_left = tuple([p for p in players_left if p != n.player_index])
             n.remaining_players = players_left
             lst.append(n)
             continue
         elif 'Flop: ' in line or 'flop' in line:
             p_person, p_amount = None, None
-            n = first_pass(Flop)
+            n = _fill_event(Flop)
             n.position = 'Flop'
             new_cards = line.split(' [')[1].split(']')[0].split(',')
             n.cards = [i.strip() for i in new_cards]
@@ -447,21 +493,21 @@ def parser(lines: List[str], times: list, game_id: str) -> list:
             continue
         elif 'Turn: ' in line or 'turn: ' in line:
             p_person, p_amount = None, None
-            n = first_pass(Turn)
+            n = _fill_event(Turn)
             n.position = 'Turn'
             n.cards = line.split(' [')[1].split(']')[0].strip()
             lst.append(n)
             continue
         elif 'River: ' in line or 'river: ' in line:
             p_person, p_amount = None, None
-            n = first_pass(River)
+            n = _fill_event(River)
             n.position = 'River'
             n.cards = line.split(' [')[1].split(']')[0].strip()
             lst.append(n)
             continue
         elif 'Undealt cards: ' in line:
             p_person, p_amount = None, None
-            n = first_pass(Undealt)
+            n = _fill_event(Undealt)
             new_cards = line.split(' [')[1].split(']')[0].split(',')
             n.cards = [i.strip() for i in new_cards]
             if len(n.cards) == 1:
@@ -471,7 +517,7 @@ def parser(lines: List[str], times: list, game_id: str) -> list:
             lst.append(n)
             continue
         elif 'Player stacks:' in line:
-            n = first_pass(PlayerStacks)
+            n = _fill_event(PlayerStacks)
             n.player_name, n.player_index = n_lst, i_lst
             n.stack = 0
             n.current_chips, n.starting_chips = current_chips, start_chips

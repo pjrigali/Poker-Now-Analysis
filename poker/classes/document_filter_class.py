@@ -1,8 +1,8 @@
 from typing import List, Optional, Union
 from dataclasses import dataclass
 import pandas as pd
-from poker.poker_class import Poker
-from poker.base import flatten
+from poker.classes.poker_class import Poker
+from poker.utils.base import flatten
 pd.set_option('use_inf_as_na', True)
 
 

@@ -4,9 +4,12 @@ import pandas as pd
 import datetime
 from os import walk
 import csv
-from poker.base import flatten, unique_values, round_to, native_max
-from poker.game_class import Game
-
+from poker.utils.base import flatten, unique_values, round_to, native_max
+from poker.classes.game_class import Game
+from poker.classes.data import Data
+from poker.classes.player import Player
+from poker.utils.class_functions import _str_nan
+from poker.utils.base import unique_values
 
 # def _poker_convert_shape(data: List[str]) -> list:
 #     """Converts card icons into shapes"""
@@ -259,6 +262,53 @@ def _poker_add_merged_moves(player_dic: dict):
         player_dic[key].merged_moves['Loss'] = loss_dic
 
 
+def _get_players(grouped: dict, events: tuple, threshold: int = 20) -> dict:
+    my_ids = {i: True for i in grouped[list(grouped.keys())[0]]}
+    id_dic, id_check = {i: [] for k, v in grouped.items() for i in v}, {i: True for k, v in grouped.items() for i in v}
+    for i in events:
+        if i.event == 'MyCards':
+            for name in i.starting_players.keys():
+                if name in my_ids:
+                    id_dic[name].append(i)
+                    break
+        else:
+            if _str_nan(i.player_index) and i.player_index in id_check:
+                id_dic[i.player_index].append(i)
+            elif _str_nan(i.player_index) and i.player_index not in id_check:
+                id_dic[i.player_index], id_check[i.player_index] = [i], True
+            else:
+                for p in i.starting_players.keys():
+                    id_dic[p].append(i)
+
+    player_dic, player_check = {}, {i: True for k, v in grouped.items() for i in v}
+    for name, vals in grouped.items():
+        player_dic[name] = []
+        for _id in vals:
+            player_dic[name] += id_dic[_id]
+
+    for _id, vals in id_dic.items():
+        if _id not in player_check:
+            player_dic[_id] = vals
+    return {k: Player(data=v, name=k) for k, v in player_dic.items() if len(v) >= threshold}
+
+
+def _get_dist(lst: Union[list, tuple], e: str, criteria: str) -> dict:
+    vals, count = [], 0
+    if criteria == 'winning_hand':
+        for i in lst:
+            if i.event == e and i.winning_hand is not None:
+                vals.append(i.winning_hand)
+                count += 1
+    elif criteria == 'cards':
+        for i in lst:
+            if i.event == e and i.cards is not None:
+                for c in i.cards:
+                    vals.append(c)
+                    count += 1
+    vals = unique_values(data=vals, count=True)
+    return {k: (v, round(v / count, 3)) for k, v in vals.items()}
+
+
 @dataclass
 class Poker:
     """
@@ -283,20 +333,26 @@ class Poker:
     """
 
     __slots__ = ('repo_location', 'files', 'matches', 'player_money_df', 'card_distribution', 'winning_hand_dist',
-                 'players')
+                 'players', 'events')
 
-    def __init__(self, repo_location: str, grouped: Optional[Union[list, dict]] = None, money_multi: int = 100):
+    def __init__(self, repo_location: str, grouped: Optional[Union[list, dict]] = None, money_multi: int = 100,
+                 threshold: int = 20):
         self.repo_location = repo_location
-        x = _poker_collect_data(repo_location=repo_location)
-        self.files = tuple(x.keys())
-        players_data = {}
-        self.matches = {file: Game(hand_lst=x[file], file_id=file, players_data=players_data) for file in self.files}
-        player_dic = _poker_build_player_dic(data=players_data, matches=list(self.matches.values()))
-        self.player_money_df = _poker_group_money(data=player_dic, grouped=grouped, multi=money_multi)
-        self.card_distribution, self.winning_hand_dist = _poker_get_dist(matches=list(self.matches.values()))
-        _poker_build_players(data=players_data, money_df=self.player_money_df)
-        self.players = _poker_combine_dic(data=players_data, grouped=grouped)
-        _poker_add_merged_moves(player_dic=self.players)
+        data = Data(repo_location=repo_location)
+        self.events, self.matches = data.events, data.matches
+        self.players = _get_players(grouped=grouped, events=self.events, threshold=threshold)
+        self.winning_hand_dist = _get_dist(self.events, 'Wins', 'winning_hand')
+        self.card_distribution = _get_dist(self.events, 'PlayerStacks', 'cards')
+
+        # x = _poker_collect_data(repo_location=repo_location)
+        # players_data = {}
+        # self.matches = {file: Game(hand_lst=x[file], file_id=file, players_data=players_data) for file in self.files}
+        # player_dic = _poker_build_player_dic(data=players_data, matches=list(self.matches.values()))
+        # self.player_money_df = _poker_group_money(data=player_dic, grouped=grouped, multi=money_multi)
+        # self.card_distribution, self.winning_hand_dist = _poker_get_dist(matches=list(self.matches.values()))
+        # _poker_build_players(data=players_data, money_df=self.player_money_df)
+        # self.players = _poker_combine_dic(data=players_data, grouped=grouped)
+        # _poker_add_merged_moves(player_dic=self.players)
 
     def __repr__(self):
         return "Poker"

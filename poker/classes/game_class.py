@@ -1,11 +1,11 @@
 from typing import List
 from dataclasses import dataclass
 import pandas as pd
-from poker.processor import Approved, SmallBlind, BigBlind, Raises, Wins, Quits
-from poker.processor import StandsUp, SitsIn, PlayerStacks
-from poker.base import flatten, unique_values, round_to, native_sum, native_mean
-from poker.hand_class import Hand
-from poker.player_class import Player
+from poker.utils.processor import Approved, SmallBlind, BigBlind, Raises, Wins, Quits
+from poker.utils.processor import StandsUp, SitsIn, PlayerStacks
+from poker.utils.base import flatten, unique_values, round_to, native_sum, native_mean
+from poker.classes.hand_class import Hand
+from poker.classes.player_class import Player
 pd.set_option('use_inf_as_na', True)
 
 
