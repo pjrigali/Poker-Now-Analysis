@@ -5,7 +5,7 @@ from os import walk
 import csv
 from poker.classes.event import Event
 from poker.utils.class_functions import _str_nan
-from poker.utils.base import calculate_hand
+from poker.utils.base import calculate_hand, calc_gini
 
 
 def _convert(data: List[str], dic: dict):
@@ -81,10 +81,10 @@ def parser(lines: List[str], times: list, game_id: str) -> tuple:
                      pot_size=pot, starting_players=start_players, remaining_players=players_left,
                      action_from_player=p_person, action_amount=p_amount, game_id=game_id,
                      starting_chips=start_chips, current_chips=current_chips, winner=winners, win_stack=win_stacks,
-                     time=times[ind], previous_time=times[ind - 1], start_time=times[0], end_time=times[-1])
+                     time=times[ind], previous_time=times[ind - 1], start_time=times[0], end_time=times[-1], gini=gini)
 
     lst = []
-    pot, players_left, pos = 0, i_lst, 'Pre Flop'
+    pot, players_left, pos, gini = 0, i_lst, 'Pre Flop', calc_gini(data=v_lst)
     p_person, p_amount = None, None
     start_chips, start_players, current_chips = dict(zip(i_lst, v_lst)), dict(zip(i_lst, n_lst)), dict(zip(i_lst, v_lst))
     winners, win_stacks, winning_hands, cards, all_cards, shows = None, None, None, [], [], []
@@ -106,15 +106,18 @@ def parser(lines: List[str], times: list, game_id: str) -> tuple:
             lst.append(n)
             continue
         elif ' bets ' in line or ' raises ' in line:
-            n, new_stack = _fill('Raises'), 0
-            if ' bets ' in line:
-                new_stack = line.split(' bets ')[1]
-            if ' raises to ' in line:
-                new_stack = line.split(' raises to ')[1]
+            n = _fill('Bets')
             if ' and ' in line:
-                new_stack = new_stack.split(' and ')[0]
                 n._add_all_in()
-            pot, current_chips = n._add_stack(int(new_stack))._update_pot_curr(current_chips, '-')
+                new_stack = line.split(' and ')[0]
+            else:
+                new_stack = line
+            if ' raises to ' in line:
+                new_stack = int(new_stack.split(' raises to ')[1])
+                n._add_raise(new_stack)
+            else:
+                new_stack = int(new_stack.split(' bets ')[1])
+            pot, current_chips = n._add_stack(new_stack)._update_pot_curr(current_chips, '-')
             p_person, p_amount = n.player_index, n.stack
             lst.append(n)
             continue

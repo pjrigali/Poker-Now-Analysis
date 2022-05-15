@@ -41,12 +41,12 @@ class Event:
     __slots__ = ('text', 'player_name', 'player_index', 'stack', 'position', 'winning_hand', 'cards', 'current_round',
                  'pot_size', 'remaining_players', 'action_from_player', 'action_amount', 'all_in', 'game_id',
                  'starting_chips', 'current_chips', 'winner', 'win_stack', 'time', 'previous_time', 'start_time',
-                 'end_time', 'starting_players', 'event', 'wins')
+                 'end_time', 'starting_players', 'event', 'wins', 'gini', 'raises')
 
     def __init__(self, text: str, event: str, position=None, winning_hand=None, cards=None, current_round=None,
                  pot_size=0, starting_players=None, remaining_players=None, action_from_player=None, action_amount=None,
                  all_in=None, game_id=None, starting_chips=None, current_chips=None, winner=None, win_stack=None,
-                 time=None, previous_time=None, start_time=None, end_time=None, wins=None):
+                 time=None, previous_time=None, start_time=None, end_time=None, wins=None, gini=None, raises=None):
         self.text = text
         self.event = event
         self.player_name = _player_name(self.text)
@@ -72,6 +72,8 @@ class Event:
         self.start_time = start_time
         self.end_time = end_time
         self.wins = wins
+        self.gini = gini
+        self.raises = raises
 
     def __repr__(self):
         return self.event
@@ -95,6 +97,9 @@ class Event:
 
     def _add_all_in(self):
         self.all_in = True
+
+    def _add_raise(self, val):
+        self.raises = val - self.action_amount
 
     def _add_remaining(self, players_left, ret=None):
         self.remaining_players = tuple([p for p in players_left if p != self.player_index])
