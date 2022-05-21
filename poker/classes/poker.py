@@ -5,7 +5,7 @@ import datetime
 from poker.utils.base import flatten, unique_values, round_to, native_max
 from poker.classes.data import Data
 from poker.classes.player import Player
-from poker.utils.class_functions import _str_nan, _get_attributes
+from poker.utils.class_functions import _str_nan, _get_attributes, _get_percent
 from poker.utils.base import unique_values
 
 
@@ -64,7 +64,10 @@ from poker.utils.base import unique_values
 
 def _get_players(grouped: dict, events: tuple, threshold: int = 20) -> dict:
     my_ids = {i: True for i in grouped[list(grouped.keys())[0]]}
-    id_dic, id_check, id_game_dic = {i: [] for k, v in grouped.items() for i in v}, {i: True for k, v in grouped.items() for i in v}, {i: set() for k, v in grouped.items() for i in v}
+    id_dic = {i: [] for k, v in grouped.items() for i in v}
+    id_check =  {i: True for k, v in grouped.items() for i in v}
+    id_game_dic = {i: set() for k, v in grouped.items() for i in v}
+    id_win_dic = {i: {} for k, v in grouped.items() for i in v}
     for i in events:
         if i.event == 'MyCards':
             for name in i.starting_players.keys():
@@ -80,22 +83,55 @@ def _get_players(grouped: dict, events: tuple, threshold: int = 20) -> dict:
             else:
                 for p in i.starting_players.keys():
                     id_dic[p].append(i)
+        if i.event == 'Wins':
+            for _id in i.winner:
+                if _id not in id_win_dic:
+                    id_win_dic[_id] = {}
+                for k, v in i.current_chips.items():
+                    if k in id_win_dic[_id]:
+                        id_win_dic[_id][k].append(v - i.starting_chips[k])
+                    else:
+                        id_win_dic[_id][k] = [v - i.starting_chips[k]]
 
     player_dic, player_check = {}, {i: True for k, v in grouped.items() for i in v}
     for name, vals in grouped.items():
-        player_dic[name] = {'ids': set(), 'games': set(), 'events': []}
+        player_dic[name] = {'ids': set(), 'games': set(), 'events': [], 'beat': {}}
         for _id in vals:
             player_dic[name]['ids'].add(_id)
             player_dic[name]['events'] += id_dic[_id]
+            for k, v in id_win_dic[_id].items():
+                if k in player_dic[name]['beat']:
+                    player_dic[name]['beat'][k] += v
+                else:
+                    player_dic[name]['beat'][k] = v
             for i in id_game_dic[_id]:
                 player_dic[name]['games'].add(i)
 
     for _id, vals in id_dic.items():
         if _id not in player_check:
-            player_dic[_id] = {'ids': set(), 'games': set(), 'events': vals}
+            player_dic[_id] = {'ids': set(), 'games': set(), 'events': vals, 'beat': {}}
             player_dic[_id]['ids'].add(_id)
+            if _id in id_win_dic:
+                for k, v in id_win_dic[_id].items():
+                    if k in player_dic[name]['beat']:
+                        player_dic[name]['beat'][k] += v
+                    else:
+                        player_dic[name]['beat'][k] = v
             for i in id_game_dic[_id]:
                 player_dic[_id]['games'].add(i)
+
+    # Check who beat who and group names
+    for k, v in player_dic.items():
+        temp = {}
+        for k1, v1 in v['beat'].items():
+            for name, vals in grouped.items():
+                temp[name] = []
+                for _id in vals:
+                    if _id in v['beat']:
+                        temp[name] += v['beat'][_id]
+            if k1 not in player_check:
+                temp[k1] = v1
+        player_dic[k]['beat'] = {k1: tuple(v1) for k1, v1 in temp.items()}
 
     return {k: Player(dic=v, name=k) for k, v in player_dic.items() if len(v['events']) >= threshold}
 
@@ -141,7 +177,7 @@ class Poker:
     """
 
     __slots__ = ('repo_location', 'matches', 'player_money_df', 'card_distribution', 'winning_hand_dist',
-                 'players', 'events', 'multi')
+                 'players', 'events', 'multi', 'win_matrix')
 
     def __init__(self, repo_location: str, grouped: Optional[Union[list, dict]] = None, money_multi: int = 100,
                  threshold: int = 20):
@@ -152,6 +188,7 @@ class Poker:
         self.winning_hand_dist = _get_dist(self.events, 'Wins', 'winning_hand')
         self.card_distribution = _get_dist(self.events, 'PlayerStacks', 'cards')
         self.player_money_df = None
+        self.win_matrix = None
 
     def __repr__(self):
         return "Poker"
@@ -165,6 +202,7 @@ class Poker:
         return pd.DataFrame([_get_attributes(val=v) for k, v in self.players.items()])
 
     def total_return_df(self, multi: int = None) -> pd.DataFrame:
+        """Total return from all players"""
         if multi is None:
             multi = self.multi
         dic = {'Name': [], 'Player Names': [], 'Player Indexes': [], 'Buy In Amount': [], 'Leave Table Amount': [],
@@ -198,3 +236,23 @@ class Poker:
             dic['Profit Per Hour'].append(round(dic['Profit'][-1] / (sum(lst) / 60 / 60), 2))
         self.player_money_df = pd.DataFrame.from_dict(dic).set_index('Name').sort_values('Profit', ascending=False)
         return self.player_money_df
+
+    def win_matrix_df(self) -> pd.DataFrame:
+        """
+        How much you have taken from other players, negative is good.
+        Positive means some of your wins were pot splits and the other person ended up winning even when you won.
+        """
+        dic = {k: [] for k, v in self.players.items()}
+        dic['Name'] = []
+        for k, v in self.players.items():
+            dic['Name'].append(k)
+            for k1, v1 in self.players.items():
+                if k == k1:
+                    dic[k1].append(None)
+                else:
+                    if k1 in v.win_matrix:
+                        dic[k1].append(_get_percent(sum(v.win_matrix[k1]), self.multi, None))
+                    else:
+                        dic[k1].append(None)
+        self.win_matrix = pd.DataFrame.from_dict(dic).set_index('Name')
+        return self.win_matrix

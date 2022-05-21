@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Union
-from poker.utils.class_functions import _str_nan, _get_keys
+from poker.utils.class_functions import _str_nan, _get_keys, _get_percent
 from poker.utils.base import native_mean, native_median, native_std, native_percentile
 
 
@@ -110,13 +110,6 @@ def _get_player_data(data: tuple, games: tuple):
     return player, total, money
 
 
-def _get_percent(w_num, h_num) -> float:
-    if w_num > 0 and h_num > 0:
-        return round(w_num / h_num, 3)
-    else:
-        return 0.0
-
-
 def _get_stack(dic: dict, k: str) -> float:
     if k in dic:
         return sum(i.stack for i in dic[k])
@@ -153,7 +146,7 @@ def _get_start_curr_chips(dic: dict, ind: Union[str, tuple]):
 @dataclass
 class Player:
 
-    __slots__ = ('events', 'player_indexes', 'player_names', 'custom_name', 'games', 'stats', 'money')
+    __slots__ = ('events', 'player_indexes', 'player_names', 'custom_name', 'games', 'stats', 'money', 'win_matrix')
 
     def __init__(self, dic: dict, name: str):
         self.custom_name = name
@@ -162,6 +155,7 @@ class Player:
         self.events = p['events']
         self.player_indexes = tuple(dic['ids'])
         self.player_names = tuple(p['player_names'])
+        self.win_matrix = dic['beat']
 
     def __repr__(self):
         if len(self.custom_name) == 10 and len(self.player_names) == 1:
