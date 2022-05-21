@@ -8,29 +8,31 @@ from poker.utils.class_functions import _str_nan
 from poker.utils.base import calculate_hand, calc_gini
 
 
-def _convert(data: List[str], dic: dict):
-    dic['Event'].append(data[0].replace("â£", " Clubs").replace("â¦", " Diamonds").replace("â¥", " Hearts").replace("â", " Spades"))
-    dic['Time'].append(datetime.datetime.strptime(data[1].replace('T', ' ').split('.')[0], '%Y-%m-%d %H:%M:%S'))
-
-
-def rev(lst: list) -> list:
-    lst.reverse()
-    return lst
-
-
-def _get_rows(file: str) -> dict:
-    dic = {'Event': [], 'Time': []}
-    with open(file, 'r', encoding='latin1') as file:
-        my_reader = csv.reader(file, delimiter=',')
-        for ind, row in enumerate(my_reader):
-            if ind > 0:
-                _convert(data=row, dic=dic)
-    dic['Event'], dic['Time'] = rev(dic['Event']), rev(dic['Time'])
-    return dic
-
-
 def _poker_collect_data(repo_location: str) -> dict:
     """Open file, clean data and return a dict"""
+
+    def _get_rows(file: str) -> dict:
+        """Get rows of data"""
+
+        def _convert(data: List[str], dic: dict):
+            """Convert shapes to words"""
+            dic['Event'].append(data[0].replace("â£", " Clubs").replace("â¦", " Diamonds").replace("â¥", " Hearts").replace("â"," Spades"))
+            dic['Time'].append(datetime.datetime.strptime(data[1].replace('T', ' ').split('.')[0], '%Y-%m-%d %H:%M:%S'))
+
+        def _rev(lst: list) -> list:
+            """Reverse list"""
+            lst.reverse()
+            return lst
+
+        dic = {'Event': [], 'Time': []}
+        with open(file, 'r', encoding='latin1') as file:
+            my_reader = csv.reader(file, delimiter=',')
+            for ind, row in enumerate(my_reader):
+                if ind > 0:
+                    _convert(data=row, dic=dic)
+        dic['Event'], dic['Time'] = _rev(dic['Event']), _rev(dic['Time'])
+        return dic
+
     files, file_dic = next(walk(repo_location))[2], {}
     for file in files:
         temp, v, t, d = [], [], [], _get_rows(file=repo_location + file)
@@ -46,7 +48,7 @@ def _poker_collect_data(repo_location: str) -> dict:
     return file_dic
 
 
-def parser(lines: List[str], times: list, game_id: str) -> tuple:
+def _parser(lines: List[str], times: list, game_id: str) -> tuple:
     """
     Takes a hand and the times associated with each event in that hand. Returns a list of Event Class objects.
 
@@ -152,12 +154,12 @@ def parser(lines: List[str], times: list, game_id: str) -> tuple:
             lst.append(n)
             continue
         elif 'posts a big blind' in line:
-            n, pot, current_chips = _fill('BigBlind')._add_stack(int(line.split('of ')[1]))._update_pot_curr(current_chips, '-', True)
+            n, pot, current_chips = _fill('BigBlind')._add_stack(int(line.split('big blind of ')[1]))._update_pot_curr(current_chips, '-', True)
             p_person, p_amount = n.player_index, n.stack
             lst.append(n)
             continue
         elif 'posts a small blind' in line:
-            n, pot, current_chips = _fill('SmallBlind')._add_stack(int(line.split('of ')[1]))._update_pot_curr(current_chips, '-', True)
+            n, pot, current_chips = _fill('SmallBlind')._add_stack(int(line.split('small blind of ')[1]))._update_pot_curr(current_chips, '-', True)
             p_person, p_amount = n.player_index, n.stack
             lst.append(n)
             continue
@@ -251,7 +253,7 @@ def _get_events_matches(repo_location: str) -> tuple:
     for k, v in files.items():
         matches[k] = []
         for i in v:
-            hand_lst = parser(lines=i['lines'], times=i['times'], game_id=k)
+            hand_lst = _parser(lines=i['lines'], times=i['times'], game_id=k)
             for event in hand_lst:
                 event_lst.append((event.start_time, event)), matches[k].append(event)
     event_lst = sorted(event_lst, key=lambda x: x[0])
@@ -271,6 +273,7 @@ class Data:
         return 'PokerData'
 
     def grouped_names(self) -> dict:
+        """Get grouped dict of names and indexes"""
         id_d, id_c = {}, {}
         for i in self.events:
             if _str_nan(i.player_index) and i.player_index in id_c:
@@ -281,7 +284,13 @@ class Data:
         return {k: tuple(v) for k, v in id_d.items()}
 
     def unique_ids(self) -> tuple:
+        """Get unique player indexes"""
         return tuple(set([i.player_index for i in self.events if _str_nan(i.player_index)]))
 
     def unique_names(self) -> tuple:
+        """Get unique player names"""
         return tuple(set([i.player_name for i in self.events if _str_nan(i.player_name)]))
+
+    def items(self):
+        """Returns event and match attributes"""
+        return self.events, self.matches

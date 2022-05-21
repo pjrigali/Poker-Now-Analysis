@@ -22,7 +22,7 @@ def _player_index(text: str):
 
 def _stack(text: str):
     if 'stack of ' in text:
-        return int(text.split('stack of ')[1].split('.')[0])
+        return int(text.split(' stack of ')[1].split('.')[0])
     else:
         return None
 

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Union
-from poker.utils.class_functions import _str_nan
+from poker.utils.class_functions import _str_nan, _get_keys
 from poker.utils.base import native_mean, native_median, native_std, native_percentile
 
 
@@ -48,12 +48,35 @@ def _player(e, d: dict):
 #         d['all_in_bet'].append(e.stack)
 
 
-# def _money(e, d: dict):
-#     if e.event == 'Wins':
-#         d['table_wins'].append(e.stack)
-#     elif e.event in {'Quits': True, 'Folds': True}:
-#         d['table_losses'].append(e.action_amount)
-#     return d
+def _money(e, d: dict):
+    if e.event == 'Wins':
+        d['table_wins'].append(e.stack)
+    elif e.event == 'StandsUp':
+        if e.game_id in d['leaves']:
+            d['leaves'][e.game_id].append(e.stack)
+        else:
+            d['leaves'][e.game_id] = [e.stack]
+    elif e.event == 'Folds':
+        d['table_losses'].append(e.action_amount)
+    elif e.event == 'SitsIn':
+        if e.game_id in d['joined']:
+            d['joined'][e.game_id].append(e.stack)
+        else:
+            d['joined'][e.game_id] = [e.stack]
+    elif e.event == 'Approved':
+        if e.game_id in d['approved']:
+            d['approved'][e.game_id].append(e.stack)
+        else:
+            d['approved'][e.game_id] = [e.stack]
+    elif e.event == 'Quits':
+        d['table_losses'].append(e.action_amount)
+        if e.stack > 0:
+            if e.game_id in d['leaves']:
+                if e.stack not in d['leaves'][e.game_id]:
+                    d['leaves'][e.game_id].append(e.stack)
+            else:
+                d['leaves'][e.game_id] = [e.stack]
+    # return d
 
 # def _ave(e, d: dict) -> dict:
 #     if e.event == 'Call' and e.all_in is True:
@@ -68,21 +91,33 @@ def _get_player_data(data: tuple):
     # total = {'bet': [], 'call': [], 'all_in_call': [], 'all_in_bet': [], 'bet_percent_of_pot': [],
     #          'call_percent_of_pot': [], 'bet_percent_of_chips': [], 'call_percent_of_chips': [],
     #          'position': {'Pre Flop': [], 'Post Flop': [], 'Post Turn': [], 'Post River': []}}
-    # money = {'table_wins': [], 'table_losses': []}
+    money = {'table_wins': [], 'table_losses': [], 'joined': {}, 'leaves': {}, 'approved': {}, 'time': {}}
+    game, temp_time = data[0], []
     for i in data:
         _player(e=i, d=player)
         # _total(e=i, d=total)
-        # _money(e=i, d=money)
+        _money(e=i, d=money)
+        if i.game_id not in money['time']:
+            money['time'][i.game_id] = []
+        if i.event in {'Folds': True, 'Wins': True, 'StandsUp': True, 'Calls': True, 'Checks': True, 'Bets': True}:
+            temp_time.append((i.time - i.start_time).seconds)
+            if i.current_round != game.current_round:
+                temp_time.append((game.time - game.start_time).seconds)
+                money['time'][game.game_id].append(max(temp_time))
+                game, temp_time = i, []
+            else:
+                if game.time - game.start_time < i.time - i.start_time:
+                    game = i
     player['events'] = {k: tuple(v) for k, v in player['events'].items()}
     # count = {'hand_count': len(player['events']['PlayerStacks']), 'win_count': len(player['events']['Wins']),
     #          'loss_count': len(player['events']['Quits']), 'all_in_call_count': len(total['all_in_call']),
     #          'all_in_bet_count': len(total['all_in_call'])}
     # return player, {'totals': total, 'money': money, 'counts': count}
-    return player, None
+    return player, None, money
 
 
-def _get_win_percent(w_num, h_num) -> float:
-    if w_num > 0:
+def _get_percent(w_num, h_num) -> float:
+    if w_num > 0 and h_num > 0:
         return round(w_num / h_num, 3)
     else:
         return 0.0
@@ -121,10 +156,6 @@ def _get_start_curr_chips(dic: dict, ind: Union[str, tuple]):
     return high_lst, low_lst
 
 
-def _clean_dic(dic) -> tuple:
-    return tuple([k for k, v in dic.items()])
-
-
 @dataclass
 class Player:
 
@@ -132,63 +163,113 @@ class Player:
 
     def __init__(self, data: list, name: str):
         self.custom_name = name
-        p, stats = _get_player_data(data=tuple(data))
-        self.player_indexes = _clean_dic(dic=p['player_ids'])
-        self.player_names = _clean_dic(dic=p['player_names'])
+        p, self.stats, self.money = _get_player_data(data=tuple(data))
         self.events = p['events']
-        self.games = _clean_dic(dic=p['games'])
-        self.stats = stats
-        self.money = None
-        # self.hand_count = len(self.events['PlayerStacks'])
-        # self.win_percent = _get_win_percent(w_num=self.win_count, h_num=self.hand_count)
-        # self.game_count = len(self.games)
-        # self.buy_in_amount = _get_stack(self.events, 'Approved')
-        # self.leave_table_amount = _get_stack(self.events, 'StandsUp') - _get_stack(self.events, 'SitsIn')
-        # self.largest_win, self.largest_loss = _get_start_curr_chips(self.events, self.player_indexes)
-        # self.loss_count = len(self.events['Quits'])
-        # self.profit = self.leave_table_amount - self.buy_in_amount
-        # self.stats =
+        self.player_indexes = _get_keys(dic=p['player_ids'])
+        self.player_names = _get_keys(dic=p['player_names'])
+        self.games = _get_keys(dic=p['games'])
 
     def __repr__(self):
-        return 'PlayerData'
+        if len(self.custom_name) == 10 and len(self.player_names) == 1:
+            return self.player_names[0]
+        return self.custom_name
 
-    def player_stats(self, win_loss_all: str = 'all', stat: str = 'time', method: str = 'average'):
-        i_dic, dic = {i: True for i in self.player_indexes}, {}
+    def player_stats(self, win_loss_all: str = 'all', time: bool = False, method: str = 'average', position: str = 'all') -> dict:
+        if position == 'all':
+            position = ('Pre Flop', 'Post Flop', 'Post Turn', 'Post River')
+        else:
+            position = (position,)
+
+        i_dic, dic = {i: True for i in self.player_indexes}, {'Raises': []}
         if win_loss_all == 'win':
             for i in ('Bets', 'Checks', 'Calls'):
                 dic[i] = []
-                for j in self.events[i]:
-                    if isinstance(j.winner, str):
-                        if j.winner in i_dic:
-                            dic[i].append(j)
-                    elif isinstance(j.winner, (tuple, list)):
-                        for k in j.winner:
-                            if k in i_dic:
+                if i == 'Bets':
+                    for j in self.events[i]:
+                        if isinstance(j.winner, str):
+                            if j.winner in i_dic:
                                 dic[i].append(j)
+                                if j.raises is not None:
+                                    dic['Raises'].append(j)
+                        elif isinstance(j.winner, (tuple, list)):
+                            for k in j.winner:
+                                if k in i_dic:
+                                    dic[i].append(j)
+                                    if j.raises is not None:
+                                        dic['Raises'].append(j)
+                else:
+                    for j in self.events[i]:
+                        if isinstance(j.winner, str):
+                            if j.winner in i_dic:
+                                dic[i].append(j)
+                        elif isinstance(j.winner, (tuple, list)):
+                            for k in j.winner:
+                                if k in i_dic:
+                                    dic[i].append(j)
         elif win_loss_all == 'loss':
             for i in ('Bets', 'Checks', 'Calls', 'Folds'):
                 dic[i] = []
-                for j in self.events[i]:
-                    if isinstance(j.winner, str):
-                        if j.winner not in i_dic:
-                            dic[i].append(j)
-                    elif isinstance(j.winner, (tuple, list)):
-                        for k in j.winner:
-                            if k not in i_dic:
+                if i == 'Bets':
+                    for j in self.events[i]:
+                        if isinstance(j.winner, str):
+                            if j.winner not in i_dic:
                                 dic[i].append(j)
+                                if j.raises is not None:
+                                    dic['Raises'].append(j)
+                        elif isinstance(j.winner, (tuple, list)):
+                            for k in j.winner:
+                                if k not in i_dic:
+                                    dic[i].append(j)
+                                    if j.raises is not None:
+                                        dic['Raises'].append(j)
         else:
             for i in ('Bets', 'Checks', 'Calls', 'Folds'):
                 dic[i] = self.events[i]
+                if i == 'Bets':
+                    for j in self.events[i]:
+                        if j.raises is not None:
+                            dic['Raises'].append(j)
 
-        if stat == 'time':
+        if time:
             t_dic = {}
-            for pos in ('Pre Flop', 'Post Flop', 'Post Turn', 'Post River'):
+            for pos in position:
                 t_dic[pos] = {}
                 for k, v in dic.items():
                     temp = [(j.time - j.previous_time).seconds for j in v if j.position == pos]
-                    # temp = [(i.time - i.previous_time).seconds for i in v]
                     t_dic[pos][k] = {'mean': round(native_mean(temp), 2),
                                      'median': native_median(temp),
                                      'std': round(native_std(temp), 2)}
-            t_dic
-        dic
+        else:
+            t_dic = {}
+            for pos in position:
+                t_dic[pos] = {}
+                for k, v in dic.items():
+                    if k == 'Raises':
+                        stack = [j.raises for j in v if j.position == pos]
+                        pot = [_get_percent(j.raises, j.pot_size) for j in v if j.position == pos]
+                        chip = [_get_percent(j.raises, j.current_chips[j.player_index]) for j in v if j.position == pos]
+                    elif k == 'Folds':
+                        stack = [j.action_amount for j in v if j.position == pos and j.action_amount is not None]
+                        pot = [_get_percent(j.action_amount, j.pot_size) for j in v if j.position == pos and j.action_amount is not None]
+                        chip = [_get_percent(j.action_amount, j.current_chips[j.player_index]) for j in v if j.position == pos and j.action_amount is not None]
+                    elif k == 'Checks':
+                        continue
+                    else:
+                        stack = [j.stack for j in v if j.position == pos and j.stack is not None]
+                        pot = [_get_percent(j.stack, j.pot_size) for j in v if j.position == pos and j.stack is not None]
+                        chip = [_get_percent(j.stack, j.current_chips[j.player_index]) for j in v if j.position == pos and j.stack is not None]
+                    t_dic[pos][k] = {'mean_amount': int(native_mean(stack)),
+                                     'median_amount': native_median(stack),
+                                     'std_amount': int(native_std(stack)),
+                                     'mean_pot_percent': int(native_mean(pot)),
+                                     'median_pot_percent': native_median(pot),
+                                     'std_pot_percent': int(native_std(pot)),
+                                     'mean_chip_percent': int(native_mean(chip)),
+                                     'median_chip_percent': native_median(chip),
+                                     'std_chip_percent': int(native_std(chip))}
+        return dic
+
+
+
+
+
