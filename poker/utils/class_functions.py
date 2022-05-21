@@ -14,3 +14,11 @@ def _get_attributes(val) -> dict:
 def _get_keys(dic: dict) -> tuple:
     """Creates tuple of keys"""
     return tuple([k for k, v in dic.items()])
+
+
+def _get_percent(w_num, h_num, ret=0.0) -> float:
+    """Catches division by zero and zero divided by a number"""
+    if w_num != 0 and h_num != 0:
+        return round(w_num / h_num, 2)
+    else:
+        return ret
