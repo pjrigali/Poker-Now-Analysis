@@ -4,41 +4,54 @@ from poker.utils.class_functions import _str_nan, _get_keys
 from poker.utils.base import native_mean, native_median, native_std, native_percentile
 
 
+CLASS_TUP = ('Calls', 'Checks', 'Folds', 'Bets', 'Shows', 'Wins', 'PlayerStacks', 'BigBlind', 'SmallBlind', 'Flop',
+             'Turn', 'River', 'MyCards', 'Joined', 'Requests', 'Approved', 'Quits', 'Undealt', 'StandsUp', 'SitsIn')
+
+
 def _player(e, d: dict):
-    if e.player_index not in d['player_ids'] and _str_nan(e.player_index):
-        d['player_ids'][e.player_index] = True
-    if e.player_name not in d['player_names'] and _str_nan(e.player_name):
-        d['player_names'][e.player_name] = True
-    if e.event not in d['events']:
-        d['events'][e.event] = [e]
-    else:
-        d['events'][e.event].append(e)
-    if e.game_id not in d['games']:
-        d['games'][e.game_id] = True
+    if _str_nan(e.player_name):
+        d['player_names'].add(e.player_name)
+    d['events'][e.event].append(e)
 
 
-# def _total(e, d: dict):
-#     if e.event == 'Calls':
-#         if e.all_in is not None:
-#             d['all_in_call'].append(e.stack)
-#         else:
-#             d['call'].append(e.stack)
-#             d['call_percent_of_pot'].append(e.stack / e.pot_size)
-#             if e.current_chips[e.player_index] > 0:
-#                 d['call_percent_of_chips'].append(e.stack / e.current_chips[e.player_index])
-#             else:
-#                 d['call_percent_of_chips'].append(0)
-#     elif e.event == 'Bets':
-#         if e.all_in is not None:
-#             d['all_in_bet'].append(e.stack)
-#         else:
-#             d['bet'].append(e.stack)
-#             d['position'][e.position].append('')
-#             d['bet_percent_of_pot'].append(e.stack / e.pot_size)
-#             if e.current_chips[e.player_index] > 0:
-#                 d['bet_percent_of_chips'].append(e.stack / e.current_chips[e.player_index])
-#             else:
-#                 d['call_percent_of_chips'].append(0)
+def _total(e, d: dict):
+    if e.event == 'Calls':
+        if e.all_in is not None:
+            d['all_in_call'].append(e.stack)
+        else:
+            d['call'].append(e.stack)
+            d['call_percent_of_pot'].append(round(e.stack / e.pot_size, 2))
+            if e.current_chips[e.player_index] > 0:
+                d['call_percent_of_chips'].append(round(e.stack / e.current_chips[e.player_index], 2))
+            else:
+                d['call_percent_of_chips'].append(0.0)
+            if e.raises is not None:
+                d['raises'].append(e.raises)
+                d['raise_percent_of_pot'].append(round(e.raises / e.pot_size, 2))
+                d['raise_percent_of_action'].append(round(e.raises / e.action_amount, 2))
+                if e.current_chips[e.player_index] > 0:
+                    d['raise_percent_of_chips'].append(round(e.raises / e.current_chips[e.player_index], 2))
+                else:
+                    d['raise_percent_of_chips'].append(0.0)
+    elif e.event == 'Bets':
+        if e.all_in is not None:
+            d['all_in_bet'].append(e.stack)
+        else:
+            d['bet'].append(e.stack)
+            # d['position'][e.position].append('')
+            d['bet_percent_of_pot'].append(round(e.stack / e.pot_size, 2))
+            if e.current_chips[e.player_index] > 0:
+                d['bet_percent_of_chips'].append(round(e.stack / e.current_chips[e.player_index], 2))
+            else:
+                d['call_percent_of_chips'].append(0.0)
+            if e.raises is not None:
+                d['raises'].append(e.raises)
+                d['raise_percent_of_pot'].append(round(e.raises / e.pot_size, 2))
+                d['raise_percent_of_action'].append(round(e.raises / e.action_amount, 2))
+                if e.current_chips[e.player_index] > 0:
+                    d['raise_percent_of_chips'].append(round(e.raises / e.current_chips[e.player_index], 2))
+                else:
+                    d['raise_percent_of_chips'].append(0.0)
 #     return d
 
 # def _count(e, d: dict):
@@ -49,34 +62,16 @@ def _player(e, d: dict):
 
 
 def _money(e, d: dict):
-    if e.event == 'Wins':
-        d['table_wins'].append(e.stack)
-    elif e.event == 'StandsUp':
-        if e.game_id in d['leaves']:
-            d['leaves'][e.game_id].append(e.stack)
-        else:
-            d['leaves'][e.game_id] = [e.stack]
-    elif e.event == 'Folds':
-        d['table_losses'].append(e.action_amount)
+    if e.event == 'StandsUp':
+        d['leaves'][e.game_id].append(e.stack)
     elif e.event == 'SitsIn':
-        if e.game_id in d['joined']:
-            d['joined'][e.game_id].append(e.stack)
-        else:
-            d['joined'][e.game_id] = [e.stack]
+        d['joined'][e.game_id].append(e.stack)
     elif e.event == 'Approved':
-        if e.game_id in d['approved']:
-            d['approved'][e.game_id].append(e.stack)
-        else:
-            d['approved'][e.game_id] = [e.stack]
+        d['approved'][e.game_id].append(e.stack)
     elif e.event == 'Quits':
-        d['table_losses'].append(e.action_amount)
         if e.stack > 0:
-            if e.game_id in d['leaves']:
-                if e.stack not in d['leaves'][e.game_id]:
-                    d['leaves'][e.game_id].append(e.stack)
-            else:
-                d['leaves'][e.game_id] = [e.stack]
-    # return d
+            if e.stack not in d['leaves'][e.game_id]:
+                d['leaves'][e.game_id].append(e.stack)
 
 # def _ave(e, d: dict) -> dict:
 #     if e.event == 'Call' and e.all_in is True:
@@ -86,19 +81,18 @@ def _money(e, d: dict):
 # def _per(e, d: dict) -> dict:
 
 
-def _get_player_data(data: tuple):
-    player = {'player_ids': {}, 'player_names': {}, 'games': {}, 'events': {}}
-    # total = {'bet': [], 'call': [], 'all_in_call': [], 'all_in_bet': [], 'bet_percent_of_pot': [],
-    #          'call_percent_of_pot': [], 'bet_percent_of_chips': [], 'call_percent_of_chips': [],
-    #          'position': {'Pre Flop': [], 'Post Flop': [], 'Post Turn': [], 'Post River': []}}
-    money = {'table_wins': [], 'table_losses': [], 'joined': {}, 'leaves': {}, 'approved': {}, 'time': {}}
+def _get_player_data(data: tuple, games: tuple):
+    player = {'player_names': set(), 'events': {i: [] for i in CLASS_TUP}}
+    total = {'bet': [], 'call': [], 'raises': [], 'all_in_call': [], 'all_in_bet': [], 'bet_percent_of_pot': [],
+             'call_percent_of_pot': [], 'bet_percent_of_chips': [], 'call_percent_of_chips': [],
+             'raise_percent_of_pot': [], 'raise_percent_of_chips': [], 'raise_percent_of_action': [],
+             'position': {'Pre Flop': [], 'Post Flop': [], 'Post Turn': [], 'Post River': []}}
+    money = {'table_wins': [], 'table_losses': [], 'joined': {i: [] for i in games}, 'leaves': {i: [] for i in games},
+             'approved': {i: [] for i in games}, 'time': {i: [] for i in games}}
     game, temp_time = data[0], []
     for i in data:
-        _player(e=i, d=player)
-        # _total(e=i, d=total)
-        _money(e=i, d=money)
-        if i.game_id not in money['time']:
-            money['time'][i.game_id] = []
+        _player(e=i, d=player), _money(e=i, d=money)
+        _total(e=i, d=total)
         if i.event in {'Folds': True, 'Wins': True, 'StandsUp': True, 'Calls': True, 'Checks': True, 'Bets': True}:
             temp_time.append((i.time - i.start_time).seconds)
             if i.current_round != game.current_round:
@@ -113,7 +107,7 @@ def _get_player_data(data: tuple):
     #          'loss_count': len(player['events']['Quits']), 'all_in_call_count': len(total['all_in_call']),
     #          'all_in_bet_count': len(total['all_in_call'])}
     # return player, {'totals': total, 'money': money, 'counts': count}
-    return player, None, money
+    return player, total, money
 
 
 def _get_percent(w_num, h_num) -> float:
@@ -161,13 +155,13 @@ class Player:
 
     __slots__ = ('events', 'player_indexes', 'player_names', 'custom_name', 'games', 'stats', 'money')
 
-    def __init__(self, data: list, name: str):
+    def __init__(self, dic: dict, name: str):
         self.custom_name = name
-        p, self.stats, self.money = _get_player_data(data=tuple(data))
+        self.games = tuple(dic['games'])
+        p, self.stats, self.money = _get_player_data(data=tuple(dic['events']), games=self.games)
         self.events = p['events']
-        self.player_indexes = _get_keys(dic=p['player_ids'])
-        self.player_names = _get_keys(dic=p['player_names'])
-        self.games = _get_keys(dic=p['games'])
+        self.player_indexes = tuple(dic['ids'])
+        self.player_names = tuple(p['player_names'])
 
     def __repr__(self):
         if len(self.custom_name) == 10 and len(self.player_names) == 1:

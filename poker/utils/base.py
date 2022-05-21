@@ -6,7 +6,7 @@ import pandas as pd
 pd.set_option('use_inf_as_na', True)
 
 
-def _to_list(data: Union[list, np.ndarray, pd.Series, int, float]) -> Union[List[int], List[float], float, int]:
+def _to_list(data: Union[list, np.ndarray, pd.Series, int, float, tuple]) -> Union[List[int], List[float], float, int]:
     """Converts list adjacent objects to a list and passes int/float objects"""
     if isinstance(data, list):
         return data
@@ -261,13 +261,13 @@ def round_to(data: Union[list, np.ndarray, pd.Series, np.float64, np.float32, np
             return [round(item / val) * val for item in data]
 
 
-def calc_gini(data: Union[list, np.ndarray, pd.Series]) -> float:
+def calc_gini(data: Union[list, np.ndarray, pd.Series, tuple]) -> float:
     """
 
     Calculate the Gini Coef for a list.
 
     :param data: Input data.
-    :type data: list, np.ndarray, or pd.Series
+    :type data: list, np.ndarray, pd.Series, or tuple
     :return: Gini value.
     :rtype: float
     :example:
@@ -277,13 +277,15 @@ def calc_gini(data: Union[list, np.ndarray, pd.Series]) -> float:
 
     """
     data = _to_list(data=data)
+    if native_sum(data=data) == 0:
+        return 0.0
     sorted_list = sorted(data)
     height, area = 0, 0
     for value in sorted_list:
         height += value
         area += height - value / 2.
     fair_area = height * len(data) / 2.
-    return (fair_area - area) / fair_area
+    return round((fair_area - area) / fair_area, 3)
 
 
 def search_dic_values(dic: dict, item: Union[str, int, float]) -> Union[str, float, int]:

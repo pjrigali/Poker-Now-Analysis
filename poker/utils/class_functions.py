@@ -1,4 +1,3 @@
-
 def _str_nan(val) -> bool:
     """Check is str type and is not None"""
     if isinstance(val, str) and val is not None:

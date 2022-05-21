@@ -37,7 +37,6 @@ from poker.utils.base import unique_values
 #     return player_dic
 
 
-
 # def _poker_get_dist(matches: list) -> List[pd.DataFrame]:
 #     """Calculate distributions"""
 #     hand_ind = unique_values(data=flatten(data=[list(match.winning_hand_distribution.keys()) for match in matches]))
@@ -65,7 +64,7 @@ from poker.utils.base import unique_values
 
 def _get_players(grouped: dict, events: tuple, threshold: int = 20) -> dict:
     my_ids = {i: True for i in grouped[list(grouped.keys())[0]]}
-    id_dic, id_check = {i: [] for k, v in grouped.items() for i in v}, {i: True for k, v in grouped.items() for i in v}
+    id_dic, id_check, id_game_dic = {i: [] for k, v in grouped.items() for i in v}, {i: True for k, v in grouped.items() for i in v}, {i: set() for k, v in grouped.items() for i in v}
     for i in events:
         if i.event == 'MyCards':
             for name in i.starting_players.keys():
@@ -75,23 +74,30 @@ def _get_players(grouped: dict, events: tuple, threshold: int = 20) -> dict:
         else:
             if _str_nan(i.player_index) and i.player_index in id_check:
                 id_dic[i.player_index].append(i)
+                id_game_dic[i.player_index].add(i.game_id)
             elif _str_nan(i.player_index) and i.player_index not in id_check:
-                id_dic[i.player_index], id_check[i.player_index] = [i], True
+                id_dic[i.player_index], id_check[i.player_index], id_game_dic[i.player_index] = [i], True, {i.game_id}
             else:
                 for p in i.starting_players.keys():
                     id_dic[p].append(i)
 
     player_dic, player_check = {}, {i: True for k, v in grouped.items() for i in v}
     for name, vals in grouped.items():
-        player_dic[name] = []
+        player_dic[name] = {'ids': set(), 'games': set(), 'events': []}
         for _id in vals:
-            player_dic[name] += id_dic[_id]
-
+            player_dic[name]['ids'].add(_id)
+            player_dic[name]['events'] += id_dic[_id]
+            for i in id_game_dic[_id]:
+                player_dic[name]['games'].add(i)
 
     for _id, vals in id_dic.items():
         if _id not in player_check:
-            player_dic[_id] = vals
-    return {k: Player(data=v, name=k) for k, v in player_dic.items() if len(v) >= threshold}
+            player_dic[_id] = {'ids': set(), 'games': set(), 'events': vals}
+            player_dic[_id]['ids'].add(_id)
+            for i in id_game_dic[_id]:
+                player_dic[_id]['games'].add(i)
+
+    return {k: Player(dic=v, name=k) for k, v in player_dic.items() if len(v['events']) >= threshold}
 
 
 def _get_dist(lst: Union[list, tuple], e: str, criteria: str) -> dict:

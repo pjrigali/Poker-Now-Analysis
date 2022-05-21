@@ -291,6 +291,10 @@ class Data:
         """Get unique player names"""
         return tuple(set([i.player_name for i in self.events if _str_nan(i.player_name)]))
 
+    def unique_games(self) -> tuple:
+        """Get unique match names"""
+        return tuple(set([i.game_id for i in self.events if _str_nan(i.game_id)]))
+
     def items(self):
         """Returns event and match attributes"""
         return self.events, self.matches
