@@ -91,8 +91,7 @@ def _get_player_data(data: tuple, games: tuple):
              'approved': {i: [] for i in games}, 'time': {i: [] for i in games}}
     game, temp_time = data[0], []
     for i in data:
-        _player(e=i, d=player), _money(e=i, d=money)
-        _total(e=i, d=total)
+        _player(e=i, d=player), _money(e=i, d=money), _total(e=i, d=total)
         if i.event in {'Folds': True, 'Wins': True, 'StandsUp': True, 'Calls': True, 'Checks': True, 'Bets': True}:
             temp_time.append((i.time - i.start_time).seconds)
             if i.current_round != game.current_round:
@@ -118,8 +117,7 @@ def _get_stack(dic: dict, k: str) -> float:
 
 
 def _get_start_curr_chips(dic: dict, ind: Union[str, tuple]):
-    low_lst, high_lst = [], []
-    low, high = 0, 0
+    low_lst, high_lst, low, high = [], [], 0, 0
     curr_game = dic['PlayerStacks'][0].game_id
     for i in dic['PlayerStacks']:
         if i.game_id != curr_game:

@@ -208,32 +208,14 @@ class Poker:
         dic = {'Name': [], 'Player Names': [], 'Player Indexes': [], 'Buy In Amount': [], 'Leave Table Amount': [],
                'Profit': [], 'Game Count': [], 'Play Time': [], 'Profit Per Hour': []}
         for k, v in self.players.items():
-            dic['Name'].append(k)
-            dic['Game Count'].append(len(v.games))
-            dic['Player Names'].append(v.player_names)
-            dic['Player Indexes'].append(v.player_indexes)
-            lst = []
-            for k1, v1 in v.money['approved'].items():
-                for val in v1:
-                    lst.append(val)
-            dic['Buy In Amount'].append(sum(lst) / multi)
-            lst = []
-            for k1, v1 in v.money['joined'].items():
-                for val in v1:
-                    lst.append(val)
-            temp = sum(lst) / multi
-            lst = []
-            for k1, v1 in v.money['leaves'].items():
-                for val in v1:
-                    lst.append(val)
-            dic['Leave Table Amount'].append(sum(lst) / multi - temp)
+            dic['Name'].append(k), dic['Game Count'].append(len(v.games)), dic['Player Names'].append(v.player_names), dic['Player Indexes'].append(v.player_indexes)
+            dic['Buy In Amount'].append(sum(val for k1, v1 in v.money['approved'].items() for val in v1) / multi)
+            temp = sum(val for k1, v1 in v.money['joined'].items() for val in v1) / multi
+            dic['Leave Table Amount'].append(sum(val for k1, v1 in v.money['leaves'].items() for val in v1) / multi - temp)
             dic['Profit'].append(dic['Leave Table Amount'][-1] - dic['Buy In Amount'][-1])
-            lst = []
-            for k1, v1 in v.money['time'].items():
-                for val in v1:
-                    lst.append(val)
-            dic['Play Time'].append(str(datetime.timedelta(seconds=sum(lst))))
-            dic['Profit Per Hour'].append(round(dic['Profit'][-1] / (sum(lst) / 60 / 60), 2))
+            temp = sum(val for k1, v1 in v.money['time'].items() for val in v1)
+            dic['Play Time'].append(str(datetime.timedelta(seconds=temp)))
+            dic['Profit Per Hour'].append(round(dic['Profit'][-1] / (temp / 60 / 60), 2))
         self.player_money_df = pd.DataFrame.from_dict(dic).set_index('Name').sort_values('Profit', ascending=False)
         return self.player_money_df
 

@@ -15,7 +15,7 @@ def _poker_collect_data(repo_location: str) -> dict:
         """Get rows of data"""
 
         def _convert(data: List[str], dic: dict):
-            """Convert shapes to words"""
+            """Convert shapes to words and corrects timestamps"""
             dic['Event'].append(data[0].replace("â£", " Clubs").replace("â¦", " Diamonds").replace("â¥", " Hearts").replace("â"," Spades"))
             dic['Time'].append(datetime.datetime.strptime(data[1].replace('T', ' ').split('.')[0], '%Y-%m-%d %H:%M:%S'))
 
@@ -65,16 +65,12 @@ def _parser(lines: List[str], times: list, game_id: str) -> tuple:
             c_round = int(line.split('starting hand #')[1].split(' (')[0])
         if 'Player stacks:' in line:
             for play in line.split('#')[1:]:
-                n_lst.append(play.split('@')[0].split('"')[1].strip())
-                i_lst.append(play.split('@')[1].split('"')[0].strip())
-                v_lst.append(int(play.split('(')[1].split(')')[0]))
+                n_lst.append(play.split('@')[0].split('"')[1].strip()), i_lst.append(play.split('@')[1].split('"')[0].strip()), v_lst.append(int(play.split('(')[1].split(')')[0]))
 
     if len(n_lst) == 0:
         for line in lines:
             if 'The admin approved' in line:
-                n_lst.append(line.split('@')[0].split('"')[1].strip())
-                i_lst.append(line.split('@')[1].split('"')[0].strip())
-                v_lst.append(0)
+                n_lst.append(line.split('@')[0].split('"')[1].strip()), i_lst.append(line.split('@')[1].split('"')[0].strip()), v_lst.append(0)
     n_lst, i_lst, v_lst = tuple(n_lst), tuple(i_lst), tuple(v_lst)
 
     def _fill(c):
@@ -248,14 +244,13 @@ def _parser(lines: List[str], times: list, game_id: str) -> tuple:
 
 
 def _get_events_matches(repo_location: str) -> tuple:
-    files = _poker_collect_data(repo_location=repo_location)
-    event_lst, matches, players, p_check = [], {}, {}, {}
+    event_lst, matches, players, p_check, files = [], {}, {}, {}, _poker_collect_data(repo_location=repo_location)
     for k, v in files.items():
         matches[k] = []
         for i in v:
             hand_lst = _parser(lines=i['lines'], times=i['times'], game_id=k)
             for event in hand_lst:
-                event_lst.append((event.start_time, event)), matches[k].append(event)
+                event_lst.append((event.time, event)), matches[k].append(event)
     event_lst = sorted(event_lst, key=lambda x: x[0])
     event_lst = tuple(i[1] for i in event_lst)
     return event_lst, {k: tuple(v) for k, v in matches.items()}
