@@ -155,11 +155,11 @@ class DocumentFilter:
     __slots__ = ('game_id', 'player_index', 'event', 'position', 'win_loss_all', 'data')
 
     def __init__(self, data: Poker,
-                 game_id: Optional[Union[list, tuple, str]],
-                 player_index: Optional[Union[list, tuple, str]],
-                 event: Optional[Union[list, tuple, str]],
-                 position: Optional[Union[list, tuple, str]],
-                 win_loss_all: Optional[str]):
+                 game_id: Optional[Union[list, tuple, str]] = None,
+                 player_index: Optional[Union[list, tuple, str]] = None,
+                 event: Optional[Union[list, tuple, str]] = None,
+                 position: Optional[Union[list, tuple, str]] = None,
+                 win_loss_all: Optional[str] = None):
         self.game_id = _df_convert_list(data=game_id)
         self.player_index = _df_convert_list(data=player_index)
         self.event = _df_convert_list(data=event)
