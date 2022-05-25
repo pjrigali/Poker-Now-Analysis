@@ -4,12 +4,13 @@ from os import walk
 import csv
 from poker.classes.event import Event
 from poker.classes.hand import Hand
+from poker.classes.match import Match
 from poker.utils.class_functions import _str_nan
 from poker.utils.base import calculate_hand, calc_gini
 
 
-def _poker_collect_data(repo_location: str) -> dict:
-    """Open file, clean data and return a dict"""
+def _poker_collect_data(repo_location: str):
+    """Open file, clean data and parse into Event/Hand and Match objects"""
 
     def _get_rows(file: str) -> dict:
         """Get rows of data"""
@@ -33,19 +34,24 @@ def _poker_collect_data(repo_location: str) -> dict:
         dic['Event'], dic['Time'] = _rev(dic['Event']), _rev(dic['Time'])
         return dic
 
-    files, file_dic = next(walk(repo_location))[2], {}
+    files, event_lst, matches = next(walk(repo_location))[2], [], {}
     for file in files:
-        temp, v, t, d = [], [], [], _get_rows(file=repo_location + file)
+        hands, v, t, d = [], [], [], _get_rows(file=repo_location + file)
+        file = file.split('.')[0]
         for ind, val in enumerate(d['Event']):
             if ' starting hand ' in val:
-                if ' hand #1 ' in val:
-                    temp.append({'lines': v, 'times': t})
+                events = _parser(lines=v, times=t, game_id=file)
+                hands.append(Hand(events=events))
+                event_lst += [(e.time, e) for e in events]
                 v, t = [val], [d['Time'][ind]]
-                temp.append({'lines': v, 'times': t})
             else:
                 v.append(val), t.append(d['Time'][ind])
-        file_dic[file.split(".")[0]] = temp
-    return file_dic
+        events = _parser(lines=v, times=t, game_id=file)
+        hands.append(Hand(events=events))
+        event_lst += [(e.time, e) for e in events]
+        matches[file] = Match(hands=tuple(hands))
+    event_lst = sorted(event_lst, key=lambda x: x[0])
+    return tuple(i[1] for i in event_lst), matches
 
 
 def _parser(lines: list, times: list, game_id: str) -> tuple:
@@ -63,10 +69,11 @@ def _parser(lines: list, times: list, game_id: str) -> tuple:
     for line in lines:
         if 'starting hand' in line:
             c_round = int(line.split('starting hand #')[1].split(' (')[0])
-        if 'Player stacks:' in line:
+            continue
+        elif 'Player stacks:' in line:
             for play in line.split('#')[1:]:
                 n_lst.append(play.split('@')[0].split('"')[1].strip()), i_lst.append(play.split('@')[1].split('"')[0].strip()), v_lst.append(int(play.split('(')[1].split(')')[0]))
-
+            break
     if len(n_lst) == 0:
         for line in lines:
             if 'The admin approved' in line:
@@ -84,9 +91,8 @@ def _parser(lines: list, times: list, game_id: str) -> tuple:
 
     lst = []
     pot, players_left, pos, gini, event_number = 0, i_lst, 'Pre Flop', calc_gini(data=v_lst), -1
-    p_person, p_amount = None, None
     start_chips, start_players, current_chips = dict(zip(i_lst, v_lst)), dict(zip(i_lst, n_lst)), dict(zip(i_lst, v_lst))
-    winners, win_stacks, winning_hands, cards, all_cards, shows = None, None, None, [], [], []
+    p_person, p_amount, winners, win_stacks, winning_hands, cards, all_cards, shows = None, None, None, None, None, [], [], []
     for ind, line in enumerate(lines):
         if ' calls ' in line:
             event_number += 1
@@ -264,27 +270,13 @@ def _parser(lines: list, times: list, game_id: str) -> tuple:
     return tuple(lst)
 
 
-def _get_events_matches(repo_location: str) -> tuple:
-    event_lst, matches, players, p_check, files = [], {}, {}, {}, _poker_collect_data(repo_location=repo_location)
-    for k, v in files.items():
-        matches[k] = []
-        for i in v:
-            hand_lst = _parser(lines=i['lines'], times=i['times'], game_id=k)
-            matches[k].append(Hand(events=hand_lst))
-            for event in hand_lst:
-                event_lst.append((event.time, event))
-    event_lst = sorted(event_lst, key=lambda x: x[0])
-    event_lst = tuple(i[1] for i in event_lst)
-    return event_lst, {k: tuple(v) for k, v in matches.items()}
-
-
 @dataclass
 class Data:
 
     __slots__ = ('events', 'matches')
 
     def __init__(self, repo_location: str):
-        self.events, self.matches = _get_events_matches(repo_location=repo_location)
+        self.events, self.matches = _poker_collect_data(repo_location=repo_location)
 
     def __repr__(self):
         return 'PokerData'
