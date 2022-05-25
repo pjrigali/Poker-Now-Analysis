@@ -45,7 +45,7 @@ class Hand:
 
     __slots__ = ('events', 'game_id', 'winner', 'winning_hand', 'win_stack', 'hand_time', 'start_time', 'end_time',
                  'hand_number', 'starting_chips', 'ending_chips', 'ending_players', 'position', 'order', 'cards',
-                 'fold_placement', 'starting_players', 'pot_size', 'chip_total', 'chip_percent_change')
+                 'fold_placement', 'starting_players', 'pot_size', 'chip_total', 'chip_percent_change', 'gini')
 
     def __init__(self, events: Union[list, tuple]):
         self.events = events
@@ -68,6 +68,7 @@ class Hand:
         self.pot_size = _pot_size(events)
         self.chip_total = sum(events[-1].starting_chips.values())
         self.chip_percent_change = {i: _get_percent_change(self.ending_chips[i], self.starting_chips[i]) for i in self.starting_players}
+        self.gini = events[0].gini
 
     def __repr__(self):
         return 'Hand:  ' + str(self.hand_number)
