@@ -16,9 +16,17 @@ def _get_keys(dic: dict) -> tuple:
     return tuple([k for k, v in dic.items()])
 
 
-def _get_percent(w_num, h_num, ret=0.0) -> float:
+def _get_percent(w_num, h_num, ret: float = 0.0) -> float:
     """Catches division by zero and zero divided by a number"""
     if w_num != 0 and h_num != 0:
         return round(w_num / h_num, 2)
+    else:
+        return ret
+
+
+def _get_percent_change(new, old, ret: float=0.0) -> float:
+    """Returns the percent cahnage between two ints or floats"""
+    if old != 0:
+        return round((new - old) / old, 2)
     else:
         return ret
