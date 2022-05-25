@@ -79,15 +79,17 @@ def _parser(lines: List[str], times: list, game_id: str) -> tuple:
                      pot_size=pot, starting_players=start_players, remaining_players=players_left,
                      action_from_player=p_person, action_amount=p_amount, game_id=game_id,
                      starting_chips=start_chips, current_chips=current_chips, winner=winners, win_stack=win_stacks,
-                     time=times[ind], previous_time=times[ind - 1], start_time=times[0], end_time=times[-1], gini=gini)
+                     time=times[ind], previous_time=times[ind - 1], start_time=times[0], end_time=times[-1], gini=gini,
+                     event_number=event_number)
 
     lst = []
-    pot, players_left, pos, gini = 0, i_lst, 'Pre Flop', calc_gini(data=v_lst)
+    pot, players_left, pos, gini, event_number = 0, i_lst, 'Pre Flop', calc_gini(data=v_lst), -1
     p_person, p_amount = None, None
     start_chips, start_players, current_chips = dict(zip(i_lst, v_lst)), dict(zip(i_lst, n_lst)), dict(zip(i_lst, v_lst))
     winners, win_stacks, winning_hands, cards, all_cards, shows = None, None, None, [], [], []
     for ind, line in enumerate(lines):
         if ' calls ' in line:
+            event_number += 1
             n = _fill('Calls')._add_stack(line.split(' calls ')[1])
             if ' and ' in n.stack:
                 n._add_stack(int(n.stack.split(' and ')[0]))._add_all_in()
@@ -97,13 +99,16 @@ def _parser(lines: List[str], times: list, game_id: str) -> tuple:
             lst.append(n)
             continue
         elif ' checks' in line:
+            event_number += 1
             lst.append(_fill('Checks'))
             continue
         elif ' folds' in line:
+            event_number += 1
             n, players_left = _fill('Folds')._add_remaining(players_left, True)
             lst.append(n)
             continue
         elif ' bets ' in line or ' raises ' in line:
+            event_number += 1
             n = _fill('Bets')
             if ' and ' in line:
                 n._add_all_in()
@@ -120,11 +125,13 @@ def _parser(lines: List[str], times: list, game_id: str) -> tuple:
             lst.append(n)
             continue
         elif ' shows a ' in line:
+            event_number += 1
             n = _fill('Shows')._add_cards([i.strip() for i in line.split(' shows a ')[1].split('.')[0].split(',')])
             all_cards = n._get_cards_allcards(cards=None, all_cards=all_cards)
             lst.append(n), shows.append(n)
             continue
         elif ' collected ' in line:
+            event_number += 1
             n = _fill('Wins')._add_stack(int(line.split(' collected ')[1].split(' from ')[0]))
             if ' from pot with ' in line:
                 if ', ' in line.split(' from pot with ')[1].split(' (')[0]:
@@ -144,22 +151,26 @@ def _parser(lines: List[str], times: list, game_id: str) -> tuple:
             lst.append(n)
             continue
         elif 'Player stacks:' in line:
+            event_number += 1
             n = _fill('PlayerStacks')._add_stack(0)
             n.player_name, n.player_index, n.current_chips, n.starting_chips = n_lst, i_lst, current_chips, start_chips
             all_cards = n._get_cards_allcards(cards=None, all_cards=all_cards)
             lst.append(n)
             continue
         elif 'posts a big blind' in line:
+            event_number += 1
             n, pot, current_chips = _fill('BigBlind')._add_stack(int(line.split('big blind of ')[1]))._update_pot_curr(current_chips, '-', True)
             p_person, p_amount = n.player_index, n.stack
             lst.append(n)
             continue
         elif 'posts a small blind' in line:
+            event_number += 1
             n, pot, current_chips = _fill('SmallBlind')._add_stack(int(line.split('small blind of ')[1]))._update_pot_curr(current_chips, '-', True)
             p_person, p_amount = n.player_index, n.stack
             lst.append(n)
             continue
         elif 'Flop: ' in line or 'flop' in line:
+            event_number += 1
             p_person, p_amount = None, None
             n = _fill('Flop')._add_cards([i.strip() for i in line.split(' [')[1].split(']')[0].split(',')])
             n.position, pos = 'Flop', 'Post Flop'
@@ -167,6 +178,7 @@ def _parser(lines: List[str], times: list, game_id: str) -> tuple:
             lst.append(n)
             continue
         elif 'Turn: ' in line or 'turn: ' in line:
+            event_number += 1
             p_person, p_amount = None, None
             n = _fill('Turn')._add_cards([line.split(' [')[1].split(']')[0].strip()])
             cards, all_cards = n._get_cards_allcards(cards=n.cards, all_cards=all_cards)
@@ -174,6 +186,7 @@ def _parser(lines: List[str], times: list, game_id: str) -> tuple:
             lst.append(n)
             continue
         elif 'River: ' in line or 'river: ' in line:
+            event_number += 1
             p_person, p_amount = None, None
             n = _fill('River')._add_cards([line.split(' [')[1].split(']')[0].strip()])
             n.position, pos = 'River', 'Post River'
@@ -181,24 +194,30 @@ def _parser(lines: List[str], times: list, game_id: str) -> tuple:
             lst.append(n)
             continue
         elif 'Your hand' in line:
+            event_number += 1
             n = _fill('MyCards')._add_cards([i.strip() for i in line.split(' hand is ')[1].split(',')])
             all_cards = n._get_cards_allcards(cards=None, all_cards=all_cards)
             lst.append(n)
             continue
         elif 'joined the game' in line:
+            event_number += 1
             lst.append(_fill('Joined'))
             continue
         elif 'requested a seat' in line:
+            event_number += 1
             lst.append(_fill('Requests'))
             continue
         elif 'The admin approved' in line:
+            event_number += 1
             lst.append(_fill('Approved'))
             continue
         elif ' quits the game ' in line:
+            event_number += 1
             n, players_left = _fill('Quits')._add_remaining(players_left, True)
             lst.append(n)
             continue
         elif 'Undealt cards: ' in line:
+            event_number += 1
             p_person, p_amount = None, None
             n = _fill('Undealt')._add_cards([i.strip() for i in line.split(' [')[1].split(']')[0].split(',')])
             if len(n.cards) == 1:
@@ -209,10 +228,12 @@ def _parser(lines: List[str], times: list, game_id: str) -> tuple:
             lst.append(n)
             continue
         elif ' stand up with ' in line:
+            event_number += 1
             n, players_left = _fill('StandsUp')._add_remaining(players_left, True)
             lst.append(n)
             continue
         elif ' sit back with ' in line:
+            event_number += 1
             lst.append(_fill('SitsIn'))
             continue
 
