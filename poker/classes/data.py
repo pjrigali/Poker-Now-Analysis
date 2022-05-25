@@ -1,9 +1,9 @@
-from typing import List
 from dataclasses import dataclass
 import datetime
 from os import walk
 import csv
 from poker.classes.event import Event
+from poker.classes.hand import Hand
 from poker.utils.class_functions import _str_nan
 from poker.utils.base import calculate_hand, calc_gini
 
@@ -14,9 +14,9 @@ def _poker_collect_data(repo_location: str) -> dict:
     def _get_rows(file: str) -> dict:
         """Get rows of data"""
 
-        def _convert(data: List[str], dic: dict):
+        def _convert(data: list, dic: dict):
             """Convert shapes to words and corrects timestamps"""
-            dic['Event'].append(data[0].replace("â£", " Clubs").replace("â¦", " Diamonds").replace("â¥", " Hearts").replace("â"," Spades"))
+            dic['Event'].append(data[0].replace("â£", " Clubs").replace("â¦", " Diamonds").replace("â¥", " Hearts").replace("â", " Spades"))
             dic['Time'].append(datetime.datetime.strptime(data[1].replace('T', ' ').split('.')[0], '%Y-%m-%d %H:%M:%S'))
 
         def _rev(lst: list) -> list:
@@ -48,7 +48,7 @@ def _poker_collect_data(repo_location: str) -> dict:
     return file_dic
 
 
-def _parser(lines: List[str], times: list, game_id: str) -> tuple:
+def _parser(lines: list, times: list, game_id: str) -> tuple:
     """
     Takes a hand and the times associated with each event in that hand. Returns a list of Event Class objects.
 
@@ -270,8 +270,9 @@ def _get_events_matches(repo_location: str) -> tuple:
         matches[k] = []
         for i in v:
             hand_lst = _parser(lines=i['lines'], times=i['times'], game_id=k)
+            matches[k].append(Hand(events=hand_lst))
             for event in hand_lst:
-                event_lst.append((event.time, event)), matches[k].append(event)
+                event_lst.append((event.time, event))
     event_lst = sorted(event_lst, key=lambda x: x[0])
     event_lst = tuple(i[1] for i in event_lst)
     return event_lst, {k: tuple(v) for k, v in matches.items()}

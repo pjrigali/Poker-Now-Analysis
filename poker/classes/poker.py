@@ -1,71 +1,17 @@
-from typing import List, Optional, Union
+from typing import Optional, Union
 from dataclasses import dataclass
 import pandas as pd
 import datetime
-from poker.utils.base import flatten, unique_values, round_to, native_max
-from poker.classes.data import Data
-from poker.classes.player import Player
-from poker.utils.class_functions import _str_nan, _get_attributes, _get_percent
-from poker.utils.base import unique_values
-
-
-# def _poker_build_player_dic(data: dict, matches: list) -> dict:
-#     """Updates Player Class"""
-#     player_dic = {}
-#     for match in matches:
-#         for player_index in data.keys():
-#             for key in match.players_data[player_index].player_money_info.keys():
-#                 temp_df = match.players_data[player_index].player_money_info[key]
-#                 if player_index in player_dic.keys():
-#                     if key not in player_dic[player_index]['Games']:
-#                         val = player_dic[player_index]
-#                         val['Player Names'] = list(set(val['Player Names'] + list(temp_df['Player Names'][0])))
-#                         val['Player Ids'] = list(set(val['Player Ids'] + [player_index]))
-#                         val['Buy in Total'] += int(temp_df['Buy in Total'])
-#                         val['Loss Count'] += int(temp_df['Loss Count'][0])
-#                         val['Leave Table Amount'] += temp_df['Leave Table Amount'][0]
-#                         val['Game Count'] += 1
-#                         val['Games'].append(key)
-#                 else:
-#                     player_dic[player_index] = {'Player Names': list(temp_df['Player Names'][0]),
-#                                                 'Player Ids': [player_index],
-#                                                 'Buy in Total': int(temp_df['Buy in Total'][0]),
-#                                                 'Loss Count': int(temp_df['Loss Count'][0]),
-#                                                 'Leave Table Amount': temp_df['Leave Table Amount'][0],
-#                                                 'Game Count': 1,
-#                                                 'Games': [key]}
-#     return player_dic
-
-
-# def _poker_get_dist(matches: list) -> List[pd.DataFrame]:
-#     """Calculate distributions"""
-#     hand_ind = unique_values(data=flatten(data=[list(match.winning_hand_distribution.keys()) for match in matches]))
-#     hand_dic = {item: 0 for item in hand_ind}
-#     card_dic = {item: {} for item in ('Flop Count', 'Turn Count', 'River Count', 'Win Count', 'My Cards Count')}
-#     for match in matches:
-#         for key, val in match.winning_hand_distribution.items():
-#             hand_dic[key] += val
-#         for item in card_dic.keys():
-#             if item in match.card_distribution.keys():
-#                 for key, val in match.card_distribution[item].items():
-#                     if key in card_dic[item].keys():
-#                         card_dic[item][key] += val
-#                     else:
-#                         card_dic[item][key] = val
-#     c_dist = pd.DataFrame.from_dict(card_dic).dropna()
-#     for col in c_dist.columns:
-#         s = sum(c_dist[col].tolist())
-#         c_dist[col.replace("Count", "Percent")] = round_to(data=[val / s if val != 0 else 0 for val in c_dist[col]], val=1000, remainder=True)
-#
-#     w_dist = pd.DataFrame.from_dict(hand_dic, orient='index', columns=['Count']).sort_values('Count', ascending=False)
-#     w_dist['Percent'] = (w_dist / w_dist.sum()).round(3)
-#     return [c_dist, w_dist]
+from classes.data import Data
+from classes.player import Player
+from utils.class_functions import _str_nan, _get_attributes, _get_percent
+from utils.base import unique_values
 
 
 def _get_players(grouped: dict, events: tuple, threshold: int = 20) -> dict:
     my_ids = {i: True for i in grouped[list(grouped.keys())[0]]}
     id_dic = {i: [] for k, v in grouped.items() for i in v}
-    id_check =  {i: True for k, v in grouped.items() for i in v}
+    id_check = {i: True for k, v in grouped.items() for i in v}
     id_game_dic = {i: set() for k, v in grouped.items() for i in v}
     id_win_dic = {i: {} for k, v in grouped.items() for i in v}
     for i in events:
@@ -166,7 +112,7 @@ class Poker:
     :param money_multi: Multiple to divide the money amounts to translate them to dollars *Optional*
     :type money_multi: int
     :example:
-        >>> from poker.poker_class import Poker
+        >>> from classes.poker import Poker
         >>> repo = 'location of your previous game'
         >>> grouped = [['YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS'],
         >>>             ['48QVRRsiae', 'u8_FUbXpAz']]

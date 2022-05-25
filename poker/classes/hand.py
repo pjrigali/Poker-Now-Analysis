@@ -1,5 +1,6 @@
+from typing import Union
 from dataclasses import dataclass
-from poker.utils.class_functions import _str_nan, _get_attributes
+from poker.utils.class_functions import _str_nan, _get_attributes, _get_percent_change
 
 
 def _order(events: list) -> tuple:
@@ -21,7 +22,12 @@ def _cards(events: list) -> tuple:
 
 
 def _fold(events: list) -> dict:
-    return {e.player_index: (e.event_number, e.position, e.action_from, e.action_amount, e.starting_chips[e.player_index] - e.current_chips[e.player_index]) for e in events if e.event == 'Folds'}
+    return {e.player_index: {'event_number': e.event_number,
+                             'position': e.position,
+                             'action_from_player': e.action_from_player,
+                             'action_amount': e.action_amount,
+                             'chip_change': e.starting_chips[e.player_index] - e.current_chips[e.player_index],
+                             } for e in events if e.event == 'Folds'}
 
 
 def _pot_size(events: list) -> tuple:
@@ -39,9 +45,9 @@ class Hand:
 
     __slots__ = ('events', 'game_id', 'winner', 'winning_hand', 'win_stack', 'hand_time', 'start_time', 'end_time',
                  'hand_number', 'starting_chips', 'ending_chips', 'ending_players', 'position', 'order', 'cards',
-                 'fold_placement', 'starting_players', 'pot_size', 'chip_total')
+                 'fold_placement', 'starting_players', 'pot_size', 'chip_total', 'chip_percent_change')
 
-    def __init__(self, events: list):
+    def __init__(self, events: Union[list, tuple]):
         self.events = events
         self.game_id = events[0].game_id
         self.winner = events[0].winner
@@ -61,12 +67,10 @@ class Hand:
         self.starting_players = events[0].starting_players
         self.pot_size = _pot_size(events)
         self.chip_total = sum(events[-1].starting_chips.values())
+        self.chip_percent_change = {i: _get_percent_change(self.ending_chips[i], self.starting_chips[i]) for i in self.starting_players}
 
     def __repr__(self):
         return 'Hand:  ' + str(self.hand_number)
 
-    def items(self):
+    def items(self) -> tuple:
         return (self.hand_number, _get_attributes(self))
-
-    def chip_percent_change(self) -> dict:
-        return {i: (self.ending_chips[i] - self.starting_chips[i]) / self.starting_chips[i] for i in self.starting_players}

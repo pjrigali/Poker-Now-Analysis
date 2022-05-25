@@ -254,8 +254,3 @@ class Player:
                                      'median_chip_percent': native_median(chip),
                                      'std_chip_percent': int(native_std(chip))}
         return dic
-
-
-
-
-
