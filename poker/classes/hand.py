@@ -3,41 +3,27 @@ from dataclasses import dataclass
 from poker.utils.class_functions import _str_nan, _get_attributes, _get_percent_change
 
 
-def _order(events: list) -> tuple:
-    ord, ord_check = [], {}
+def _get_data(events: list):
+    o, o_c, c, f_dic, p, a = [], {}, None, {}, [], {}
     for e in events:
-        if _str_nan(e.player_index):
-            if e.player_index not in ord_check:
-                ord_check[e.player_index] = True
-                ord.append(e.player_index)
-            else:
-                break
-    return tuple(ord)
-
-
-def _cards(events: list) -> tuple:
-    for e in events:
-        if e.event == 'PlayerStacks':
-            return e.cards
-
-
-def _fold(events: list) -> dict:
-    return {e.player_index: {'event_number': e.event_number,
-                             'position': e.position,
-                             'action_from_player': e.action_from_player,
-                             'action_amount': e.action_amount,
-                             'chip_change': e.starting_chips[e.player_index] - e.current_chips[e.player_index],
-                             } for e in events if e.event == 'Folds'}
-
-
-def _pot_size(events: list) -> tuple:
-    lst = []
-    for e in events:
-        if e.event == 'Wins':
-            break
-        else:
-            lst.append(e.pot_size)
-    return tuple(lst)
+        if _str_nan(e.player_index) and e.player_index not in o_c:
+            o_c[e.player_index] = True
+            o.append(e.player_index)
+        if e.event in {'SmallBlind': True, 'BigBlind': True, 'Calls': True, 'Bets': True, 'Checks': True}:
+            p.append(e.pot_size)
+            continue
+        elif e.event == 'Folds':
+            f_dic[e.player_index] = {'event_number': e.event_number, 'position': e.position,
+                                     'action_from_player': e.action_from_player, 'action_amount': e.action_amount,
+                                     'chip_change': e.starting_chips[e.player_index] - e.current_chips[e.player_index]}
+            continue
+        elif e.event == 'PlayerStacks':
+            c = e.cards
+            continue
+        elif e.event == 'Approved':
+            a[e.player_index] = e.stack
+            continue
+    return tuple(o), c, f_dic, tuple(p)
 
 
 @dataclass
@@ -61,11 +47,8 @@ class Hand:
         self.ending_chips = events[-1].current_chips
         self.ending_players = events[-1].remaining_players
         self.position = events[-1].position
-        self.order = _order(events)
-        self.cards = _cards(events)
-        self.fold_placement = _fold(events)
+        self.order, self.cards, self.fold_placement, self.pot_size = _get_data(events=self.events)
         self.starting_players = events[0].starting_players
-        self.pot_size = _pot_size(events)
         self.chip_total = sum(events[-1].starting_chips.values())
         self.chip_percent_change = {i: _get_percent_change(self.ending_chips[i], self.starting_chips[i]) for i in self.starting_players}
         self.gini = events[0].gini
