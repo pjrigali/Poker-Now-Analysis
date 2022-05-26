@@ -110,7 +110,7 @@ class Player:
 
     def __init__(self, dic: dict, name: str):
         self.custom_name = name
-        self.games = tuple(dic['games'])
+        self.games = dic['games']
         p = _data(data=tuple(dic['events']), games=self.games)
         self.stats = {i: p[i] for i in ('bet', 'call', 'raises', 'all_in_call', 'all_in_bet', 'bet_percent_of_pot',
                                         'call_percent_of_pot', 'bet_percent_of_chips', 'call_percent_of_chips',
@@ -118,7 +118,7 @@ class Player:
                                         'position')}
         self.money = {i: p[i] for i in ('table_wins', 'table_losses', 'joined', 'leaves', 'approved', 'time')}
         self.events = p['events']
-        self.player_indexes = tuple(dic['ids'])
+        self.player_indexes = dic['ids']
         self.player_names = tuple(p['player_names'].keys())
         self.win_matrix = dic['beat']
 
