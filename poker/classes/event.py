@@ -104,7 +104,7 @@ class Event:
         self.raises = val - self.action_amount
 
     def _add_remaining(self, players_left, ret=None):
-        self.remaining_players = tuple([p for p in players_left if p != self.player_index])
+        self.remaining_players = tuple(p for p in players_left if p != self.player_index)
         if ret is None:
             return self
         else:
