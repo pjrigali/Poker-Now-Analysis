@@ -2,7 +2,7 @@ from typing import Optional, Union
 from dataclasses import dataclass
 import pandas as pd
 from poker.classes.poker import Poker
-from poker.utils.class_functions import _get_attributes
+from poker.utils.class_functions import _get_attributes, _str_nan
 
 
 def _df_convert_list(data: Optional[Union[list, tuple, str]]) -> Optional[list]:
@@ -174,3 +174,31 @@ class DocumentFilter:
     def df(self) -> pd.DataFrame:
         """Returns a DataFrame"""
         return pd.DataFrame([_get_attributes(i) for i in self.data])
+
+    def unique_ids(self) -> tuple:
+        """Returns tuple of unique ids"""
+        ids = set()
+        for e in self.data:
+            if _str_nan(e.player_index):
+                ids.add(e.player_index)
+        return tuple(ids)
+
+    def update_data_game_id(self, val: tuple) -> tuple:
+        """Returns a tuple with new filter criteria"""
+        val = {i: True for i in val}
+        return tuple(e for e in self.data if e.game_id in val)
+
+    def update_data_player_index(self, val: tuple) -> tuple:
+        """Returns a tuple with new filter criteria"""
+        val = {i: True for i in val}
+        return tuple(e for e in self.data if _str_nan(e.player_index) and e.player_index in val)
+
+    def update_data_event(self, val: tuple) -> tuple:
+        """Returns a tuple with new filter criteria"""
+        val = {i: True for i in val}
+        return tuple(e for e in self.data if e.event in val)
+
+    def update_data_position(self, val: tuple) -> tuple:
+        """Returns a tuple with new filter criteria"""
+        val = {i: True for i in val}
+        return tuple(e for e in self.data if e.position in val)
