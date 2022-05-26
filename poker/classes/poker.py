@@ -8,7 +8,7 @@ from utils.class_functions import _str_nan, _get_attributes, _get_percent, tdict
 from utils.base import unique_values
 
 
-def _get_players(grouped: dict, players: dict, events: tuple, threshold: int = 20) -> dict:
+def _get_players(grouped: dict, players: dict, wins: list, events: tuple, threshold: int = 20) -> dict:
     my_ids = {i: True for i in grouped[list(grouped.keys())[0]]}
     i_check, n_check = {i: True for k, v in grouped.items() for i in v}, {i: k for k, v in grouped.items() for i in v}
     for k, v in players.items():
@@ -24,20 +24,17 @@ def _get_players(grouped: dict, players: dict, events: tuple, threshold: int = 2
         players[k] = lst
     # Calc how much taken from other players
     id_win_dic = {i: {} for k, v in grouped.items() for i in v}
-    for i in events:
-        if i.event == 'Wins':
-            for _id in i.winner:
-                if _id not in id_win_dic:
-                    id_win_dic[_id] = {}
-                for k, v in i.current_chips.items():
-                    if k in id_win_dic[_id]:
-                        id_win_dic[_id][k].append(v - i.starting_chips[k])
-                    else:
-                        id_win_dic[_id][k] = [v - i.starting_chips[k]]
+    for i in wins:
+        for _id in i.winner:
+            if _id not in id_win_dic:
+                id_win_dic[_id] = {}
+            for k, v in i.current_chips.items():
+                if k in id_win_dic[_id]:
+                    id_win_dic[_id][k].append(v - i.starting_chips[k])
+                else:
+                    id_win_dic[_id][k] = [v - i.starting_chips[k]]
     # Create player_dic
-    player_dic = {}
-    for name, vals in grouped.items():
-        player_dic[name] = {'ids': set(), 'games': set(), 'events': [], 'beat': {}}
+    player_dic = {k: {'ids': set(), 'games': set(), 'events': [], 'beat': {}} for k, v in grouped.items()}
     # Fill player_dic
     for _id, vals in players.items():
         if _id in i_check:
@@ -63,8 +60,8 @@ def _get_players(grouped: dict, players: dict, events: tuple, threshold: int = 2
                         else:
                             player_dic[_id]['beat'][k] = v
     # Convert list and sets to tuples
-    for name in grouped.keys():
-        player_dic[name] = {k: tuple(v) if k != 'beat' else v for k, v in player_dic[name].items()}
+    for i in grouped.keys():
+        player_dic[i] = {k: tuple(v) if k != 'beat' else v for k, v in player_dic[i].items()}
     # Check who beat who and group names
     for k, v in player_dic.items():
         temp = {}
@@ -127,8 +124,8 @@ class Poker:
                  threshold: int = 20):
         self.repo_location = repo_location
         self.multi = money_multi
-        self.events, self.matches, p = Data(repo_location=repo_location).items()
-        self.players = _get_players(grouped=grouped, players=p, events=self.events, threshold=threshold)
+        self.events, self.matches, p, w = Data(repo_location=repo_location).items()
+        self.players = _get_players(grouped=grouped, players=p, wins=w, events=self.events, threshold=threshold)
         self.winning_hand_dist = _get_dist(self.events, 'Wins', 'winning_hand')
         self.card_distribution = _get_dist(self.events, 'PlayerStacks', 'cards')
         self.player_money_df = None

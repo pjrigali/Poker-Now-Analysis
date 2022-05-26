@@ -219,7 +219,7 @@ def _parser(lines: list, times: list, game_id: str) -> tuple:
 
     if isinstance(winners, str):
         winners = [winners]
-
+    w = []
     for i in lst:
         if i.event == 'PlayerStacks':
             i.cards = tuple(set(all_cards))
@@ -239,8 +239,10 @@ def _parser(lines: list, times: list, game_id: str) -> tuple:
                 i.cards = (i.cards,)
             elif isinstance(i.cards, list):
                 i.cards = tuple(i.cards)
+        if i.event == 'Wins':
+            w.append(i)
         _u(i, p_dic)
-    return tuple(lst), p_dic
+    return tuple(lst), p_dic, w
 
 
 def _poker_collect_data(repo_location: str):
@@ -268,13 +270,14 @@ def _poker_collect_data(repo_location: str):
         dic['Event'], dic['Time'] = _rev(dic['Event']), _rev(dic['Time'])
         return dic
 
-    files, event_lst, m, p = next(walk(repo_location))[2], [], {}, {}
+    files, event_lst, m, p, wins = next(walk(repo_location))[2], [], {}, {}, []
     for file in files:
         hands, v, t, d = [], [], [], _get_rows(file=repo_location + file)
         file = file.split('.')[0]
         for ind, val in enumerate(d['Event']):
             if ' starting hand ' in val:
-                events, p_dic = _parser(lines=v, times=t, game_id=file)
+                events, p_dic, w = _parser(lines=v, times=t, game_id=file)
+                wins += w
                 for i, j in p_dic.items():
                     if i not in p:
                         p[i] = j
@@ -285,7 +288,8 @@ def _poker_collect_data(repo_location: str):
                 v, t = [val], [d['Time'][ind]]
             else:
                 v.append(val), t.append(d['Time'][ind])
-        events, p_dic = _parser(lines=v, times=t, game_id=file)
+        events, p_dic, w = _parser(lines=v, times=t, game_id=file)
+        wins += w
         for i, j in p_dic.items():
             if i not in p:
                 p[i] = j
@@ -295,16 +299,16 @@ def _poker_collect_data(repo_location: str):
         event_lst += [(e.time, e) for e in events]
         m[file] = Match(hands=tuple(hands))
     event_lst = sorted(event_lst, key=lambda x: x[0])
-    return tuple(i[1] for i in event_lst), m, p
+    return tuple(i[1] for i in event_lst), m, p, wins
 
 
 @dataclass
 class Data:
 
-    __slots__ = ('events', 'matches', 'players')
+    __slots__ = ('events', 'matches', 'players', 'wins')
 
     def __init__(self, repo_location: str):
-        self.events, self.matches, self.players = _poker_collect_data(repo_location=repo_location)
+        self.events, self.matches, self.players, self.wins = _poker_collect_data(repo_location=repo_location)
 
     def __repr__(self):
         return 'PokerData'
@@ -334,4 +338,4 @@ class Data:
 
     def items(self):
         """Returns event and match attributes"""
-        return self.events, self.matches, self.players
+        return self.events, self.matches, self.players, self.wins
