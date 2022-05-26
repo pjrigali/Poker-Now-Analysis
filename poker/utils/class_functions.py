@@ -35,7 +35,7 @@ def _get_percent_change(new: Union[int, float], old: Union[int, float], ret: Opt
         return ret
 
 
-def tdict(k: Union[list, tuple], v=True) -> dict:
+def tdict(k: Union[list, tuple, set], v=True) -> dict:
     """Creates a dict with a specific value"""
     if isinstance(v, bool):
         return {i: True for i in k}
