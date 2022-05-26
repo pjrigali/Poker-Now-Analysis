@@ -4,31 +4,27 @@ import pandas as pd
 import datetime
 from classes.data import Data
 from classes.player import Player
-from utils.class_functions import _str_nan, _get_attributes, _get_percent
+from utils.class_functions import _str_nan, _get_attributes, _get_percent, tdict
 from utils.base import unique_values
 
 
-def _get_players(grouped: dict, events: tuple, threshold: int = 20) -> dict:
+def _get_players(grouped: dict, players: dict, events: tuple, threshold: int = 20) -> dict:
     my_ids = {i: True for i in grouped[list(grouped.keys())[0]]}
-    id_dic = {i: [] for k, v in grouped.items() for i in v}
-    id_check = {i: True for k, v in grouped.items() for i in v}
-    id_game_dic = {i: set() for k, v in grouped.items() for i in v}
+    i_check, n_check = {i: True for k, v in grouped.items() for i in v}, {i: k for k, v in grouped.items() for i in v}
+    for k, v in players.items():
+        lst = []
+        for i in v:
+            if i.event == 'MyCards':
+                if k in my_ids:
+                    lst.append(i)
+                else:
+                    continue
+            else:
+                lst.append(i)
+        players[k] = lst
+    # Calc how much taken from other players
     id_win_dic = {i: {} for k, v in grouped.items() for i in v}
     for i in events:
-        if i.event == 'MyCards':
-            for name in i.starting_players.keys():
-                if name in my_ids:
-                    id_dic[name].append(i)
-                    break
-        else:
-            if _str_nan(i.player_index) and i.player_index in id_check:
-                id_dic[i.player_index].append(i)
-                id_game_dic[i.player_index].add(i.game_id)
-            elif _str_nan(i.player_index) and i.player_index not in id_check:
-                id_dic[i.player_index], id_check[i.player_index], id_game_dic[i.player_index] = [i], True, {i.game_id}
-            else:
-                for p in i.starting_players.keys():
-                    id_dic[p].append(i)
         if i.event == 'Wins':
             for _id in i.winner:
                 if _id not in id_win_dic:
@@ -38,34 +34,37 @@ def _get_players(grouped: dict, events: tuple, threshold: int = 20) -> dict:
                         id_win_dic[_id][k].append(v - i.starting_chips[k])
                     else:
                         id_win_dic[_id][k] = [v - i.starting_chips[k]]
-
-    player_dic, player_check = {}, {i: True for k, v in grouped.items() for i in v}
+    # Create player_dic
+    player_dic = {}
     for name, vals in grouped.items():
         player_dic[name] = {'ids': set(), 'games': set(), 'events': [], 'beat': {}}
-        for _id in vals:
-            player_dic[name]['ids'].add(_id)
-            player_dic[name]['events'] += id_dic[_id]
-            for k, v in id_win_dic[_id].items():
-                if k in player_dic[name]['beat']:
-                    player_dic[name]['beat'][k] += v
-                else:
-                    player_dic[name]['beat'][k] = v
-            for i in id_game_dic[_id]:
-                player_dic[name]['games'].add(i)
-
-    for _id, vals in id_dic.items():
-        if _id not in player_check:
-            player_dic[_id] = {'ids': set(), 'games': set(), 'events': vals, 'beat': {}}
-            player_dic[_id]['ids'].add(_id)
+    # Fill player_dic
+    for _id, vals in players.items():
+        if _id in i_check:
+            player_dic[n_check[_id]]['ids'].add(_id)
+            player_dic[n_check[_id]]['events'] += players[_id]
+            t = set(i.game_id for i in players[_id])
+            for i in t:
+                player_dic[n_check[_id]]['games'].add(i)
             if _id in id_win_dic:
                 for k, v in id_win_dic[_id].items():
-                    if k in player_dic[name]['beat']:
-                        player_dic[name]['beat'][k] += v
+                    if k in player_dic[n_check[_id]]['beat']:
+                        player_dic[n_check[_id]]['beat'][k] += v
                     else:
-                        player_dic[name]['beat'][k] = v
-            for i in id_game_dic[_id]:
-                player_dic[_id]['games'].add(i)
-
+                        player_dic[n_check[_id]]['beat'][k] = v
+        else:
+            if len(players[_id]) > threshold:
+                player_dic[_id] = {'ids': (_id,), 'games': tuple(set(i.game_id for i in players[_id])),
+                                   'events': tuple(players[_id]), 'beat': {}}
+                if _id in id_win_dic:
+                    for k, v in id_win_dic[_id].items():
+                        if k in player_dic[_id]['beat']:
+                            player_dic[_id]['beat'][k] += v
+                        else:
+                            player_dic[_id]['beat'][k] = v
+    # Convert list and sets to tuples
+    for name in grouped.keys():
+        player_dic[name] = {k: tuple(v) if k != 'beat' else v for k, v in player_dic[name].items()}
     # Check who beat who and group names
     for k, v in player_dic.items():
         temp = {}
@@ -75,10 +74,9 @@ def _get_players(grouped: dict, events: tuple, threshold: int = 20) -> dict:
                 for _id in vals:
                     if _id in v['beat']:
                         temp[name] += v['beat'][_id]
-            if k1 not in player_check:
+            if k1 not in i_check:
                 temp[k1] = v1
         player_dic[k]['beat'] = {k1: tuple(v1) for k1, v1 in temp.items()}
-
     return {k: Player(dic=v, name=k) for k, v in player_dic.items() if len(v['events']) >= threshold}
 
 
@@ -129,8 +127,8 @@ class Poker:
                  threshold: int = 20):
         self.repo_location = repo_location
         self.multi = money_multi
-        self.events, self.matches = Data(repo_location=repo_location).items()
-        self.players = _get_players(grouped=grouped, events=self.events, threshold=threshold)
+        self.events, self.matches, p = Data(repo_location=repo_location).items()
+        self.players = _get_players(grouped=grouped, players=p, events=self.events, threshold=threshold)
         self.winning_hand_dist = _get_dist(self.events, 'Wins', 'winning_hand')
         self.card_distribution = _get_dist(self.events, 'PlayerStacks', 'cards')
         self.player_money_df = None

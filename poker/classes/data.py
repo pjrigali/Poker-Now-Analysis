@@ -5,53 +5,8 @@ import csv
 from poker.classes.event import Event
 from poker.classes.hand import Hand
 from poker.classes.match import Match
-from poker.utils.class_functions import _str_nan
+from poker.utils.class_functions import _str_nan, tdict
 from poker.utils.base import calculate_hand, calc_gini
-
-
-def _poker_collect_data(repo_location: str):
-    """Open file, clean data and parse into Event/Hand and Match objects"""
-
-    def _get_rows(file: str) -> dict:
-        """Get rows of data"""
-
-        def _convert(data: list, dic: dict):
-            """Convert shapes to words and corrects timestamps"""
-            dic['Event'].append(data[0].replace("â£", " Clubs").replace("â¦", " Diamonds").replace("â¥", " Hearts").replace("â", " Spades"))
-            dic['Time'].append(datetime.datetime.strptime(data[1].replace('T', ' ').split('.')[0], '%Y-%m-%d %H:%M:%S'))
-
-        def _rev(lst: list) -> list:
-            """Reverse list"""
-            lst.reverse()
-            return lst
-
-        dic = {'Event': [], 'Time': []}
-        with open(file, 'r', encoding='latin1') as file:
-            my_reader = csv.reader(file, delimiter=',')
-            for ind, row in enumerate(my_reader):
-                if ind > 0:
-                    _convert(data=row, dic=dic)
-        dic['Event'], dic['Time'] = _rev(dic['Event']), _rev(dic['Time'])
-        return dic
-
-    files, event_lst, matches = next(walk(repo_location))[2], [], {}
-    for file in files:
-        hands, v, t, d = [], [], [], _get_rows(file=repo_location + file)
-        file = file.split('.')[0]
-        for ind, val in enumerate(d['Event']):
-            if ' starting hand ' in val:
-                events = _parser(lines=v, times=t, game_id=file)
-                hands.append(Hand(events=events))
-                event_lst += [(e.time, e) for e in events]
-                v, t = [val], [d['Time'][ind]]
-            else:
-                v.append(val), t.append(d['Time'][ind])
-        events = _parser(lines=v, times=t, game_id=file)
-        hands.append(Hand(events=events))
-        event_lst += [(e.time, e) for e in events]
-        matches[file] = Match(hands=tuple(hands))
-    event_lst = sorted(event_lst, key=lambda x: x[0])
-    return tuple(i[1] for i in event_lst), matches
 
 
 def _parser(lines: list, times: list, game_id: str) -> tuple:
@@ -80,7 +35,7 @@ def _parser(lines: list, times: list, game_id: str) -> tuple:
                 n_lst.append(line.split('@')[0].split('"')[1].strip()), i_lst.append(line.split('@')[1].split('"')[0].strip()), v_lst.append(0)
     n_lst, i_lst, v_lst = tuple(n_lst), tuple(i_lst), tuple(v_lst)
 
-    def _fill(c):
+    def _fill(c: str) -> Event:
         """applies values to the blank event class"""
         return Event(text=line, event=c, position=pos, winning_hand=winning_hands, current_round=c_round,
                      pot_size=pot, starting_players=start_players, remaining_players=players_left,
@@ -89,7 +44,26 @@ def _parser(lines: list, times: list, game_id: str) -> tuple:
                      time=times[ind], previous_time=times[ind - 1], start_time=times[0], end_time=times[-1], gini=gini,
                      event_number=event_number)
 
-    lst = []
+    def _u(n: Event, d: dict):
+        if n.player_index is None:
+            for i in i_lst:
+                if i in d:
+                    d[i].append(n)
+                else:
+                    d[i] = [n]
+        elif isinstance(n.player_index, str):
+            if n.player_index in d:
+                d[n.player_index].append(n)
+            else:
+                d[n.player_index] = [n]
+        elif isinstance(n.player_index, (list, tuple)):
+            for i in n.player_index:
+                if i in d:
+                    d[i].append(n)
+                else:
+                    d[i] = [n]
+
+    lst, p_dic = [], tdict(i_lst, [])
     pot, players_left, pos, gini, event_number = 0, i_lst, 'Pre Flop', calc_gini(data=v_lst), -1
     start_chips, start_players, current_chips = dict(zip(i_lst, v_lst)), dict(zip(i_lst, n_lst)), dict(zip(i_lst, v_lst))
     p_person, p_amount, winners, win_stacks, winning_hands, cards, all_cards, shows = None, None, None, None, None, [], [], []
@@ -260,23 +234,77 @@ def _parser(lines: list, times: list, game_id: str) -> tuple:
             i.winner, i.win_stack, i.winning_hand = tuple(winners), win_stacks, winning_hands
             if _str_nan(i.player_index) and i.player_index in winners:
                 i.wins = True
-        if i.cards is None:
-            continue
-        else:
+        if i.cards is not None:
             if isinstance(i.cards, str):
                 i.cards = (i.cards,)
             elif isinstance(i.cards, list):
                 i.cards = tuple(i.cards)
-    return tuple(lst)
+        _u(i, p_dic)
+    return tuple(lst), p_dic
+
+
+def _poker_collect_data(repo_location: str):
+    """Open file, clean data and parse into Event/Hand and Match objects"""
+
+    def _get_rows(file: str) -> dict:
+        """Get rows of data"""
+
+        def _convert(data: list, dic: dict):
+            """Convert shapes to words and corrects timestamps"""
+            dic['Event'].append(data[0].replace("â£", " Clubs").replace("â¦", " Diamonds").replace("â¥", " Hearts").replace("â", " Spades"))
+            dic['Time'].append(datetime.datetime.strptime(data[1].replace('T', ' ').split('.')[0], '%Y-%m-%d %H:%M:%S'))
+
+        def _rev(lst: list) -> list:
+            """Reverse list"""
+            lst.reverse()
+            return lst
+
+        dic = {'Event': [], 'Time': []}
+        with open(file, 'r', encoding='latin1') as file:
+            my_reader = csv.reader(file, delimiter=',')
+            for ind, row in enumerate(my_reader):
+                if ind > 0:
+                    _convert(data=row, dic=dic)
+        dic['Event'], dic['Time'] = _rev(dic['Event']), _rev(dic['Time'])
+        return dic
+
+    files, event_lst, m, p = next(walk(repo_location))[2], [], {}, {}
+    for file in files:
+        hands, v, t, d = [], [], [], _get_rows(file=repo_location + file)
+        file = file.split('.')[0]
+        for ind, val in enumerate(d['Event']):
+            if ' starting hand ' in val:
+                events, p_dic = _parser(lines=v, times=t, game_id=file)
+                for i, j in p_dic.items():
+                    if i not in p:
+                        p[i] = j
+                    else:
+                        p[i] += j
+                hands.append(Hand(events=events))
+                event_lst += [(e.time, e) for e in events]
+                v, t = [val], [d['Time'][ind]]
+            else:
+                v.append(val), t.append(d['Time'][ind])
+        events, p_dic = _parser(lines=v, times=t, game_id=file)
+        for i, j in p_dic.items():
+            if i not in p:
+                p[i] = j
+            else:
+                p[i] += j
+        hands.append(Hand(events=events))
+        event_lst += [(e.time, e) for e in events]
+        m[file] = Match(hands=tuple(hands))
+    event_lst = sorted(event_lst, key=lambda x: x[0])
+    return tuple(i[1] for i in event_lst), m, p
 
 
 @dataclass
 class Data:
 
-    __slots__ = ('events', 'matches')
+    __slots__ = ('events', 'matches', 'players')
 
     def __init__(self, repo_location: str):
-        self.events, self.matches = _poker_collect_data(repo_location=repo_location)
+        self.events, self.matches, self.players = _poker_collect_data(repo_location=repo_location)
 
     def __repr__(self):
         return 'PokerData'
@@ -306,4 +334,4 @@ class Data:
 
     def items(self):
         """Returns event and match attributes"""
-        return self.events, self.matches
+        return self.events, self.matches, self.players
