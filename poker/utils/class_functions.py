@@ -54,3 +54,48 @@ def _get_attributes(val) -> dict:
         Returns the attributes in dictionary format.
     """
     return {i: getattr(val, i) for i in dir(val) if '__' not in i and i[0] != '_' and i != 'items'}
+
+
+def _flatten_group(d: dict) -> dict:
+    """
+    Returns a flattened list of Id's and respective name.
+
+    Parameters
+    ----------
+    d : dict.
+        Desired input grouped users by name, followed by list or tuple of Id's.
+
+    Returns
+    -------
+    dict
+        Returns a dictionary of Id's and Name.
+    """
+    if d:
+        n_d = {}
+        for k, v in d.items():
+            for i in v:
+                n_d[i] = k
+    else:
+        n_d = {}
+    return n_d
+
+def _group_name_blank(d: dict, val) -> dict:
+    """
+    Returns a blank dictionary of names.
+
+    Parameters
+    ----------
+    d : dict.
+        Desired input grouped users by name, followed by list or tuple of Id's.
+    val:
+        Desired value.
+
+    Returns
+    -------
+    dict
+        Returns a dictionary of Names and an empty list.
+    """
+    if d:
+        return {i: val for i in d}
+    else:
+        return {}

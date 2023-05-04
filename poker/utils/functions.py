@@ -121,6 +121,7 @@ def parser(repo: str, file_name: str, me: str, player_dct: dict = None):
             for j in prev_dct['winner']['players']:
                 if j in prev_dct['table_cards']:
                     hand_dct['win_cards'].extend(prev_dct['table_cards'][j])
+                    
             hand_dct['win_cards'] = list(set(hand_dct['win_cards']))
             hand_lst.append(Hand(hand_dct))
             hand_dct = {'win_cards': [], 'event_lst': [], 'event_dct': {}}
@@ -167,7 +168,7 @@ def parser(repo: str, file_name: str, me: str, player_dct: dict = None):
                 i['cards'] = i['winWith'].split('[')[1].replace(']', '').split(',')
                 i['cards'] = [j.strip() for j in i['cards']]
                 prev_dct['winner']['with'] = i['winWith'].split(', [')[0]
-                prev_dct['table_cards']['winner'].extend(i['cards'])
+                prev_dct['table_cards']['winner'] = i['cards']
             prev_dct['winner']['players'].append(i['entry'].split('"')[1])
             prev_dct['winner']['value'] = i['value']
         elif i['entry'].startswith('Player stacks: '):
@@ -213,16 +214,21 @@ def parser(repo: str, file_name: str, me: str, player_dct: dict = None):
         elif ' joined the game with ' in i['entry']:
             i['move'] = 'Joined'
             prev_dct['joined'].append(i['entry'].split('"')[1])
+            i['value'] = float(i['entry'].split('with a stack of ')[1].replace('.', ''))
         elif i['entry'].endswith('requested a seat.'):
             i['move'] = 'Request'
         elif i['entry'].startswith('The admin approved the '):
             i['move'] = 'Approved'
+            i['value'] = float(i['entry'].split('with a stack of ')[1].replace('.', ''))
         elif 'stand up with ' in i['entry']:
             i['move'] = 'Stands'
+            i['value'] = float(i['entry'].split('with the stack of ')[1].replace('.', ''))
         elif ' sit back with ' in i['entry']:
             i['move'] = 'Sits'
+            i['value'] = float(i['entry'].split('with the stack of ')[1].replace('.', ''))
         elif ' quits the game with ' in i['entry']:
             i['move'] = 'Quits'
+            i['value'] = float(i['entry'].split('with a stack of ')[1].replace('.', ''))
         elif i['entry'].startswith('The game')\
                 or 'run it twice' in i['entry']\
                 or i['entry'].startswith('WARNING:')\
@@ -243,11 +249,10 @@ def parser(repo: str, file_name: str, me: str, player_dct: dict = None):
             elif prev_dct['player']:
                 i['actionFrom'], i['actionAmount'] = prev_dct['player'], prev_dct['amount']
 
-            if i.get('move') != 'Win':
-                if i.get('move') != 'Uncalled Bet':
-                    prev_dct['pot'] += i.get('value', 0.0)
-                    if i.get('player') in prev_dct['current_chips']:
-                        prev_dct['current_chips'][i['player']] -= i.get('value', 0.0)
+            if i.get('move') not in ('Win', 'Uncalled Bet', 'Joined', 'Request', 'Approved', 'Stands', 'Sits', 'Quits'):
+                prev_dct['pot'] += i.get('value', 0.0)
+                if i.get('player') in prev_dct['current_chips']:
+                    prev_dct['current_chips'][i['player']] -= i.get('value', 0.0)
         i['current_chips'] = dict(prev_dct['current_chips'])
         i['pot'] = prev_dct['pot']
         i['decisionTime'] = prev_dct['time']

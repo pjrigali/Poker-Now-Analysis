@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from poker.utils.functions import parse_games
-from poker.utils.class_functions import _get_attributes, _clean_print
+from poker.utils.class_functions import _get_attributes, _clean_print, _flatten_group, _group_name_blank
 
 
 @dataclass
@@ -13,6 +13,7 @@ class Poker:
         self._line_limit = user_inputs.get('line_limit', 50)
         self._item_limit = user_inputs.get('item_limit', 10)
         self._inputs = list(user_inputs.values())
+        self._flat_group_id_name = _flatten_group(self.grouped)
         
         assert self.me is not None
         assert self.repo is not None
@@ -39,3 +40,21 @@ class Poker:
     def items(self):
         return _get_attributes(self)
     
+    def running_total(self, rows: list = None, dollar_amount: int = 100,) -> dict:
+        d = _group_name_blank(self.grouped, 0.0)
+        
+        if not rows:
+            rows = self.rows
+        
+        for i in rows:
+            if i.get('move') and i.get('value') and i.get('playerId'):
+                n = self._flat_group_id_name.get(i['playerId'], i['playerId'])
+                if n:
+                    if n not in d:
+                        d[n] = 0.0
+                    
+                    if i['move'] == 'Joined':
+                        d[n] -= i['value']
+                    elif i['move'] in ('Stands', 'Quits'):
+                        d[n] += i['value']
+        return {k: round(v / dollar_amount, 2) for k, v in d.items()}

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from poker.utils.class_functions import _get_attributes
-from poker.utils.tools import calc_gini
+from poker.utils.tools import calc_gini, calculate_hand
 
 
 @dataclass
@@ -12,6 +12,15 @@ class Hand:
         self.game_id = d['game_id']
         self.winner = d['winner']
         self.win_hand = d['win_hand']
+        
+        # Calculates winning hand if not given.
+        if not self.win_hand:
+            cards = []
+            for i in ('winner', 'flop', 'turn', 'river'):
+                if d['table_cards'].get(i):
+                    cards.extend(d['table_cards'][i])
+            self.win_hand = calculate_hand(cards)
+        
         self.win_stack = d['win_stack']
         self.win_cards = d['win_cards']
         self.hand_time = d['hand_time']
@@ -25,6 +34,10 @@ class Hand:
         # self.order = d['order']
         self.all_cards = d['all_cards']
         self.table_cards = d['table_cards']
+        
+        # Removes duplicates.
+        self.table_cards['winner'] = list(set(self.table_cards['winner']))
+        
         # self.fold_placement = d['fold_placement']
         self.pot_size = d['pot_size']
         # self.starting_players = d['starting_players']
