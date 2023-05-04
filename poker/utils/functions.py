@@ -13,9 +13,24 @@ def group_names(d: dict = None) -> dict:
     return dct
 
 
+def get_player_id(s: str) -> str:
+    if s:
+        return s.split('@')[1].strip()
+    else:
+        return None
+
+
+def get_player_name(s: str) -> str:
+    if s:
+        return s.split('@')[0].strip()
+    else:
+        return None
+
+
 def player_id_name(s: str):
     s = s.split('"')[1]
-    return s, s.split('@')[1].strip(), s.split('@')[0].strip()
+    return s, get_player_id(s), get_player_name(s)
+    # return s, s.split('@')[1].strip(), s.split('@')[0].strip()
 
 
 def read_csv(folder: str, file_name: str) -> list:
@@ -217,7 +232,7 @@ def parser(repo: str, file_name: str, me: str, player_dct: dict = None):
                 or ' passed the room ownership ' in i['entry']:
             i['move'] = 'Game'
 
-        if i['move'] not in ('Player Stacks', 'Your Hand', 'Flop', 'Turn', 'River', 'Game', 'Undealt Cards'):
+        if i.get('move') and i['move'] not in ('Player Stacks', 'Your Hand', 'Flop', 'Turn', 'River', 'Game', 'Undealt Cards'):
             i['player'], i['playerId'], i['playerName'] = player_id_name(i['entry'])
             i['playerGroup'] = player_dct.get(i['playerId'], 'other')
 
@@ -246,11 +261,12 @@ def parser(repo: str, file_name: str, me: str, player_dct: dict = None):
                         i[f"{j}_{k}"] = v
                 del i[j]
         hand_dct['event_lst'].append(i)
-        if not hand_dct['event_dct'].get(i['move']):
-            hand_dct['event_dct'][i['move']] = [i]
-        else:
-            hand_dct['event_dct'][i['move']].append(i)
-        prev_dct['event'] = i
+        if i.get('move'):
+            if not hand_dct['event_dct'].get(i['move']):
+                hand_dct['event_dct'][i['move']] = [i]
+            else:
+                hand_dct['event_dct'][i['move']].append(i)
+            prev_dct['event'] = i
     return lst, hand_lst
 
 

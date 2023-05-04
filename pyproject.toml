@@ -13,4 +13,4 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "poker-now-analysis"
 authors = [{name = "Peter Rigali", email = "peterjrigali@gmail.com"}]
-dynamic = ["1.0.0", "A package for analyzing past performance and player habits from Poker Now."]
+dynamic = ["1.0.1", "A package for analyzing past performance and player habits from Poker Now."]

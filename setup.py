@@ -11,7 +11,7 @@ def read_file(*parts):
 
 setup(
     name='poker_now_analysis',
-    version='1.0.0',
+    version='1.0.1',
     packages=["poker", ],
     author='Peter Rigali',
     author_email='peterjrigali@gmail.com',

@@ -4,10 +4,10 @@ import sys
 sys.path.insert(0, os.path.abspath('..'))
 
 project = 'poker-now-analysis'
-copyright = '2021, Peter Rigali'
+copyright = '2023, Peter Rigali'
 author = 'Peter Rigali'
-release = '1.0.0'
-version = '1.0.0'
+release = '1.0.1'
+version = '1.0.1'
 
 source_suffix = {
     '.rst': 'restructuredtext',
