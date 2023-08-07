@@ -99,3 +99,17 @@ def _group_name_blank(d: dict, val) -> dict:
         return {i: val for i in d}
     else:
         return {}
+
+
+# def _replace_ace(l: list, t) -> list:
+#     ll = list(l)
+#     for i in ('Hearts', 'Spades', 'Diamonds', 'Clubs'):
+#         rem, rep = f"1 {i}", f"A {i}"
+#         if rem in ll:
+#             if rep not in ll:
+#                 ll[ll.index(rem)] = rep
+#             else:
+#                 ll.pop(ll.index(rem))
+#     if ll != l:
+#         ll
+#     return ll

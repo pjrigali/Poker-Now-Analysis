@@ -30,13 +30,13 @@ def get_player_name(s: str) -> str:
 def player_id_name(s: str):
     s = s.split('"')[1]
     return s, get_player_id(s), get_player_name(s)
-    # return s, s.split('@')[1].strip(), s.split('@')[0].strip()
 
 
 def read_csv(folder: str, file_name: str) -> list:
     rows = []
     with open(os.path.join(folder, file_name), 'r', encoding='latin1') as f: # , encoding='utf-8-sig'
         rows.extend(csv.DictReader(f, delimiter=','))
+        f.close()
     return rows
 
 
@@ -46,11 +46,11 @@ def parser(repo: str, file_name: str, me: str, player_dct: dict = None):
         i['game_id'] = file_name
         i['at'] = datetime.datetime.strptime(i['at'].split('.')[0].replace('T', ' '), '%Y-%m-%d %H:%M:%S')
         i['entry'] = i['entry'].strip()\
-            .replace("â£", " Clubs")\
-            .replace("â¦", " Diamonds")\
-            .replace("â¥", " Hearts")\
-            .replace("â", " Spades")
-        del i['order']
+            .replace("â£", " Clubs").replace("â¦", " Diamonds").replace("â¥", " Hearts").replace("â", " Spades")\
+            .replace('1 Clubs', 'A Clubs').replace('1 Diamonds', 'A Diamonds').replace('1 Hearts', 'A Hearts').replace('1 Spades', 'A Spades')
+        
+        if i.get('oder'):
+            del i['order']
 
         if not keep:
             if i['entry'].startswith('-- starting hand #1'):

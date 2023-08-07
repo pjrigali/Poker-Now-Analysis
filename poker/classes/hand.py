@@ -19,7 +19,7 @@ class Hand:
             for i in ('winner', 'flop', 'turn', 'river'):
                 if d['table_cards'].get(i):
                     cards.extend(d['table_cards'][i])
-            self.win_hand = calculate_hand(cards)
+            self.win_hand = calculate_hand(set(cards))
         
         self.win_stack = d['win_stack']
         self.win_cards = d['win_cards']
@@ -43,7 +43,6 @@ class Hand:
         # self.starting_players = d['starting_players']
         self.total_chips = d['total_chips']
         # self.chip_percent_change = d['cpc']
-        # self.gini = d['gini']
         self.start_gini = calc_gini(list(d['starting_chips'].values()))
         self.end_gini = calc_gini(list(d['ending_chips'].values()))
         self.joined = d['joined']
@@ -52,6 +51,19 @@ class Hand:
         self.turn = d['table_cards'].get('turn')
         self.river = d['table_cards'].get('river')
         self.undealt = d['table_cards'].get('undealt')
+        
+        # Place undealt cards.
+        if self.undealt:
+            if len(self.undealt) == 1:
+                self.table_cards['river'], self.river = self.undealt, self.undealt
+            elif len(self.undealt) == 2:
+                self.table_cards['turn'], self.turn = [self.undealt[0]], [self.undealt[0]]
+                self.table_cards['river'], self.river = [self.undealt[1]], [self.undealt[1]]
+            elif len(self.undealt) == 5:
+                self.table_cards['flop'], self.flop = self.undealt[:3], self.undealt[:3]
+                self.table_cards['turn'], self.turn = [self.undealt[-2]], [self.undealt[-2]]
+                self.table_cards['river'], self.river = [self.undealt[-1]], [self.undealt[-1]]
+        
         self.mycards = d['table_cards'].get('your_cards')
 
     def __repr__(self):

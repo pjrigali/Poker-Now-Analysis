@@ -57,4 +57,21 @@ class Poker:
                         d[n] -= i['value']
                     elif i['move'] in ('Stands', 'Quits'):
                         d[n] += i['value']
+        
         return {k: round(v / dollar_amount, 2) for k, v in d.items()}
+
+    def card_count(self, rows: list = None) -> dict:
+        
+        if not rows:
+            rows = [{'cards': set(i.all_cards)} for i in self.hands]
+        
+        dct = {}
+        for i in rows:
+            if i.get('cards') and i['cards']:
+                for j in i['cards']:
+                    if j not in dct:
+                        dct[j] = 0
+                    dct[j] += 1
+        
+        dct = sorted([(v, k) for k, v in dct.items()], reverse=True)
+        return {i[1]: i[0] for i in dct}
