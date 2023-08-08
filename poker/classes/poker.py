@@ -78,14 +78,12 @@ class Poker:
         dct = sorted([(v, k) for k, v in dct.items()], reverse=True)
         return {i[1]: i[0] for i in dct}
 
-
     def player_stats(self, player_name: str) -> dict:
         """A method for collecting general player stats."""
         
         assert player_name in self.grouped
         assert isinstance(self.grouped[player_name], tuple)
         
-        aliases = tuple(f"{player_name} @ {i}" for i in self.grouped[player_name])
         stats = {'total_game_count': set(),
                  'total_hand_count': 0,
                  'total_win_count': 0,
@@ -100,51 +98,53 @@ class Poker:
         # Cards shown
         
         for h in self.hands:
-            # Total Hand Count.
-            if hasattr(h, 'starting_chips'):
-                for a in aliases:
-                    if a in h.starting_chips:
-                        stats['total_hand_count'] += 1
-                        if h.game_id not in stats['total_game_count']:
-                            stats['total_game_count'].add(h.game_id)
-                        break
-            
-            # Total Win Count and Amount.
-            if hasattr(h, 'winner'):
-                for i in h.winner:
-                    if i in aliases:
-                        stats['total_win_count'] += 1
-                        stats['total_win_amount'] += h.win_stack
-                        if stats['largest_win_amount'] <= h.win_stack:
-                            stats['largest_win_amount'] = h.win_stack
-                        break
-            
-            # Largest Loss.
-            if hasattr(h, 'ending_chips') and hasattr(h, 'starting_chips'):
-                for a in aliases:
-                    if a in h.ending_chips and a in h.starting_chips:
-                        v = h.ending_chips[a] - h.starting_chips[a]
+            p = None
+            if hasattr(h, 'starting_chips'):                
+                for k, v in h.starting_chips.items():
+                    for a in self.grouped[player_name]:
+                        if k.endswith(a):
+                            p = k
+                            break
+                            
+            if p:
+                # Total Hand Count.
+                stats['total_hand_count'] += 1
+                if h.game_id not in stats['total_game_count']:
+                    stats['total_game_count'].add(h.game_id)
+                
+                # Largest Loss.
+                if hasattr(h, 'ending_chips'):
+                    if p in h.ending_chips:
+                        v = h.ending_chips[p] - h.starting_chips[p]
                         if stats['largest_loss_amount'] >= v:
                             stats['largest_loss_amount'] = v
-                        break
-                    
-            if hasattr(h, 'event_dct'):
-                for en in ('Bet', 'Call', 'Raise', 'Fold'):
-                    if en in h.event_dct:
-                        for e in h.event_dct[en]:
-                            for a in aliases:
-                                if isinstance(e['player'], str) and a == e['player']:
+                
+        
+                if hasattr(h, 'event_dct'):
+                    for en in ('Bet', 'Call', 'Raise', 'Fold'):
+                        if en in h.event_dct:
+                            for e in h.event_dct[en]:
+                                if e['player'] == p:
                                     if en != 'Fold':
                                         if 'value' in e and e['value']:
                                             stats[f"average_{en.lower()}_amount"].append(e['value'])
                                     else:
                                         if 'actionAmount' in e and e['actionAmount']:
                                             stats[f"average_{en.lower()}_amount"].append(e['actionAmount'])
-                                    break
+                
+                    # Total Win Count and Amount.
+                    if 'Win' in h.event_dct and h.event_dct['Win']:
+                        for e in h.event_dct['Win']:
+                            if e['player'] == p:
+                                stats['total_win_count'] += 1
+                                stats['total_win_amount'] += e['value']
+                                if stats['largest_win_amount'] <= e['value']:
+                                    stats['largest_win_amount'] = e['value']
+                                break
             
         for en in ('bet', 'call', 'raise', 'fold'):
             if stats[f"average_{en}_amount"]:
-                stats[f"average_{en}_amount"] = round(native_mean(stats[f"average_{en}_amount"]), 0)
+                stats[f"average_{en}_amount"] = int(native_mean(stats[f"average_{en}_amount"]))
             else:
                 stats[f"average_{en}_amount"] = None
         stats['percent_win'] = percent(stats['total_win_count'], stats['total_hand_count'])
