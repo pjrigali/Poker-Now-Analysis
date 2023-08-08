@@ -11,11 +11,9 @@ The website allows you to download the data from the game.
 This package preforms NLP to parse the csv and creates a variety of objects for analyzing a poker game.
 
 ## Installation
-In progress...
+Clone the repo. Pypi releases will come at a later date.
 
 ## Usage
-[Read the Docs](https://poker-now-analysis.readthedocs.io/en/latest/)
-
 ```python
 import poker
 from poker.classes.poker import Poker
@@ -24,6 +22,7 @@ from poker.classes.poker import Poker
 me = 'Peter @ Jf-Q4OmfIt'
 
 # Input past Data folder location.
+# Files should be saved as CSV.
 repo = '\\location of past Data folder'
 
 # Manual grouping. When same players, play from different devices, they will get a different unique ID.
@@ -64,6 +63,7 @@ _Example of the package to run tests._
 ## Changelog
 * *1.0.0* - Working package.
 * *1.0.1* - Simplified package.
+* *1.0.2* - More perfomat, reduced plotting and analysis functionality.
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
