@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from poker.utils.functions import parse_games
 from poker.utils.class_functions import _get_attributes, _clean_print, _flatten_group, _group_name_blank
-from poker.utils.tools import percent
+from poker.utils.tools import percent, native_mean
 
 
 @dataclass
@@ -63,7 +63,7 @@ class Poker:
         return {k: round(v / dollar_amount, 2) for k, v in d.items()}
 
     def card_count(self, rows: list = None) -> dict:
-        
+        """A method for collecting the distribution of cards."""
         if not rows:
             rows = [{'cards': set(i.all_cards)} for i in self.hands]
         
@@ -86,19 +86,18 @@ class Poker:
         assert isinstance(self.grouped[player_name], tuple)
         
         aliases = tuple(f"{player_name} @ {i}" for i in self.grouped[player_name])
-        stats = {'chip_turnover': [],
-                 'total_game_count': set(),
+        stats = {'total_game_count': set(),
                  'total_hand_count': 0,
                  'total_win_count': 0,
                  'total_win_amount': 0,
                  'largest_win_amount': 0,
-                 'largest_loss_amount': 0}
-        # How many games has the player been in.
+                 'largest_loss_amount': 0,
+                 'average_bet_amount': [],
+                 'average_call_amount': [],
+                 'average_raise_amount': [],
+                 'average_fold_amount': []}
         # How long has the player played.
         # Cards shown
-        # Average Bet amount
-        # Average Raise amount
-        # Average Fold amount
         
         for h in self.hands:
             # Total Hand Count.
@@ -128,7 +127,26 @@ class Poker:
                         if stats['largest_loss_amount'] >= v:
                             stats['largest_loss_amount'] = v
                         break
-                
+                    
+            if hasattr(h, 'event_dct'):
+                for en in ('Bet', 'Call', 'Raise', 'Fold'):
+                    if en in h.event_dct:
+                        for e in h.event_dct[en]:
+                            for a in aliases:
+                                if isinstance(e['player'], str) and a == e['player']:
+                                    if en != 'Fold':
+                                        if 'value' in e and e['value']:
+                                            stats[f"average_{en.lower()}_amount"].append(e['value'])
+                                    else:
+                                        if 'actionAmount' in e and e['actionAmount']:
+                                            stats[f"average_{en.lower()}_amount"].append(e['actionAmount'])
+                                    break
+            
+        for en in ('bet', 'call', 'raise', 'fold'):
+            if stats[f"average_{en}_amount"]:
+                stats[f"average_{en}_amount"] = round(native_mean(stats[f"average_{en}_amount"]), 0)
+            else:
+                stats[f"average_{en}_amount"] = None
         stats['percent_win'] = percent(stats['total_win_count'], stats['total_hand_count'])
         stats['total_game_count'] = len(stats['total_game_count'])
         return stats
