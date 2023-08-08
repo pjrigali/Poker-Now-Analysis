@@ -70,4 +70,4 @@ class Hand:
         return f"Game: ({self.game_id}), Hand: ({self.hand_number})"
 
     def items(self):
-        return self.hand_number, _get_attributes(self)
+        return _get_attributes(self)

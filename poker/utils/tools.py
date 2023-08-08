@@ -375,7 +375,7 @@ def native_percentile(data: Union[list, np.ndarray, pd.Series], q: float) -> Uni
         return item
 
 
-def percent(v1: float, v2: float) -> float:
+def percent(v1: Union[float, int], v2: Union[float, int]) -> float:
     if v2 != 0.0:
         return round(v1 / v2, 3)
     else:
