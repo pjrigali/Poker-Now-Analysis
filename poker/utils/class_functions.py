@@ -1,3 +1,5 @@
+"""
+"""
 def _clean_print(o, line_lim: int, item_lim: int, new_line: bool = True) -> str:
     """
     Controls what is displayed when a class is called.

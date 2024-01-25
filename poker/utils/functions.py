@@ -1,3 +1,8 @@
+"""
+Functions used in the parsing of Poker Now logs.
+"""
+# pylint: disable=E0401
+# pylint: disable=E0611
 import os
 import csv
 import datetime
@@ -5,12 +10,12 @@ from poker.classes.hand import Hand
 
 
 def group_names(d: dict = None) -> dict:
-    dct = {'other': ''}
+    group_dict = {'other': ''}
     if d:
-        for k, v in d.items():
-            for i in v:
-                dct[i] = k
-    return dct
+        for key, values in d.items():
+            for value in values:
+                group_dict[value] = key
+    return group_dict
 
 
 def get_player_id(s: str) -> str:
@@ -34,7 +39,7 @@ def player_id_name(s: str):
 
 def read_csv(folder: str, file_name: str) -> list:
     rows = []
-    with open(os.path.join(folder, file_name), 'r', encoding='latin1') as f: # , encoding='utf-8-sig'
+    with open(os.path.join(folder, file_name), 'r', encoding='latin1') as f:
         rows.extend(csv.DictReader(f, delimiter=','))
         f.close()
     return rows
@@ -46,9 +51,14 @@ def parser(repo: str, file_name: str, me: str, player_dct: dict = None):
         i['game_id'] = file_name
         i['at'] = datetime.datetime.strptime(i['at'].split('.')[0].replace('T', ' '), '%Y-%m-%d %H:%M:%S')
         i['entry'] = i['entry'].strip()\
-            .replace("â£", " Clubs").replace("â¦", " Diamonds").replace("â¥", " Hearts").replace("â", " Spades")\
-            .replace('1 Clubs', 'A Clubs').replace('1 Diamonds', 'A Diamonds').replace('1 Hearts', 'A Hearts').replace('1 Spades', 'A Spades')
-        
+            .replace("â£", " Clubs")\
+            .replace("â¦", " Diamonds")\
+            .replace("â¥", " Hearts")\
+            .replace("â", " Spades")\
+            .replace('1 Clubs', 'A Clubs')\
+            .replace('1 Diamonds', 'A Diamonds')\
+            .replace('1 Hearts', 'A Hearts')\
+            .replace('1 Spades', 'A Spades')
         if i.get('oder'):
             del i['order']
 
@@ -95,7 +105,8 @@ def parser(repo: str, file_name: str, me: str, player_dct: dict = None):
                 'event': None,
                 'winner': {'players': []},
                 'table_cards': {'winner': []},
-                'joined': []}
+                'joined': [],
+                'remaining_players': []}
 
     for i in lst:
         i['hand'] = {**i['hand'], **start_end[i['hand']['number']]}
@@ -118,10 +129,10 @@ def parser(repo: str, file_name: str, me: str, player_dct: dict = None):
             hand_dct['win_stack'] = prev_dct['winner']['value']
             hand_dct['win_hand'] = prev_dct['winner'].get('with')
             hand_dct['win_cards'] = prev_dct['table_cards']['winner']
+            hand_dct['ending_players'] = prev_dct['remaining_players']
             for j in prev_dct['winner']['players']:
                 if j in prev_dct['table_cards']:
                     hand_dct['win_cards'].extend(prev_dct['table_cards'][j])
-                    
             hand_dct['win_cards'] = list(set(hand_dct['win_cards']))
             hand_lst.append(Hand(hand_dct))
             hand_dct = {'win_cards': [], 'event_lst': [], 'event_dct': {}}
@@ -138,7 +149,8 @@ def parser(repo: str, file_name: str, me: str, player_dct: dict = None):
                         'event': None,
                         'winner': {'players': []},
                         'table_cards': {'winner': []},
-                        'joined': []}
+                        'joined': [],
+                        'remaining_players': []}
 
         if i['entry'].endswith(' and go all in'):
             i['allIn'] = True
@@ -173,6 +185,7 @@ def parser(repo: str, file_name: str, me: str, player_dct: dict = None):
             prev_dct['winner']['value'] = i['value']
         elif i['entry'].startswith('Player stacks: '):
             prev_dct['starting_chips'] = dict(i['starting_chips'])
+            prev_dct['remaining_players'] = list(prev_dct['starting_chips'].keys())
         elif ' big blind of ' in i['entry']:
             i['move'], i['value'] = 'Big Blind', i['entry'].split(' big blind of ')[1]
             if i.get('allIn', False):
@@ -253,17 +266,21 @@ def parser(repo: str, file_name: str, me: str, player_dct: dict = None):
                 prev_dct['pot'] += i.get('value', 0.0)
                 if i.get('player') in prev_dct['current_chips']:
                     prev_dct['current_chips'][i['player']] -= i.get('value', 0.0)
+            if i.get('move') in ('Fold', 'Quits', 'Stands'):
+                if i['player'] in prev_dct['remaining_players']:
+                    prev_dct['remaining_players'].remove(i['player'])
         i['current_chips'] = dict(prev_dct['current_chips'])
         i['pot'] = prev_dct['pot']
         i['decisionTime'] = prev_dct['time']
         i['position'] = prev_dct['position']
+        i['remaining_players'] = prev_dct['remaining_players'].copy()
         prev_dct['time'] = i['at']
         prev_dct['starting_chips'] = dict(i['starting_chips']) if i['starting_chips'] != prev_dct['starting_chips'] else prev_dct['starting_chips']
         for j in ('starting_chips', 'current_chips', 'hand'):
             if j in i:
                 if i[j]:
-                    for k, v in i[j].items():
-                        i[f"{j}_{k}"] = v
+                    for key, value in i[j].items():
+                        i[f"{j}_{key}"] = value
                 del i[j]
         hand_dct['event_lst'].append(i)
         if i.get('move'):
@@ -275,10 +292,12 @@ def parser(repo: str, file_name: str, me: str, player_dct: dict = None):
     return lst, hand_lst
 
 
-def parse_games(repo: str, me: str, grouped: dict = None):
-    files = next(os.walk(repo))[2]
-    lst, hands = [], []
-    for f in files:
-        l, h = parser(repo, f, me, grouped)
-        lst.extend(l), hands.extend(h)
+def parse_games(repo: str, user_name: str, grouped: dict = None):
+    """This function grabs files within a given repo and parses the log file."""
+    lst, hands, files = [], [], next(os.walk(repo))[2]
+    for file in files:
+        if file.endswith('.csv'):
+            event_lst, hand_lst = parser(repo, file, user_name, grouped)
+            lst.extend(event_lst)
+            hands.extend(hand_lst)
     return lst, hands

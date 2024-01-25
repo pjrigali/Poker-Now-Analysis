@@ -1,10 +1,13 @@
+"""
+"""
 from typing import Union, List, Optional
 from collections.abc import KeysView, ValuesView
 import numpy as np
 import pandas as pd
 
 
-def _to_list(data: Union[list, np.ndarray, pd.Series, int, float, tuple]) -> Union[List[int], List[float], float, int]:
+def _to_list(data: Union[list, np.ndarray, pd.Series, int, float, tuple]
+             ) -> Union[List[int], List[float], float, int]:
     """Converts list adjacent objects to a list and passes int/float objects"""
     if isinstance(data, list):
         return data
@@ -35,8 +38,10 @@ def _remove_nan(data: list, replace_val: Optional[Union[int, float, str]] = None
         return [i if i == i and i is not None else None for i in data]
 
 
-def _to_type(data: Union[list, np.float64, np.float32, np.float16, np.float_, np.int64, np.int32, np.int16, np.int8,
-                         np.int_, float, int], new_type: str) -> Union[List[int], List[float], int, float]:
+def _to_type(data: Union[list, np.float64, np.float32, np.float16,
+                         np.float_, np.int64, np.int32, np.int16,
+                         np.int8, np.int_, float, int], new_type: str
+             ) -> Union[List[int], List[float], int, float]:
     """Converts objects to a set item"""
     if new_type == 'int':
         if isinstance(data, (tuple, list)):
@@ -209,8 +214,11 @@ def native_max(data: Union[list, np.ndarray, pd.Series]) -> float:
         return data
 
 
-def unique_values(data: Union[list, np.ndarray, pd.Series], count: Optional[bool] = None, order: Optional[bool] = None,
-                  indexes: Optional[bool] = None, keep_nan: Optional[bool] = False) -> Union[list, dict]:
+def unique_values(data: Union[list, np.ndarray, pd.Series],
+                  count: Optional[bool] = None,
+                  order: Optional[bool] = None,
+                  indexes: Optional[bool] = None,
+                  keep_nan: Optional[bool] = False) -> Union[list, dict]:
     """
 
     Get Unique values from a list.
@@ -256,9 +264,13 @@ def unique_values(data: Union[list, np.ndarray, pd.Series], count: Optional[bool
     return list(set(data))
 
 
-def round_to(data: Union[list, np.ndarray, pd.Series, np.float64, np.float32, np.float16, np.float_, np.int64, np.int32,
-                         np.int16, np.int8, np.int_, float, int], val: Union[int, float],
-             remainder: Optional[bool] = False) -> Union[List[float], float]:
+def round_to(data: Union[list, np.ndarray, pd.Series, np.float64,
+                         np.float32, np.float16, np.float_, np.int64,
+                         np.int32, np.int16, np.int8, np.int_,
+                         float, int],
+             val: Union[int, float],
+             remainder: Optional[bool] = False
+             ) -> Union[List[float], float]:
     """
 
     Rounds an np.array, pd.Series, or list of values to the nearest value.
@@ -283,7 +295,7 @@ def round_to(data: Union[list, np.ndarray, pd.Series, np.float64, np.float32, np
     :note: Single int or float values can be passed.
 
     """
-    if type(val) == int:
+    if isinstance(val, int):
         val = float(val)
 
     if type(data) not in [list, pd.Series, np.ndarray]:
@@ -360,11 +372,11 @@ def native_percentile(data: Union[list, np.ndarray, pd.Series], q: float) -> Uni
     if len(data) == 0:
         return 0
     data_type = False
-    if type(data[0]) == float:
+    if isinstance(data[0], float):
         data_type = True
         data = [item * 1000 for item in data]
     data = round_to(data=data, val=1)
-    ind = round_to(data=len(data) * q, val=1)
+    ind = int(round_to(data=len(data) * q, val=1))
     data.sort()
     for item in data:
         if item >= data[ind]:
@@ -384,10 +396,8 @@ def percent(v1: Union[float, int], v2: Union[float, int]) -> float:
 
 def calculate_hand(cards: Union[tuple, list]) -> str:
     ace, cards = [], list(cards)
-    
     if not cards:
         return None
-    
     for ind, card in enumerate(cards):
         if 'J' in card:
             cards[ind] = card.replace('J', '11')
@@ -398,22 +408,20 @@ def calculate_hand(cards: Union[tuple, list]) -> str:
         elif 'A' in card:
             cards[ind] = card.replace('A', '14')
             ace.append(card.replace('A', '1'))
-    
     if ace:
         cards.extend(ace)
-    
     cards = list(set(cards))
     l = len(cards)
-    c_num, c_suit = [int(card.split(' ')[0]) for card in cards], [card.split(' ')[1] for card in cards]
-    
-    # if 14 in c_num:
-    #     c_num.append(1)
+    c_num = [int(card.split(' ')[0]) for card in cards]
+    c_suit = [card.split(' ')[1] for card in cards]
+
 
     def find_pair(cards: List[int]) -> bool:
         for card in cards:
             if cards.count(card) == 2:
                 return True
         return False
+
 
     def find_two_pair(cards: List[int]) -> bool:
         pair = 0
@@ -424,11 +432,13 @@ def calculate_hand(cards: Union[tuple, list]) -> str:
                     return True
         return False
 
+
     def find_three_of_a_kind(cards: List[int]) -> bool:
         for card in cards:
             if cards.count(card) == 3:
                 return True
         return False
+
 
     def find_full_house(cards: List[int]) -> bool:
         three, two = False, False
@@ -443,11 +453,13 @@ def calculate_hand(cards: Union[tuple, list]) -> str:
         else:
             return False
 
+
     def find_flush(cards: List[str]) -> bool:
         for card in cards:
             if cards.count(card) == 5:
                 return True
         return False
+
 
     def find_straight(cards: List[int]) -> bool:
         values = sorted(cards, reverse=True)
@@ -458,11 +470,13 @@ def calculate_hand(cards: Union[tuple, list]) -> str:
         t.append(values[-1])
         return t == list(range(t[0], t[0] - 5, -1))
 
+
     def find_four_of_a_kind(cards: List[int]) -> bool:
         for card in cards:
             if cards.count(card) == 4:
                 return True
         return False
+
 
     def find_straight_flush(nums, suits):
         if find_flush(cards=suits):
@@ -474,6 +488,7 @@ def calculate_hand(cards: Union[tuple, list]) -> str:
                 return True
         return False
 
+
     def find_royal_flush(nums, suits):
         if find_flush(cards=suits) and find_straight(cards=nums):
             cards = sorted(tuple(zip(c_num, c_suit)), key=lambda x: x[0], reverse=True)[:5]
@@ -484,6 +499,7 @@ def calculate_hand(cards: Union[tuple, list]) -> str:
         else:
             return False
         return True
+
 
     if l >= 5 and find_royal_flush(nums=c_num, suits=c_suit):
         return 'Royal Flush'
@@ -504,5 +520,7 @@ def calculate_hand(cards: Union[tuple, list]) -> str:
     elif l >= 2 and find_pair(cards=c_num):
         return 'Pair'
     else:
-        return {14: 'A High', 13: 'K High', 12: 'Q High', 11: 'J High', 10: '10 High', 9: '9 High', 8: '8 High',
-                7: '7 High', 6: '6 High', 5: '5 High', 4: '4 High', 3: '3 High', 2: '2 High'}[max(c_num)]
+        return {14: 'A High', 13: 'K High', 12: 'Q High', 11: 'J High',
+                10: '10 High', 9: '9 High', 8: '8 High', 7: '7 High',
+                6: '6 High', 5: '5 High', 4: '4 High', 3: '3 High',
+                2: '2 High'}[max(c_num)]
