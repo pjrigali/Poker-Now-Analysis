@@ -12,25 +12,24 @@ class Poker:
     A class that collects and parses Poker Now Logs.
 
     Attributes:
-        user (str): The width of the rectangle.
-        repo (str): The height of the rectangle.
-        grouped (dict): The height of the rectangle.
-        rows (list): The height of the rectangle.
-        hands (list): The height of the rectangle.
+        user (str): The player's identifier.
+        repo (str): The directory containing the log files.
+        grouped (dict): A dictionary mapping player names to their possible identifiers.
+        rows (list): A list of parsed log rows representing individual actions.
+        hands (list): A list of Hand objects representing individual games played.
 
     Methods:
-        items(): Calculate the area of the rectangle.
-        running_total(): Calculate the perimeter of the rectangle.
-        card_count(): Calculate the perimeter of the rectangle.
-        player_stats(): Calculate the perimeter of the rectangle.
+        items(): Return the attributes of the class.
+        running_total(): Calculate the running total of chips for each player.
+        card_count(): Calculate the frequency of cards drawn.
+        player_stats(): Calculate specific statistics for a player.
     """
     def __init__(self, user_inputs: dict):
         """
-        Initialize a Rectangle instance.
+        Initialize a Poker instance.
 
         Args:
-            width (float): The width of the rectangle.
-            height (float): The height of the rectangle.
+            user_inputs (dict): A dictionary containing user configurations, including 'me', 'repo', and 'grouped'.
         """
         self.user = user_inputs.get('me')
         self.repo = user_inputs.get('repo')
@@ -65,20 +64,20 @@ class Poker:
 
     def items(self):
         """
-        Calculate the area of the rectangle.
+        Return the attributes of the class.
 
         Returns:
-            float: The area of the rectangle.
+            dict: The attributes of the Poker object.
         """
         return _get_attributes(self)
 
 
     def running_total(self, rows: list = None, dollar_amount: int = 100,) -> dict:
         """
-        Calculate the area of the rectangle.
+        Calculate the running total of dollars/chips won/lost based on buy-ins and cash-outs.
 
         Returns:
-            float: The area of the rectangle.
+            dict: A dictionary mapping player names to their net chip/dollar changes.
         """
         d = _group_name_blank(self.grouped, 0.0)
         if not rows:
@@ -98,10 +97,10 @@ class Poker:
 
     def card_count(self, rows: list = None) -> dict:
         """
-        Calculate the area of the rectangle.
+        Calculate the frequency of each card drawn across the provided hands/rows.
 
         Returns:
-            float: The area of the rectangle.
+            dict: A dictionary mapping a card to its frequency count, sorted in descending order.
         """
         if not rows:
             rows = [{'cards': set(i.all_cards)} for i in self.hands]
@@ -118,10 +117,10 @@ class Poker:
 
     def player_stats(self, player_name: str) -> dict:
         """
-        Calculate the area of the rectangle.
+        Calculate specific statistics for a given player based on all hands played.
 
         Returns:
-            float: The area of the rectangle.
+            dict: A dictionary of statistics including counts, averages, and extreme values.
         """
         assert player_name in self.grouped
         assert isinstance(self.grouped[player_name], tuple)

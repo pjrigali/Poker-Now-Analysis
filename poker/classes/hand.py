@@ -10,23 +10,24 @@ from poker.utils.tools import calc_gini, calculate_hand
 @dataclass
 class Hand:
     """
-    A class representing a rectangle in a 2D plane.
+    A class representing a single hand of poker.
 
     Attributes:
-        width (float): The width of the rectangle.
-        height (float): The height of the rectangle.
+        game_id (str): Game identifier.
+        hand_number (int): Unique identifier for the hand within the game.
+        winner (str): The winner of the hand.
+        pot_size (float): The final pot size.
+        table_cards (dict): Community cards and player cards.
 
     Methods:
-        area(): Calculate the area of the rectangle.
-        perimeter(): Calculate the perimeter of the rectangle.
+        items(): Return the attributes of the hand.
     """
     def __init__(self, d: dict):
         """
-        Initialize a Rectangle instance.
+        Initialize a Hand instance.
 
         Args:
-            width (float): The width of the rectangle.
-            height (float): The height of the rectangle.
+            d (dict): A dictionary containing parsed data for a single hand.
         """
         self.event_lst = d['event_lst']
         self.event_dct = d['event_dct']
@@ -80,9 +81,9 @@ class Hand:
 
     def items(self):
         """
-        Calculate the area of the rectangle.
+        Return the attributes of the hand.
 
         Returns:
-            float: The area of the rectangle.
+            dict: The attributes of the Hand object.
         """
         return _get_attributes(self)
