@@ -212,7 +212,96 @@ def rename_logs(path: str, dry_run: bool = False) -> list:
     return renames
 
 
+def find_duplicates(path: str, dry_run: bool = True, delete: bool = False) -> dict:
+    """Find duplicate CSV files by content hash, regardless of filename.
+
+    Walks the entire directory tree rooted at ``path``, hashes every ``.csv``
+    file with SHA-256, and groups files that share the same hash.  Files with
+    a unique hash are never reported.
+
+    Parameters
+    ----------
+    path : str
+        Root directory to scan.  All subdirectories are included recursively.
+    dry_run : bool, optional
+        When ``True`` (default) prints a duplicate report without touching the
+        filesystem.  Set to ``False`` together with ``delete=True`` to actually
+        remove duplicates.
+    delete : bool, optional
+        When ``True`` **and** ``dry_run=False``, deletes all but the first file
+        in each duplicate group.  The "keeper" is chosen by sorting the full
+        paths alphabetically — the lexicographically smallest path is kept so
+        that root-level files are preferred over those in subdirectories.
+        Defaults to ``False``.
+
+    Returns
+    -------
+    dict
+        Mapping of ``sha256_hex -> [list of absolute file paths]`` for every
+        group that contains more than one file.  Single-file groups are
+        excluded.
+
+    Examples
+    --------
+    >>> # Preview duplicates without changing anything
+    >>> dupes = find_duplicates(r'poker/.data', dry_run=True)
+
+    >>> # Delete duplicates (keeps root-level / lexicographically first file)
+    >>> dupes = find_duplicates(r'poker/.data', dry_run=False, delete=True)
+    """
+    import hashlib
+
+    def _hash_file(filepath: str, chunk: int = 65536) -> str:
+        h = hashlib.sha256()
+        with open(filepath, 'rb') as f:
+            while block := f.read(chunk):
+                h.update(block)
+        return h.hexdigest()
+
+    # Walk the full directory tree and hash every CSV
+    hash_map: dict[str, list[str]] = {}
+    for dirpath, _, filenames in os.walk(path):
+        for fname in filenames:
+            if not fname.lower().endswith('.csv'):
+                continue
+            full = os.path.abspath(os.path.join(dirpath, fname))
+            digest = _hash_file(full)
+            hash_map.setdefault(digest, []).append(full)
+
+    # Keep only groups with more than one file
+    duplicates = {h: sorted(paths) for h, paths in hash_map.items() if len(paths) > 1}
+
+    if not duplicates:
+        print('No duplicate files found.')
+        return duplicates
+
+    total_dupes = sum(len(v) - 1 for v in duplicates.values())
+    label = '[dry-run] ' if dry_run else ''
+    print(f'{label}Found {len(duplicates)} duplicate group(s) — {total_dupes} redundant file(s):\n')
+
+    for i, (digest, paths) in enumerate(duplicates.items(), 1):
+        keeper = paths[0]
+        redundant = paths[1:]
+        print(f'  Group {i}  [{digest[:12]}...]')
+        print(f'    KEEP : {keeper}')
+        for p in redundant:
+            if dry_run or not delete:
+                print(f'    DUPE : {p}')
+            else:
+                os.remove(p)
+                print(f'    DELETED : {p}')
+        print()
+
+    if dry_run:
+        print(f'Dry-run complete.  Pass dry_run=False, delete=True to remove duplicates.')
+    elif delete:
+        print(f'Deleted {total_dupes} redundant file(s).')
+
+    return duplicates
+
+
 def parser(repo: str, file_name: str, me: str, player_dct: dict = None):
+
     lst, keep, player_names, hand_cnt, start_end, chips, player_dct, raw = [], False, set(), 1, {}, {}, group_names(player_dct), read_csv(repo, file_name)[::-1]
     for i in raw:
         i['game_id'] = file_name
