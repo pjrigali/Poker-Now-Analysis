@@ -39,8 +39,8 @@ def _remove_nan(data: list, replace_val: Optional[Union[int, float, str]] = None
 
 
 def _to_type(data: Union[list, np.float64, np.float32, np.float16,
-                         np.float_, np.int64, np.int32, np.int16,
-                         np.int8, np.int_, float, int], new_type: str
+                         np.int64, np.int32, np.int16,
+                         np.int8, np.intp, float, int], new_type: str
              ) -> Union[List[int], List[float], int, float]:
     """Converts objects to a set item"""
     if new_type == 'int':
@@ -265,8 +265,8 @@ def unique_values(data: Union[list, np.ndarray, pd.Series],
 
 
 def round_to(data: Union[list, np.ndarray, pd.Series, np.float64,
-                         np.float32, np.float16, np.float_, np.int64,
-                         np.int32, np.int16, np.int8, np.int_,
+                         np.float32, np.float16, np.int64,
+                         np.int32, np.int16, np.int8, np.intp,
                          float, int],
              val: Union[int, float],
              remainder: Optional[bool] = False

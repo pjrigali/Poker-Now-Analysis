@@ -45,6 +45,80 @@ def read_csv(folder: str, file_name: str) -> list:
     return rows
 
 
+def get_player_lookup(path: str, grouped: dict = None) -> dict:
+    """Read poker log CSVs and return a mapping of player IDs to known names.
+
+    Parameters
+    ----------
+    path : str
+        Either a path to a single CSV file **or** a folder containing CSV files.
+        When a folder is provided every ``.csv`` file in the folder is scanned.
+    grouped : dict, optional
+        A canonical guide mapping real names to their known IDs, e.g.
+        ``{'Peter': ('mQWfGaGPXE', 'hOG9_DzBzN'), ...}``.
+        When provided the return shape changes — see below.
+
+    Returns
+    -------
+    dict
+        **Without** ``grouped``:
+            ``{player_id: [name1, name2, ...]}`` – raw ID → display-name lookup.
+
+        **With** ``grouped``:
+            ``{canonical_name: {'ids': [...], 'names': [...]}}`` where ``ids``
+            are taken from ``grouped`` and ``names`` is the deduplicated union
+            of every display name seen in the data for those IDs.
+    """
+    import re
+
+    # Decide whether path is a file or directory and build file list
+    if os.path.isfile(path):
+        folder, files = os.path.dirname(path), [os.path.basename(path)]
+    else:
+        folder = path
+        files = [f for f in os.listdir(path) if f.endswith('.csv')]
+
+    # Pattern captures the "Name @ ID" tokens wrapped in quotes within entries
+    pattern = re.compile(r'"([^"]+?)\s*@\s*([^"]+)"')
+
+    # Build raw id -> [display names] lookup from every CSV row
+    raw_lookup: dict[str, list[str]] = {}
+    for file in files:
+        rows = read_csv(folder, file)
+        for row in rows:
+            entry = row.get('entry', '')
+            for name, pid in pattern.findall(entry):
+                name = name.strip()
+                pid = pid.strip()
+                if pid not in raw_lookup:
+                    raw_lookup[pid] = []
+                if name not in raw_lookup[pid]:
+                    raw_lookup[pid].append(name)
+
+    if grouped is None:
+        return raw_lookup
+
+    # Collect all IDs claimed by the guide
+    grouped_ids = {pid for ids in grouped.values() for pid in ids}
+
+    # Merge with the canonical guide
+    merged: dict[str, dict] = {}
+    for canonical_name, ids in grouped.items():
+        all_names = []
+        for pid in ids:
+            for display_name in raw_lookup.get(pid, []):
+                if display_name not in all_names:
+                    all_names.append(display_name)
+        merged[canonical_name] = {'ids': list(ids), 'names': all_names}
+
+    # Add any IDs found in the data that aren't covered by the guide
+    for pid, names in raw_lookup.items():
+        if pid not in grouped_ids:
+            merged[pid] = {'ids': [pid], 'names': names}
+
+    return merged
+
+
 def parser(repo: str, file_name: str, me: str, player_dct: dict = None):
     lst, keep, player_names, hand_cnt, start_end, chips, player_dct, raw = [], False, set(), 1, {}, {}, group_names(player_dct), read_csv(repo, file_name)[::-1]
     for i in raw:
