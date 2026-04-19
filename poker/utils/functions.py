@@ -4,6 +4,7 @@ Functions used in the parsing of Poker Now logs.
 # pylint: disable=E0401
 # pylint: disable=E0611
 import os
+import re
 import csv
 import datetime
 from poker.classes.hand import Hand
@@ -69,8 +70,6 @@ def get_player_lookup(path: str, grouped: dict = None) -> dict:
             are taken from ``grouped`` and ``names`` is the deduplicated union
             of every display name seen in the data for those IDs.
     """
-    import re
-
     # Decide whether path is a file or directory and build file list
     if os.path.isfile(path):
         folder, files = os.path.dirname(path), [os.path.basename(path)]
@@ -117,6 +116,100 @@ def get_player_lookup(path: str, grouped: dict = None) -> dict:
             merged[pid] = {'ids': [pid], 'names': names}
 
     return merged
+
+
+def rename_logs(path: str, dry_run: bool = False) -> list:
+    """Rename Poker Now CSV log files to a standard ``YYYY_MM_DD_Poker Log`` format.
+
+    The game date is determined by reading the earliest ``at`` timestamp found
+    inside each CSV.  Files that already match the target naming scheme are
+    skipped.  When more than one file maps to the same calendar date the first
+    file keeps the plain name and each subsequent collision receives a numeric
+    suffix (``_02``, ``_03``, …).
+
+    Parameters
+    ----------
+    path : str
+        Path to a folder containing Poker Now CSV log files.
+    dry_run : bool, optional
+        When ``True`` the function prints what would be renamed without
+        actually writing anything to disk.  Useful for previewing changes
+        before committing.  Defaults to ``False``.
+
+    Returns
+    -------
+    list of dict
+        One entry per file that was (or would be) renamed, each with the
+        keys ``'old'`` and ``'new'`` containing the original and target
+        file names respectively.
+    """
+    target_pattern = re.compile(r'^\d{4}_\d{2}_\d{2}_Poker Log(_\d{2})?\.csv$')
+
+    files = [f for f in os.listdir(path) if f.endswith('.csv')]
+
+    # --- pass 1: resolve the game date for every file that needs renaming ---
+    pending = []   # list of (old_name, date_obj)
+    for file in files:
+        if target_pattern.match(file):
+            continue  # already correctly named — skip
+
+        rows = read_csv(path, file)
+        if not rows:
+            continue
+
+        # Find the earliest timestamp in the file to get the true game date
+        dates = []
+        for row in rows:
+            at_raw = row.get('at', '')
+            if at_raw:
+                try:
+                    dt = datetime.datetime.strptime(at_raw.split('.')[0], '%Y-%m-%dT%H:%M:%S')
+                    dates.append(dt.date())
+                except ValueError:
+                    pass
+
+        if not dates:
+            continue
+
+        game_date = min(dates)
+        pending.append((file, game_date))
+
+    # --- pass 2: sort by (date, original name) for deterministic ordering ---
+    pending.sort(key=lambda x: (x[1], x[0]))
+
+    # Count how many files already exist for each date (from already-renamed files)
+    date_counts: dict = {}
+    for existing in files:
+        m = target_pattern.match(existing)
+        if m:
+            try:
+                d = datetime.date(int(existing[:4]), int(existing[5:7]), int(existing[8:10]))
+                date_counts[d] = date_counts.get(d, 0) + 1
+            except ValueError:
+                pass
+
+    # --- pass 3: assign new names and rename ---
+    renames = []
+    for old_name, game_date in pending:
+        count = date_counts.get(game_date, 0)
+
+        if count == 0:
+            new_name = game_date.strftime('%Y_%m_%d') + '_Poker Log.csv'
+        else:
+            new_name = game_date.strftime('%Y_%m_%d') + f'_Poker Log_{count + 1:02d}.csv'
+
+        date_counts[game_date] = count + 1
+        renames.append({'old': old_name, 'new': new_name})
+
+        if dry_run:
+            print(f'[dry-run] {old_name!r}  ->  {new_name!r}')
+        else:
+            src = os.path.join(path, old_name)
+            dst = os.path.join(path, new_name)
+            os.rename(src, dst)
+            print(f'Renamed: {old_name!r}  ->  {new_name!r}')
+
+    return renames
 
 
 def parser(repo: str, file_name: str, me: str, player_dct: dict = None):
