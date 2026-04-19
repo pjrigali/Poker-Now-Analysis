@@ -494,7 +494,7 @@ def calculate_hand(cards: Union[tuple, list]) -> str:
             cards = sorted(tuple(zip(c_num, c_suit)), key=lambda x: x[0], reverse=True)[:5]
             lst, suit = (14, 13, 12, 11, 10), cards[0][1]
             for ind, card in enumerate(cards):
-                if card[0][0] != lst[0]:
+                if card[0] != lst[ind]:
                     return False
         else:
             return False

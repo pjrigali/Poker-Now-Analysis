@@ -550,7 +550,11 @@ def parser(repo: str, file_name: str, me: str, player_dct: dict = None):
 
 def parse_games(repo: str, user_name: str, grouped: dict = None):
     """This function grabs files within a given repo and parses the log file."""
-    lst, hands, files = [], [], next(os.walk(repo))[2]
+    if not os.path.exists(repo):
+        raise FileNotFoundError(f"The directory '{repo}' does not exist.")
+    
+    lst, hands = [], []
+    files = [f for f in os.listdir(repo) if os.path.isfile(os.path.join(repo, f))]
     for file in files:
         if file.endswith('.csv'):
             event_lst, hand_lst = parser(repo, file, user_name, grouped)
