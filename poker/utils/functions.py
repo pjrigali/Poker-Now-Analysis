@@ -244,10 +244,10 @@ def find_duplicates(path: str, dry_run: bool = True, delete: bool = False) -> di
     Examples
     --------
     >>> # Preview duplicates without changing anything
-    >>> dupes = find_duplicates(r'poker/.data', dry_run=True)
+    >>> dupes = find_duplicates(r'../data-lake/01_Bronze/poker', dry_run=True)
 
     >>> # Delete duplicates (keeps root-level / lexicographically first file)
-    >>> dupes = find_duplicates(r'poker/.data', dry_run=False, delete=True)
+    >>> dupes = find_duplicates(r'../data-lake/01_Bronze/poker', dry_run=False, delete=True)
     """
     import hashlib
 

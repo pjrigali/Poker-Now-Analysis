@@ -1,9 +1,10 @@
+import os
 from poker.classes.poker import Poker
 
 
 if __name__ == '__main__':
         me = 'Peter @ Jf-Q4OmfIt'
-        repo = 'C:\\Users\\Peter\\Desktop\\vscode\\poker\\data\\'
+        repo = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data-lake', '01_Bronze', 'poker')
         grouped = {'Peter'   : ('mQWfGaGPXE', 'ijDyevyKYD', 'Jf-Q4OmfIt', 'hOG9_DzBzN'),
                 'Flynn'   : ('YEtsj6CMK4', 'M_ODMJ-3Je', 'DZy-22KNBS', 'AAVEC4azwk', 'vbV5gsPyQT'),
                 'Mike'    : ('1_FRcDzJU-', 'ofZ3AjBJdl', 'yUaYOqMtWh', 'EIxKLHzvif', 'welPeANz41'),
